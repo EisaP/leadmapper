@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maps Lead Generator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span>LeadMapper</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-btn active" data-panel="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Search
+      </button>
+      <button class="nav-btn" data-panel="bookmarks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        Bookmarks
+        <span class="badge" id="bookmarkBadge">0</span>
+      </button>
+      <button class="nav-btn" data-panel="history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4.5"/><polyline points="3 3 3.05 11 11 11"/></svg>
+        History
+        <span class="badge" id="historyBadge">0</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="api-status" id="apiStatus">
+        <span class="status-dot"></span>
+        <span id="apiStatusText">Ready</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- SEARCH PANEL -->
+    <section class="panel active" id="panel-search">
+      <div class="panel-header">
+        <h1>Find Business Leads</h1>
+        <p>Search Google Maps and extract business contact data instantly.</p>
+      </div>
+
+      <form class="search-form" id="searchForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="keyword">Business Type / Keyword</label>
+            <input type="text" id="keyword" placeholder="e.g. restaurant, hair salon, dentist" required />
+          </div>
+          <div class="form-group">
+            <label for="city">City</label>
+            <input type="text" id="city" placeholder="e.g. London" required />
+          </div>
+          <div class="form-group">
+            <label for="country">Country</label>
+            <input type="text" id="country" placeholder="e.g. United Kingdom" required />
+          </div>
+          <div class="form-group form-group--small">
+            <label for="maxResults">Results</label>
+            <select id="maxResults">
+              <option value="10">10</option>
+              <option value="20" selected>20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row form-row--filters">
+          <div class="form-group form-group--small">
+            <label for="ratingMin">Min Rating</label>
+            <input type="number" id="ratingMin" placeholder="e.g. 3.9" step="0.1" min="0" max="5" />
+          </div>
+          <div class="form-group form-group--small">
+            <label for="ratingMax">Max Rating</label>
+            <input type="number" id="ratingMax" placeholder="e.g. 4.6" step="0.1" min="0" max="5" />
+          </div>
+          <div class="form-group form-group--small">
+            <label for="maxReviews">Max Reviews</label>
+            <select id="maxReviews">
+              <option value="">Any</option>
+              <option value="100">Under 100</option>
+              <option value="200">Under 200</option>
+              <option value="300">Under 300</option>
+              <option value="400">Under 400</option>
+              <option value="500">Under 500</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn--primary" id="searchBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Search Leads
+        </button>
+      </form>
+
+      <!-- Loading state -->
+      <div class="loading hidden" id="loading">
+        <div class="spinner"></div>
+        <p>Scraping Google Maps… This can take 30–90 seconds.</p>
+        <p class="loading-sub" id="loadingTimer">0s elapsed</p>
+      </div>
+
+      <!-- Error -->
+      <div class="error-box hidden" id="errorBox">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="errorText"></span>
+      </div>
+
+      <!-- Results -->
+      <div class="results-section hidden" id="resultsSection">
+        <div class="results-header">
+          <div>
+            <h2 id="resultsTitle">Results</h2>
+            <p class="results-meta" id="resultsMeta"></p>
+          </div>
+          <div class="results-actions">
+            <button class="btn btn--secondary" id="bookmarkAllBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              Bookmark All
+            </button>
+            <button class="btn btn--secondary" id="exportBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="results-table" id="resultsTable">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Business Name</th>
+                <th>Rating</th>
+                <th>Reviews</th>
+                <th>Phone</th>
+                <th>Website</th>
+                <th>Address</th>
+                <th>Category</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty-state" id="emptyState">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <h3>Find your next leads</h3>
+        <p>Enter a business type, city, and country above to start scraping Google Maps.</p>
+      </div>
+    </section>
+
+    <!-- BOOKMARKS PANEL -->
+    <section class="panel" id="panel-bookmarks">
+      <div class="panel-header">
+        <h1>Bookmarked Leads</h1>
+        <p>Businesses you've saved for follow-up.</p>
+      </div>
+      <div class="panel-toolbar">
+        <button class="btn btn--secondary" id="exportBookmarksBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+        <button class="btn btn--ghost btn--danger" id="clearBookmarksBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          Clear All
+        </button>
+      </div>
+      <div class="table-wrapper" id="bookmarksTableWrapper">
+        <table class="results-table" id="bookmarksTable">
+          <thead>
+            <tr>
+              <th>Business Name</th>
+              <th>Rating</th>
+              <th>Reviews</th>
+              <th>Phone</th>
+              <th>Website</th>
+              <th>Address</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="bookmarksBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state hidden" id="bookmarksEmpty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        <h3>No bookmarks yet</h3>
+        <p>Click the bookmark icon next to any result to save it here.</p>
+      </div>
+    </section>
+
+    <!-- HISTORY PANEL -->
+    <section class="panel" id="panel-history">
+      <div class="panel-header">
+        <h1>Search History</h1>
+        <p>Your recent searches — click any to re-run it.</p>
+      </div>
+      <div class="panel-toolbar">
+        <button class="btn btn--ghost btn--danger" id="clearHistoryBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+          Clear History
+        </button>
+      </div>
+      <div class="history-list" id="historyList"></div>
+      <div class="empty-state hidden" id="historyEmpty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4.5"/><polyline points="3 3 3.05 11 11 11"/></svg>
+        <h3>No searches yet</h3>
+        <p>Your search history will appear here.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast notification -->
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

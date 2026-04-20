@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>History — LeadMapper</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Inter', sans-serif; } .sidebar { background: #1a1f1e; } .sidebar a.active { background: #4a7c59; } .sidebar a:hover { background: #2a352e; }</style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <div class="flex h-screen overflow-hidden">
+    <nav class="sidebar w-16 lg:w-56 flex-shrink-0 flex flex-col items-center lg:items-stretch py-4 text-white">
+      <div class="flex items-center gap-2 px-4 mb-8">
+        <svg class="w-7 h-7 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span class="hidden lg:block font-bold text-lg">LeadMapper</span>
+      </div>
+      <a href="/" class="flex items-center gap-3 px-4 py-2.5 rounded-lg mx-2 mb-1 text-sm">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <span class="hidden lg:block">Search</span>
+      </a>
+      <a href="/history" class="flex items-center gap-3 px-4 py-2.5 rounded-lg mx-2 mb-1 text-sm active">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span class="hidden lg:block">History</span>
+      </a>
+      <a href="/leads" class="flex items-center gap-3 px-4 py-2.5 rounded-lg mx-2 mb-1 text-sm">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+        <span class="hidden lg:block">Leads</span>
+      </a>
+    </nav>
+
+    <main class="flex-1 overflow-y-auto p-6">
+      <h1 class="text-2xl font-bold mb-6">Search History</h1>
+
+      <% if (searches.length === 0) { %>
+        <div class="flex flex-col items-center justify-center py-20 text-gray-400">
+          <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <p class="text-lg font-medium text-gray-500">No search history yet</p>
+          <p class="text-sm mt-1">Your searches will appear here.</p>
+          <a href="/" class="mt-4 bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-800">Start Searching</a>
+        </div>
+      <% } else { %>
+        <div class="bg-white rounded-xl border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+              <tr>
+                <th class="px-4 py-3 text-left">Search Query</th>
+                <th class="px-4 py-3 text-left">Location</th>
+                <th class="px-4 py-3 text-center">Results</th>
+                <th class="px-4 py-3 text-left">Date</th>
+                <th class="px-4 py-3 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <% searches.forEach(s => { %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-4 py-3 font-medium"><%= s.keyword %></td>
+                <td class="px-4 py-3 text-gray-600"><%= s.city %>, <%= s.state %></td>
+                <td class="px-4 py-3 text-center">
+                  <span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full"><%= s.resultCount %></span>
+                </td>
+                <td class="px-4 py-3 text-gray-500"><%= new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></td>
+                <td class="px-4 py-3 text-center">
+                  <a href="/history/<%= s.key %>" class="text-green-700 hover:underline text-sm mr-3">View</a>
+                  <form method="POST" action="/history/delete/<%= s.key %>" class="inline" onsubmit="return confirm('Delete this search?')">
+                    <button type="submit" class="text-red-500 hover:underline text-sm">Delete</button>
+                  </form>
+                </td>
+              </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </main>
+  </div>
+</body>
+</html>

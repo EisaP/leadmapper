@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leads — LeadMapper</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .sidebar { background: #1a1f1e; }
+    .sidebar a.active { background: #4a7c59; }
+    .sidebar a:hover { background: #2a352e; }
+    .detail-panel { transform: translateX(100%); transition: transform 0.3s ease; }
+    .detail-panel.open { transform: translateX(0); }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <div class="flex h-screen overflow-hidden">
+    <nav class="sidebar w-16 lg:w-56 flex-shrink-0 flex flex-col items-center lg:items-stretch py-4 text-white">
+      <div class="flex items-center gap-2 px-4 mb-8">
+        <svg class="w-7 h-7 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span class="hidden lg:block font-bold text-lg">LeadMapper</span>
+      </div>
+      <a href="/" class="flex items-center gap-3 px-4 py-2.5 rounded-lg mx-2 mb-1 text-sm">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <span class="hidden lg:block">Search</span>
+      </a>
+      <a href="/history" class="flex items-center gap-3 px-4 py-2.5 rounded-lg mx-2 mb-1 text-sm">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span class="hidden lg:block">History</span>
+      </a>
+      <a href="/leads" class="flex items-center gap-3 px-4 py-2.5 rounded-lg mx-2 mb-1 text-sm active">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+        <span class="hidden lg:block">Leads</span>
+      </a>
+    </nav>
+
+    <main class="flex-1 overflow-y-auto p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold">Saved Leads <span class="text-gray-400 text-lg" id="leadCount">(<%= leads.length %>)</span></h1>
+      </div>
+
+      <% if (leads.length === 0) { %>
+        <div class="flex flex-col items-center justify-center py-20 text-gray-400">
+          <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+          <p class="text-lg font-medium text-gray-500">No saved leads yet</p>
+          <p class="text-sm mt-1">Bookmark leads from search results to see them here.</p>
+          <a href="/" class="mt-4 bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-800">Start Searching</a>
+        </div>
+      <% } else { %>
+        <div class="bg-white rounded-xl border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+              <tr>
+                <th class="px-4 py-3 text-left">Company</th>
+                <th class="px-4 py-3 text-left">Phone</th>
+                <th class="px-4 py-3 text-left">Website</th>
+                <th class="px-4 py-3 text-left">Category</th>
+                <th class="px-4 py-3 text-center">Rating</th>
+                <th class="px-4 py-3 text-left">Saved</th>
+                <th class="px-4 py-3 text-center">Remove</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100" id="leadsBody">
+              <% leads.forEach(l => { %>
+              <tr class="hover:bg-gray-50 cursor-pointer lead-row" data-key="<%= l.key %>"
+                  data-title="<%= l.title %>" data-phone="<%= l.phone %>" data-email="<%= l.email %>"
+                  data-website="<%= l.website %>" data-category="<%= l.category %>"
+                  data-address="<%= l.address %>" data-rating="<%= l.rating %>"
+                  data-reviews="<%= l.reviewCount %>" data-url="<%= l.url %>">
+                <td class="px-4 py-3 font-medium text-gray-900"><%= l.title %></td>
+                <td class="px-4 py-3 text-gray-600"><%= l.phone || '—' %></td>
+                <td class="px-4 py-3">
+                  <% if (l.website) { %>
+                    <a href="<%= l.website %>" target="_blank" onclick="event.stopPropagation()" class="text-green-700 hover:underline truncate block max-w-[180px]"><%= l.website.replace(/https?:\/\/(www\.)?/, '').split('/')[0] %></a>
+                  <% } else { %>—<% } %>
+                </td>
+                <td class="px-4 py-3 text-gray-600"><%= l.category || '—' %></td>
+                <td class="px-4 py-3 text-center">
+                  <% if (l.rating != null) { %><span class="text-amber-600 font-medium">★ <%= l.rating %></span><% } else { %>—<% } %>
+                </td>
+                <td class="px-4 py-3 text-gray-500 text-xs"><%= new Date(l.savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) %></td>
+                <td class="px-4 py-3 text-center">
+                  <button onclick="event.stopPropagation(); removeLead('<%= l.key %>', this)" class="text-red-400 hover:text-red-600 p-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  </button>
+                </td>
+              </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </main>
+
+    <!-- Detail panel -->
+    <div id="detailPanel" class="detail-panel fixed top-0 right-0 h-full w-96 bg-white shadow-2xl z-50 overflow-y-auto">
+      <div class="p-6">
+        <button onclick="closePanel()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        <div class="flex items-center gap-3 mb-6">
+          <div id="panelAvatar" class="w-12 h-12 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xl font-bold"></div>
+          <div>
+            <h2 id="panelTitle" class="text-lg font-bold"></h2>
+            <p id="panelCategory" class="text-sm text-gray-500"></p>
+          </div>
+        </div>
+        <div id="panelRating" class="flex items-center gap-2 mb-6 text-amber-500 font-medium"></div>
+        <div class="space-y-4 mb-6">
+          <div id="panelPhoneRow" class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+            <a id="panelPhone" href="#" class="text-green-700 hover:underline"></a>
+          </div>
+          <div id="panelEmailRow" class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            <span id="panelEmail" class="text-sm"></span>
+          </div>
+          <div id="panelAddressRow" class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/></svg>
+            <span id="panelAddress" class="text-sm text-gray-600"></span>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <a id="panelWebsiteBtn" href="#" target="_blank" class="block w-full text-center bg-green-700 hover:bg-green-800 text-white py-2.5 rounded-lg text-sm font-medium">Visit Website</a>
+          <a id="panelMapsBtn" href="#" target="_blank" class="block w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm font-medium">Open in Google Maps</a>
+          <button id="panelRemoveBtn" onclick="removeFromPanel()" class="w-full bg-red-50 border-2 border-red-400 text-red-600 hover:bg-red-100 py-2.5 rounded-lg text-sm font-medium">Remove from Leads</button>
+        </div>
+      </div>
+    </div>
+    <div id="panelOverlay" class="fixed inset-0 bg-black/20 z-40 hidden" onclick="closePanel()"></div>
+  </div>
+
+  <script>
+    let currentKey = null;
+
+    document.querySelectorAll('.lead-row').forEach(row => {
+      row.addEventListener('click', () => {
+        currentKey = row.dataset.key;
+        const d = row.dataset;
+        document.getElementById('panelAvatar').textContent = d.title.charAt(0);
+        document.getElementById('panelTitle').textContent = d.title;
+        document.getElementById('panelCategory').textContent = d.category || '';
+        const rating = d.rating && d.rating !== 'null' ? `★ ${d.rating}` : '';
+        document.getElementById('panelRating').textContent = `${rating} ${d.reviews ? '(' + d.reviews + ' reviews)' : ''}`;
+        const phoneRow = document.getElementById('panelPhoneRow');
+        if (d.phone) { document.getElementById('panelPhone').textContent = d.phone; document.getElementById('panelPhone').href = 'tel:' + d.phone; phoneRow.style.display = 'flex'; }
+        else { phoneRow.style.display = 'none'; }
+        const emailRow = document.getElementById('panelEmailRow');
+        if (d.email) { document.getElementById('panelEmail').textContent = d.email; emailRow.style.display = 'flex'; }
+        else { emailRow.style.display = 'none'; }
+        document.getElementById('panelAddress').textContent = d.address || '';
+        document.getElementById('panelWebsiteBtn').href = d.website || '#';
+        document.getElementById('panelWebsiteBtn').style.display = d.website ? 'block' : 'none';
+        document.getElementById('panelMapsBtn').href = d.url || '#';
+        document.getElementById('detailPanel').classList.add('open');
+        document.getElementById('panelOverlay').classList.remove('hidden');
+      });
+    });
+
+    function closePanel() {
+      document.getElementById('detailPanel').classList.remove('open');
+      document.getElementById('panelOverlay').classList.add('hidden');
+      currentKey = null;
+    }
+
+    async function removeLead(key, btn) {
+      if (!confirm('Remove this lead?')) return;
+      await fetch(`/leads/delete/${key}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+      btn.closest('tr').remove();
+      const remaining = document.querySelectorAll('.lead-row').length;
+      document.getElementById('leadCount').textContent = `(${remaining})`;
+      if (remaining === 0) location.reload();
+    }
+
+    async function removeFromPanel() {
+      if (!currentKey) return;
+      await fetch(`/leads/delete/${currentKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+      const row = document.querySelector(`tr[data-key="${currentKey}"]`);
+      if (row) row.remove();
+      closePanel();
+      const remaining = document.querySelectorAll('.lead-row').length;
+      document.getElementById('leadCount').textContent = `(${remaining})`;
+      if (remaining === 0) location.reload();
+    }
+  </script>
+</body>
+</html>
