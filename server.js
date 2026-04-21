@@ -68,20 +68,38 @@ async function serpApiSearch(query, start) {
   return response.json();
 }
 
-// --- Email/Phone enrichment ---
+// --- Email / Phone / Instagram / LinkedIn / Booking platform enrichment ---
 async function enrichLead(websiteUrl) {
-  if (!websiteUrl) return { email: '', phone: '', instagram: '' };
+  if (!websiteUrl) return { email: '', phone: '', instagram: '', linkedin: '', booking: '' };
 
   const emails = new Set();
   const phones = new Set();
   const instagrams = new Set();
+  const linkedins = new Set();
+  const bookings = new Set();
 
   const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
-  const phoneRegex = /(?:\+?\d{1,3}[\s\-.]?)?\(?\d{2,4}\)?[\s\-.]?\d{3,4}[\s\-.]?\d{3,4}/g;
   const ignoreEmails = /\.(png|jpg|jpeg|gif|svg|css|js|ico|webp|woff)$/i;
   const junkDomains = /(@example\.com|@domain\.com|@test\.com|@localhost|@email\.com|@yoursite\.com|@yourdomain\.com|@.*sentry\.io|@wixpress\.com|@mailinator\.com|@placeholder\.com|noreply@|no-reply@|donotreply@)/i;
   const igRegex = /(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/gi;
   const igIgnore = new Set(['p', 'reel', 'reels', 'stories', 'explore', 'accounts', 'about', 'developer', 'legal', 'terms', 'privacy', 'directory', 'static', 'share']);
+  // LinkedIn company or school page
+  const liRegex = /linkedin\.com\/(?:company|school|in)\/([a-zA-Z0-9_\-%.]{1,80})\/?/gi;
+  // Booking / reservation platforms (case-insensitive substring check)
+  const bookingPlatforms = [
+    { name: 'OpenTable',  re: /opentable\.com/i },
+    { name: 'Resy',       re: /resy\.com/i },
+    { name: 'Tock',       re: /exploretock\.com|www\.tock\.com/i },
+    { name: 'SevenRooms', re: /sevenrooms\.com/i },
+    { name: 'Fresha',     re: /fresha\.com/i },
+    { name: 'Booksy',     re: /booksy\.com/i },
+    { name: 'Treatwell',  re: /treatwell\./i },
+    { name: 'Mindbody',   re: /mindbodyonline\.com/i },
+    { name: 'Square',     re: /squareup\.com\/appointments|book\.squareup\.com/i },
+    { name: 'Calendly',   re: /calendly\.com/i },
+    { name: 'Setmore',    re: /setmore\.com/i },
+    { name: 'Acuity',     re: /acuityscheduling\.com/i },
+  ];
 
   // If the listed website IS an Instagram URL, extract handle directly
   const igDirectMatch = websiteUrl.match(/(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/i);
@@ -118,38 +136,46 @@ async function enrichLead(websiteUrl) {
 
       const html = await resp.text();
 
-      // Extract emails
+      // Emails
       const foundEmails = html.match(emailRegex) || [];
-      foundEmails.forEach(e => {
-        if (!ignoreEmails.test(e) && !junkDomains.test(e)) emails.add(e.toLowerCase());
-      });
+      foundEmails.forEach(e => { if (!ignoreEmails.test(e) && !junkDomains.test(e)) emails.add(e.toLowerCase()); });
 
-      // Extract phones from tel: links (more reliable than raw regex)
+      // Phones from tel: links (more reliable than raw regex)
       const telLinks = html.match(/href=["']tel:([^"']+)["']/gi) || [];
       telLinks.forEach(t => {
         const num = t.replace(/href=["']tel:/i, '').replace(/["']/g, '').trim();
         if (num.length >= 7) phones.add(num);
       });
 
-      // Extract Instagram handles from links
+      // Instagram handles
       let igMatch;
       while ((igMatch = igRegex.exec(html)) !== null) {
         const handle = igMatch[1].toLowerCase();
         if (!igIgnore.has(handle)) instagrams.add(handle);
       }
 
-      // If we found an email, no need to check more pages
-      if (emails.size > 0) break;
+      // LinkedIn company / in slugs
+      let liMatch;
+      while ((liMatch = liRegex.exec(html)) !== null) {
+        const slug = liMatch[1].toLowerCase();
+        if (slug && slug.length > 1) linkedins.add(slug);
+      }
+
+      // Booking platforms
+      bookingPlatforms.forEach(bp => { if (bp.re.test(html)) bookings.add(bp.name); });
+
+      if (emails.size > 0 && linkedins.size > 0) break;
     } catch {
-      // Timeout or network error — skip this page
       continue;
     }
   }
 
   return {
-    email: [...emails][0] || '',
-    phone: [...phones][0] || '',
+    email:     [...emails][0] || '',
+    phone:     [...phones][0] || '',
     instagram: [...instagrams][0] || '',
+    linkedin:  [...linkedins][0] || '',
+    booking:   [...bookings].join(', '),
   };
 }
 
@@ -162,7 +188,7 @@ app.get('/', (req, res) => {
 
 // Perform search
 app.post('/search', async (req, res) => {
-  const { keyword, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, targetSegment } = req.body;
+  const { keyword, excludeKeywords, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, targetSegment } = req.body;
   // Enrichment is always-on by default; user can opt out via "Skip enrichment" advanced toggle.
   const enrich = skipEnrichment === 'on' ? false : true;
 
@@ -182,61 +208,98 @@ app.post('/search', async (req, res) => {
   }
 
   const limit = Math.min(parseInt(maxResults) || 20, 500);
-  const searchString = `${keyword} in ${city}, ${state}`;
 
-  console.log(`[search] Query: "${searchString}", limit: ${limit}`);
-  console.log(`[search] Filters — ratingMin: ${ratingMin}, ratingMax: ${ratingMax}, maxReviews: ${maxReviews}`);
+  // Parse multi-keyword (comma-separated) — each becomes its own search, results merged & deduped
+  const keywords = String(keyword).split(',').map(k => k.trim()).filter(Boolean);
+  const excludeTerms = String(excludeKeywords || '').split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+  const perKeywordLimit = Math.max(20, Math.ceil(limit / keywords.length));
+
+  console.log(`[search] Keywords: ${JSON.stringify(keywords)} in ${city}, ${state} · limit ${limit} (≈${perKeywordLimit}/keyword)`);
+  console.log(`[search] Exclude: ${JSON.stringify(excludeTerms)} · rating ${ratingMin}–${ratingMax} · maxReviews ${maxReviews}`);
 
   try {
-    // SerpAPI returns ~20 results per page. Paginate to reach the limit.
-    // Each page costs 1 search credit.
+    // Run one pass per keyword, concat all raw results
     let allResults = [];
-    let start = 0;
     const perPage = 20;
-    const maxPages = Math.ceil(limit / perPage);
-
-    for (let page = 0; page < maxPages; page++) {
-      const data = await serpApiSearch(searchString, start);
-      const places = data.local_results || [];
-
-      if (places.length === 0) break;
-
-      allResults = allResults.concat(places);
-      console.log(`[search] Page ${page + 1}: got ${places.length} results (total: ${allResults.length})`);
-
-      if (allResults.length >= limit) break;
-      if (!data.serpapi_pagination || !data.serpapi_pagination.next) break;
-
-      start += perPage;
+    for (const kw of keywords) {
+      const searchString = `${kw} in ${city}, ${state}`;
+      const maxPages = Math.ceil(perKeywordLimit / perPage);
+      let start = 0;
+      let kwCount = 0;
+      for (let page = 0; page < maxPages; page++) {
+        const data = await serpApiSearch(searchString, start);
+        const places = data.local_results || [];
+        if (places.length === 0) break;
+        allResults = allResults.concat(places);
+        kwCount += places.length;
+        console.log(`[search] "${kw}" page ${page + 1}: +${places.length} (total ${allResults.length})`);
+        if (kwCount >= perKeywordLimit) break;
+        if (!data.serpapi_pagination || !data.serpapi_pagination.next) break;
+        start += perPage;
+      }
     }
+    console.log(`[search] Raw combined results: ${allResults.length}`);
 
-    // Trim to exact limit
+    // Dedupe by place_id (fallback to normalized title+address)
+    const seen = new Set();
+    allResults = allResults.filter(item => {
+      const key = item.place_id || ((item.title || '') + '|' + (item.address || '')).toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    console.log(`[search] After dedupe: ${allResults.length}`);
+
+    // Trim to exact limit after dedupe
     allResults = allResults.slice(0, limit);
-    console.log(`[search] Raw results from SerpAPI: ${allResults.length}`);
+
+    // Apply exclude-keywords filter on title or type
+    if (excludeTerms.length > 0) {
+      const before = allResults.length;
+      allResults = allResults.filter(item => {
+        const hay = `${item.title || ''} ${item.type || ''}`.toLowerCase();
+        return !excludeTerms.some(term => hay.includes(term));
+      });
+      console.log(`[search] After exclude filter: ${allResults.length} (removed ${before - allResults.length})`);
+    }
 
     // Map SerpAPI results to our clean format
     const mappedResults = allResults.map(item => {
-      // Extract IG handle if website is an Instagram URL
       let ig = '';
       if (item.website) {
         const igMatch = item.website.match(/(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/i);
         if (igMatch) ig = igMatch[1].toLowerCase();
       }
+      // SerpAPI exposes optional fields; capture them if present
+      const priceTier = item.price || item.price_level || '';
+      let hours = '';
+      if (item.hours) {
+        if (typeof item.hours === 'string') hours = item.hours;
+        else if (Array.isArray(item.hours)) hours = item.hours.map(h => typeof h === 'string' ? h : JSON.stringify(h)).slice(0, 3).join(' · ');
+        else if (item.hours.status) hours = item.hours.status;
+      }
+      if (!hours && item.open_state) hours = item.open_state;
       return {
-      title: item.title || '',
-      phone: item.phone || '',
-      website: item.website || '',
-      email: '',
-      instagram: ig,
-      category: item.type || '',
-      address: item.address || '',
-      city: city,
-      state: state,
-      rating: item.rating != null ? item.rating : null,
-      reviewCount: item.reviews != null ? item.reviews : 0,
-      url: item.place_id ? `https://www.google.com/maps/place/?q=place_id:${item.place_id}` : (item.gps_coordinates ? `https://www.google.com/maps?q=${item.gps_coordinates.latitude},${item.gps_coordinates.longitude}` : ''),
-      imageUrl: item.thumbnail || ''
-    }}).filter(r => r.title);
+        title: item.title || '',
+        phone: item.phone || '',
+        website: item.website || '',
+        email: '',
+        instagram: ig,
+        linkedin: '',
+        booking: '',
+        hours: hours,
+        priceTier: priceTier,
+        placeId: item.place_id || '',
+        category: item.type || '',
+        address: item.address || '',
+        city: city,
+        state: state,
+        rating: item.rating != null ? item.rating : null,
+        reviewCount: item.reviews != null ? item.reviews : 0,
+        url: item.place_id ? `https://www.google.com/maps/place/?q=place_id:${item.place_id}` : (item.gps_coordinates ? `https://www.google.com/maps?q=${item.gps_coordinates.latitude},${item.gps_coordinates.longitude}` : ''),
+        imageUrl: item.thumbnail || ''
+      };
+    }).filter(r => r.title);
 
     console.log(`[search] Mapped results: ${mappedResults.length}`);
 
@@ -268,12 +331,10 @@ app.post('/search', async (req, res) => {
         enrichments.forEach((enriched, j) => {
           const idx = i + j;
           if (enriched.email) filteredResults[idx].email = enriched.email;
-          if (enriched.phone && !filteredResults[idx].phone) {
-            filteredResults[idx].phone = enriched.phone;
-          }
-          if (enriched.instagram && !filteredResults[idx].instagram) {
-            filteredResults[idx].instagram = enriched.instagram;
-          }
+          if (enriched.phone && !filteredResults[idx].phone) filteredResults[idx].phone = enriched.phone;
+          if (enriched.instagram && !filteredResults[idx].instagram) filteredResults[idx].instagram = enriched.instagram;
+          if (enriched.linkedin) filteredResults[idx].linkedin = enriched.linkedin;
+          if (enriched.booking) filteredResults[idx].booking = enriched.booking;
         });
         console.log(`[enrich] Batch ${Math.floor(i / BATCH_SIZE) + 1} done (${Math.min(i + BATCH_SIZE, filteredResults.length)}/${filteredResults.length})`);
       }
@@ -321,6 +382,18 @@ app.post('/search', async (req, res) => {
       }
       const picked = channels.find(c => c.val);
       r.outreach = picked ? picked.tag : 'None';
+
+      // Enrichment quality score (0–100) — weighted by field value
+      // email 25 · phone 20 · instagram 20 · website 15 · linkedin 10 · hours 5 · price 5
+      let score = 0;
+      if (r.email) score += 25;
+      if (r.phone) score += 20;
+      if (r.instagram) score += 20;
+      if (r.website) score += 15;
+      if (r.linkedin) score += 10;
+      if (r.hours) score += 5;
+      if (r.priceTier) score += 5;
+      r.qualityScore = Math.min(score, 100);
     });
 
     // Target segment filter (server-side; applied AFTER segment tagging)
@@ -348,7 +421,7 @@ app.post('/search', async (req, res) => {
     res.render('search', {
       results: segmentFiltered,
       totalScraped: mappedResults.length,
-      query: { keyword, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, outreachPriority, targetSegment, searchString },
+      query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, outreachPriority, targetSegment, searchString: keywords.join(', ') + ` in ${city}, ${state}` },
       error: null
     });
 

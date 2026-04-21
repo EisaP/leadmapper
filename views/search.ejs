@@ -8,46 +8,25 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    /* ——— Starise design tokens ——— */
     :root {
-      --indigo: #5664EF;
-      --indigo-hover: #4450DB;
-      --purple: #9D57F5;
+      --indigo: #5664EF; --indigo-hover: #4450DB; --purple: #9D57F5;
       --brand-gradient: linear-gradient(135deg, #5664EF 0%, #9D57F5 100%);
-      --near-black: #0F0F1A;
-      --body: #4A4A4A;
-      --muted: #6B6B80;
-      --border: #E8E8F0;
-      --border-strong: #D4D4E0;
-      --lavender: #F3EEFF;
-      --section: #F9FAFD;
-      --white: #FFFFFF;
-      --radius-card: 16px;
-      --radius-icon: 12px;
-      --radius-input: 8px;
-      --radius-pill: 9999px;
+      --near-black: #0F0F1A; --body: #4A4A4A; --muted: #6B6B80;
+      --border: #E8E8F0; --border-strong: #D4D4E0;
+      --lavender: #F3EEFF; --section: #F9FAFD; --white: #FFFFFF;
+      --radius-card: 16px; --radius-icon: 12px; --radius-input: 8px; --radius-pill: 9999px;
       --shadow-soft: 0 1px 2px rgba(15, 15, 26, 0.04);
       --shadow-cta: 0 4px 12px rgba(86, 100, 239, 0.2);
-      --pink: #DB2777;
-      --pink-soft: #FDF2F8;
-      --sky: #0284C7;
-      --sky-soft: #F0F9FF;
-      --teal: #0D9488;
-      --teal-soft: #F0FDFA;
-      --amber: #D97706;
-      --red: #DC2626;
-      --red-soft: #FEF2F2;
+      --shadow-float: 0 12px 32px rgba(15, 15, 26, 0.18);
+      --pink: #DB2777; --pink-soft: #FDF2F8;
+      --sky: #0284C7; --sky-soft: #F0F9FF;
+      --teal: #0D9488; --teal-soft: #F0FDFA;
+      --amber: #D97706; --amber-soft: #FEF3C7;
+      --red: #DC2626; --red-soft: #FEF2F2;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--section);
-      color: var(--body);
-      font-size: 14px;
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-    }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: var(--section); color: var(--body); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
     h1, h2, h3 { color: var(--near-black); margin: 0; font-weight: 700; letter-spacing: -0.01em; }
     p { margin: 0; }
     a { color: var(--indigo); text-decoration: none; }
@@ -58,22 +37,12 @@
     .caption { font-size: 12px; color: var(--muted); line-height: 1.4; }
     .helper-text { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
 
-    .input, .select {
-      font-family: inherit; font-size: 14px; padding: 10px 12px;
-      background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-input);
-      color: var(--near-black); width: 100%; transition: border-color 0.15s, box-shadow 0.15s;
-    }
+    .input, .select { font-family: inherit; font-size: 14px; padding: 10px 12px; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-input); color: var(--near-black); width: 100%; transition: border-color 0.15s, box-shadow 0.15s; }
     .input:focus, .select:focus { outline: none; border-color: var(--indigo); box-shadow: 0 0 0 3px rgba(86, 100, 239, 0.15); }
     .input::placeholder { color: #9897A6; }
     select.select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236B6B80'%3e%3cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 10px center; background-size: 14px; padding-right: 32px; cursor: pointer; }
 
-    .btn {
-      font-family: inherit; font-size: 14px; font-weight: 500;
-      padding: 10px 16px; border-radius: var(--radius-input);
-      border: 1px solid var(--border); background: var(--white); color: var(--near-black);
-      cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
-    }
+    .btn { font-family: inherit; font-size: 14px; font-weight: 500; padding: 10px 16px; border-radius: var(--radius-input); border: 1px solid var(--border); background: var(--white); color: var(--near-black); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.15s, border-color 0.15s, color 0.15s; }
     .btn:hover { background: var(--section); border-color: var(--border-strong); }
     .btn-primary { background: var(--brand-gradient); border: none; color: white; padding: 12px 28px; border-radius: var(--radius-pill); box-shadow: var(--shadow-cta); font-weight: 600; }
     .btn-primary:hover { background: var(--brand-gradient); opacity: 0.95; box-shadow: 0 6px 18px rgba(86, 100, 239, 0.28); }
@@ -83,12 +52,11 @@
 
     .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-soft); }
 
-    /* ——— Sidebar + logo ——— */
     .sidebar { background: var(--white); border-right: 1px solid var(--border); width: 236px; flex-shrink: 0; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; }
     .brand-lockup { display: flex; align-items: center; gap: 10px; padding: 22px 20px 18px; border-bottom: 1px solid var(--border); }
     .logo-starise { display: inline-flex; align-items: flex-start; color: var(--indigo); }
     .logo-word { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 15px; letter-spacing: 0.22em; text-transform: lowercase; line-height: 1; padding-top: 5px; }
-    .logo-sparkle { width: 11px; height: 11px; margin-left: 0px; margin-top: -3px; flex-shrink: 0; }
+    .logo-sparkle { width: 11px; height: 11px; margin-left: 0; margin-top: -3px; flex-shrink: 0; }
     .brand-lockup .divider { color: var(--border-strong); font-size: 14px; margin: 0 2px; padding-top: 4px; }
     .brand-lockup .product { font-size: 13px; font-weight: 500; color: var(--near-black); letter-spacing: -0.01em; padding-top: 4px; }
     .sidebar-nav { padding: 12px 8px; flex: 1; }
@@ -97,11 +65,10 @@
     .sidebar-nav a.active { background: var(--lavender); color: var(--indigo); }
     .sidebar-nav a.active::before { content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; background: var(--indigo); border-radius: 2px; }
     .sidebar-nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
-    .sidebar-footer { padding: 16px 16px 20px; border-top: 1px solid var(--border); }
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
     .credit-indicator { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; color: var(--muted); padding: 5px 10px; background: var(--section); border-radius: var(--radius-pill); }
     .credit-indicator .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--indigo); flex-shrink: 0; }
 
-    /* ——— Pills / badges ——— */
     .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: var(--radius-pill); white-space: nowrap; letter-spacing: 0.02em; }
     .badge-seg-b { background: var(--lavender); color: var(--indigo); }
     .badge-seg-c { background: var(--red-soft); color: var(--red); }
@@ -111,26 +78,17 @@
     .badge-email { background: var(--teal-soft); color: var(--teal); }
     .badge-none { background: var(--section); color: var(--muted); }
 
-    /* ——— Preset chips (verticals + suggestions) ——— */
     .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; padding: 7px 14px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--white); color: var(--body); cursor: pointer; transition: all 0.15s; }
     .chip:hover { border-color: var(--indigo); color: var(--indigo); background: var(--lavender); }
     .chip.active { background: var(--brand-gradient); border-color: transparent; color: white; box-shadow: var(--shadow-cta); }
 
-    /* ——— Filter pills (segment + saved) ——— */
     .filter-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--white); color: var(--body); cursor: pointer; transition: all 0.15s; }
     .filter-pill:hover { border-color: var(--border-strong); color: var(--near-black); }
     .filter-pill.active { background: var(--near-black); border-color: var(--near-black); color: white; }
     .filter-pill .count { background: rgba(0,0,0,0.06); color: inherit; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; }
     .filter-pill.active .count { background: rgba(255,255,255,0.2); }
 
-    /* ——— Channel toggles (Email / Phone / Instagram) ——— */
-    .channel-toggle {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-family: inherit; font-size: 14px; font-weight: 500;
-      padding: 8px 14px; border-radius: var(--radius-pill);
-      border: 1px solid var(--border); background: var(--white); color: var(--muted);
-      cursor: pointer; transition: all 0.15s; white-space: nowrap;
-    }
+    .channel-toggle { display: inline-flex; align-items: center; gap: 8px; font-family: inherit; font-size: 14px; font-weight: 500; padding: 8px 14px; border-radius: var(--radius-pill); border: 1px solid var(--border); background: var(--white); color: var(--muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
     .channel-toggle:hover { color: var(--near-black); border-color: var(--border-strong); }
     .channel-toggle svg { width: 16px; height: 16px; flex-shrink: 0; }
     .channel-toggle .count { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 10px; background: rgba(0,0,0,0.06); color: inherit; }
@@ -140,28 +98,12 @@
     .channel-toggle[data-channel="phone"].active { background: var(--sky); }
     .channel-toggle[data-channel="instagram"].active { background: var(--pink); }
 
-    /* ——— Priority hint panel ——— */
-    .priority-hint {
-      display: flex; align-items: flex-start; gap: 12px;
-      padding: 14px 16px; margin-bottom: 20px;
-      background: var(--lavender); border: 1px solid #E0D5FF;
-      border-radius: var(--radius-card);
-      font-size: 13px; color: var(--near-black);
-      position: relative;
-    }
-    .priority-hint .hint-ico {
-      width: 28px; height: 28px; border-radius: 8px;
-      background: rgba(86, 100, 239, 0.15); color: var(--indigo);
-      display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
+    .priority-hint { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; margin-bottom: 20px; background: var(--lavender); border: 1px solid #E0D5FF; border-radius: var(--radius-card); font-size: 13px; color: var(--near-black); position: relative; }
+    .priority-hint .hint-ico { width: 28px; height: 28px; border-radius: 8px; background: rgba(86, 100, 239, 0.15); color: var(--indigo); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .priority-hint .hint-ico svg { width: 14px; height: 14px; }
     .priority-hint .hint-body { flex: 1; padding-top: 4px; line-height: 1.5; }
     .priority-hint .hint-body strong { font-weight: 600; color: var(--indigo); }
-    .priority-hint .hint-close {
-      background: none; border: none; color: var(--muted); cursor: pointer;
-      padding: 4px; border-radius: 4px; transition: all 0.15s;
-      position: absolute; top: 10px; right: 10px;
-    }
+    .priority-hint .hint-close { background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; border-radius: 4px; transition: all 0.15s; position: absolute; top: 10px; right: 10px; }
     .priority-hint .hint-close:hover { background: rgba(0,0,0,0.05); color: var(--near-black); }
     .priority-hint.hidden { display: none; }
 
@@ -174,13 +116,18 @@
     .data-table th.sortable.active { color: var(--indigo); }
     .data-table th .sort-indicator { opacity: 0.35; margin-left: 4px; font-size: 10px; }
     .data-table th.active .sort-indicator { opacity: 1; }
-    .data-table td { padding: 14px; font-size: 14px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--near-black); }
+    .data-table td { padding: 12px 14px; font-size: 14px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--near-black); }
     .data-table tbody tr { cursor: pointer; transition: background 0.12s; }
     .data-table tbody tr:hover { background: var(--section); }
     .data-table tbody tr.expanded { background: var(--section); }
+    .data-table tbody tr.selected { background: rgba(86, 100, 239, 0.06); }
     .data-table .detail-row { background: var(--lavender) !important; }
     .data-table .detail-row:hover { background: var(--lavender) !important; }
     .data-table .detail-row td { padding: 20px 24px; }
+    .col-hidden { display: none !important; }
+
+    /* ——— Checkboxes ——— */
+    .row-check { width: 16px; height: 16px; accent-color: var(--indigo); cursor: pointer; margin: 0; }
 
     /* ——— Star button ——— */
     .star-btn { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; color: var(--muted); transition: color 0.15s; }
@@ -188,15 +135,49 @@
     .star-btn.saved { color: var(--amber); }
     .star-btn.saved svg { fill: var(--amber); }
 
-    /* ——— Contact icon buttons ——— */
-    .contact-ico { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; background: var(--section); color: var(--muted); border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; margin-right: 4px; }
-    .contact-ico:hover { background: var(--lavender); color: var(--indigo); border-color: var(--indigo); }
-    .contact-ico.copied { background: var(--indigo); color: white; border-color: var(--indigo); }
-    .contact-ico svg { width: 14px; height: 14px; }
-    .contact-ico.disabled { opacity: 0.3; cursor: not-allowed; }
-    .contact-ico.disabled:hover { background: var(--section); color: var(--muted); border-color: var(--border); }
+    /* ——— Inline contact cell ——— */
+    .contact-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .contact-cell .ico-link { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0; text-decoration: none; transition: transform 0.12s; }
+    .contact-cell .ico-link svg { width: 14px; height: 14px; }
+    .contact-cell .ico-link:hover { transform: scale(1.15); }
+    .contact-cell .ico-link.ico-ig { color: var(--pink); background: var(--pink-soft); }
+    .contact-cell .ico-link.ico-phone { color: var(--sky); background: var(--sky-soft); }
+    .contact-cell .ico-link.ico-email { color: var(--teal); background: var(--teal-soft); }
+    .contact-cell .value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--near-black); text-decoration: none; font-size: 13px; font-weight: 500; }
+    .contact-cell a.value:hover { color: var(--indigo); text-decoration: underline; }
+    .contact-cell .copy-btn { opacity: 0; visibility: hidden; padding: 3px 5px; border: none; background: transparent; color: var(--muted); cursor: pointer; border-radius: 4px; transition: all 0.12s; flex-shrink: 0; }
+    .contact-cell .copy-btn svg { width: 12px; height: 12px; display: block; }
+    tr:hover .contact-cell .copy-btn { opacity: 1; visibility: visible; }
+    .contact-cell .copy-btn:hover { background: var(--section); color: var(--near-black); }
+    .contact-cell .copy-btn.copied { color: var(--indigo); opacity: 1; visibility: visible; }
+    .empty-dash { color: var(--muted); font-size: 13px; }
 
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--near-black); color: white; padding: 10px 18px; border-radius: var(--radius-input); font-size: 13px; font-weight: 500; box-shadow: 0 8px 24px rgba(15, 15, 26, 0.18); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 100; }
+    /* ——— Quality pill ——— */
+    .quality-pill { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 22px; border-radius: 11px; font-size: 12px; font-weight: 600; }
+    .quality-pill.high { background: var(--teal-soft); color: var(--teal); }
+    .quality-pill.mid { background: var(--amber-soft); color: var(--amber); }
+    .quality-pill.low { background: var(--section); color: var(--muted); }
+
+    /* ——— Bulk action bar ——— */
+    .bulk-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(calc(-50% + 118px)); z-index: 50; background: var(--near-black); color: white; border-radius: var(--radius-pill); padding: 6px 8px; box-shadow: var(--shadow-float); display: none; align-items: center; gap: 4px; animation: slideUp 0.2s ease; }
+    .bulk-bar.visible { display: inline-flex; }
+    @keyframes slideUp { from { opacity: 0; transform: translateX(calc(-50% + 118px)) translateY(12px); } }
+    .bulk-count { font-size: 13px; font-weight: 500; padding: 0 14px; white-space: nowrap; }
+    .bulk-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.18); margin: 0 2px; }
+    .bulk-btn { background: transparent; color: white; border: none; font-family: inherit; font-size: 13px; font-weight: 500; padding: 7px 12px; border-radius: var(--radius-input); cursor: pointer; transition: background 0.12s; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .bulk-btn:hover { background: rgba(255,255,255,0.12); }
+    .bulk-btn svg { width: 14px; height: 14px; }
+
+    /* ——— Columns menu ——— */
+    .col-menu { position: absolute; top: calc(100% + 6px); right: 0; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-float); padding: 8px; min-width: 200px; z-index: 20; }
+    .col-menu.hidden { display: none; }
+    .col-menu-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 6px 10px; }
+    .col-menu label { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px; font-size: 13px; color: var(--near-black); cursor: pointer; transition: background 0.1s; }
+    .col-menu label:hover { background: var(--section); }
+    .col-menu input[type="checkbox"] { accent-color: var(--indigo); margin: 0; }
+
+    /* ——— Toast ——— */
+    .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: var(--near-black); color: white; padding: 10px 18px; border-radius: var(--radius-input); font-size: 13px; font-weight: 500; box-shadow: var(--shadow-float); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 100; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
 
     .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -222,15 +203,9 @@
 </head>
 <body>
   <div style="display: flex; min-height: 100vh;">
-    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="brand-lockup">
-        <span class="logo-starise" aria-label="Starise">
-          <span class="logo-word">starise</span>
-          <svg class="logo-sparkle" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 0 L13.5 10.5 L24 12 L13.5 13.5 L12 24 L10.5 13.5 L0 12 L10.5 10.5 Z"/>
-          </svg>
-        </span>
+        <span class="logo-starise" aria-label="Starise"><span class="logo-word">starise</span><svg class="logo-sparkle" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0 L13.5 10.5 L24 12 L13.5 13.5 L12 24 L10.5 13.5 L0 12 L10.5 10.5 Z"/></svg></span>
         <span class="divider">·</span>
         <span class="product">LeadMapper</span>
       </div>
@@ -245,15 +220,13 @@
       </div>
     </aside>
 
-    <!-- Main -->
-    <main style="flex: 1; padding: 36px 44px; min-width: 0; max-width: 1700px;">
+    <main style="flex: 1; padding: 36px 44px 80px; min-width: 0; max-width: 1800px;">
       <div style="margin-bottom: 28px;">
         <span class="section-label">Prospecting</span>
         <h1 style="font-size: 28px; margin-bottom: 6px;">Find leads</h1>
-        <p style="color: var(--body); font-size: 15px;">Scrape Google Maps, enrich contact info, and segment by opportunity. Pick a vertical to start, or enter your own keyword.</p>
+        <p style="color: var(--body); font-size: 15px;">Scrape Google Maps across multiple keywords, enrich contact info, and segment by opportunity. Separate multiple keywords with commas to broaden coverage.</p>
       </div>
 
-      <!-- Vertical preset chips -->
       <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 20px;">
         <span class="ui-label" style="margin-right: 8px;">Vertical</span>
         <button type="button" class="chip" data-preset="cafes">☕ Cafes</button>
@@ -264,14 +237,14 @@
         <button type="button" class="chip" data-preset="gyms">🏋️ Gyms</button>
       </div>
 
-      <!-- Search form -->
       <form method="POST" action="/search" id="searchForm" class="card" style="padding: 28px; margin-bottom: 20px;">
-        <div style="margin-bottom: 24px;">
+        <div style="margin-bottom: 20px;">
           <span class="section-label">What to find</span>
           <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 120px; gap: 14px;">
             <div>
-              <label class="ui-label" style="display: block; margin-bottom: 6px;">Keyword</label>
-              <input class="input" type="text" name="keyword" id="keywordInput" placeholder="e.g. cafes, dentist, hair salon" value="<%= query?.keyword || '' %>" required>
+              <label class="ui-label" style="display: block; margin-bottom: 6px;">Keyword(s)</label>
+              <input class="input" type="text" name="keyword" id="keywordInput" placeholder="cafes, coffee shops, espresso bars" value="<%= query?.keyword || '' %>" required>
+              <div class="helper-text">Comma-separate to run multiple searches and dedupe by Google Place ID.</div>
             </div>
             <div>
               <label class="ui-label" style="display: block; margin-bottom: 6px;">City</label>
@@ -290,6 +263,11 @@
               </select>
             </div>
           </div>
+          <div style="margin-top: 12px;">
+            <label class="ui-label" style="display: block; margin-bottom: 6px;">Exclude <span style="color: var(--muted); font-weight: 500; text-transform: none; letter-spacing: 0;">— optional</span></label>
+            <input class="input" type="text" name="excludeKeywords" placeholder="tanning, nail, waxing" value="<%= query?.excludeKeywords || '' %>">
+            <div class="helper-text">Any result whose name or category contains one of these terms is filtered out.</div>
+          </div>
         </div>
 
         <div style="border-top: 1px solid var(--border); padding-top: 22px;">
@@ -302,7 +280,7 @@
                 <span style="color: var(--muted);">–</span>
                 <input class="input" type="number" name="ratingMax" step="0.1" min="0" max="5" placeholder="Max" value="<%= query?.ratingMax || '' %>" style="text-align: center;">
               </div>
-              <div class="helper-text">4.1–4.7 is the sweet spot for Segment B (good rating, under-reviewed).</div>
+              <div class="helper-text">4.1–4.7 is the sweet spot for Segment B.</div>
             </div>
             <div>
               <label class="ui-label" style="display: block; margin-bottom: 6px;">Max reviews</label>
@@ -312,7 +290,7 @@
                   <option value="<%= v %>" <%= String(query?.maxReviews) === String(v) ? 'selected' : '' %>>Under <%= v %></option>
                 <% }) %>
               </select>
-              <div class="helper-text">Lower ceiling means fewer already-exposed businesses.</div>
+              <div class="helper-text">Lower = fewer already-exposed businesses.</div>
             </div>
             <div>
               <label class="ui-label" style="display: block; margin-bottom: 6px;">Target segment</label>
@@ -331,7 +309,7 @@
           <summary style="color: var(--muted); font-size: 12px; font-weight: 500;"><span class="chev">▸</span> Advanced</summary>
           <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px;">
             <input type="checkbox" name="skipEnrichment" id="skipEnrichment" <%= query?.skipEnrichment === 'on' ? 'checked' : '' %>>
-            <label for="skipEnrichment" style="font-size: 13px; color: var(--body);">Skip enrichment — faster, returns business listings without email/phone/Instagram</label>
+            <label for="skipEnrichment" style="font-size: 13px; color: var(--body);">Skip enrichment — faster, returns listings without email/phone/Instagram/LinkedIn</label>
           </div>
         </details>
 
@@ -340,11 +318,10 @@
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <span id="searchBtnText">Find leads</span>
           </button>
-          <span style="font-size: 12px; color: var(--muted);" id="searchHint">Contact enrichment (email, phone, Instagram) is on by default.</span>
+          <span style="font-size: 12px; color: var(--muted);" id="searchHint">Contact enrichment (email, phone, Instagram, LinkedIn) is on by default.</span>
         </div>
       </form>
 
-      <!-- Priority hint (keyword-triggered) -->
       <div class="priority-hint hidden" id="priorityHint">
         <span class="hint-ico"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></span>
         <div class="hint-body" id="hintBody"></div>
@@ -358,7 +335,6 @@
       <% if (results && results.length > 0) { %>
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px;" id="statsGrid"></div>
 
-        <!-- Filter bar: channel toggles + segment + saved + text -->
         <div class="card" style="padding: 16px 18px; margin-bottom: 12px;">
           <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;">
             <span class="ui-label" style="margin-right: 4px;">Show leads with</span>
@@ -384,51 +360,62 @@
             <button class="filter-pill" data-filter="saved" data-value="true" type="button">⭐ Saved only</button>
             <div style="flex: 1;"></div>
             <input class="input" id="textFilter" placeholder="Filter by name..." style="width: 220px; padding: 7px 12px; font-size: 13px;">
+            <div style="position: relative;">
+              <button type="button" class="btn" id="columnsBtn" style="font-size: 13px; padding: 7px 12px;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                Columns
+              </button>
+              <div class="col-menu hidden" id="columnsMenu">
+                <div class="col-menu-title">Optional columns</div>
+                <label><input type="checkbox" data-col="outreach"> Outreach primary</label>
+                <label><input type="checkbox" data-col="linkedin"> LinkedIn</label>
+                <label><input type="checkbox" data-col="booking"> Booking platform</label>
+                <label><input type="checkbox" data-col="hours"> Hours</label>
+                <label><input type="checkbox" data-col="price"> Price tier</label>
+              </div>
+            </div>
           </div>
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--border);">
-            <span class="ui-label" style="margin-right: 4px;">Copy from filtered</span>
-            <button type="button" class="btn btn-ghost" id="copyIG" style="font-size: 13px; padding: 7px 12px;">
-              <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-              Instagram handles <span id="cntCopyIG" style="color: var(--muted);">(0)</span>
-            </button>
-            <button type="button" class="btn btn-ghost" id="copyEmails" style="font-size: 13px; padding: 7px 12px;">
-              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-              Emails <span id="cntCopyEmail" style="color: var(--muted);">(0)</span>
-            </button>
-            <button type="button" class="btn btn-ghost" id="copyPhones" style="font-size: 13px; padding: 7px 12px;">
-              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-              Phones <span id="cntCopyPhone" style="color: var(--muted);">(0)</span>
-            </button>
-            <button type="button" class="btn btn-ghost" id="exportColdDMs" style="font-size: 13px; padding: 7px 12px;">ColdDMs format</button>
+            <span class="ui-label" style="margin-right: 4px;">Copy filtered</span>
+            <button type="button" class="btn btn-ghost" id="copyIG" style="font-size: 13px; padding: 7px 12px;">Instagram handles <span id="cntCopyIG" style="color: var(--muted);">(0)</span></button>
+            <button type="button" class="btn btn-ghost" id="copyEmails" style="font-size: 13px; padding: 7px 12px;">Emails <span id="cntCopyEmail" style="color: var(--muted);">(0)</span></button>
+            <button type="button" class="btn btn-ghost" id="copyPhones" style="font-size: 13px; padding: 7px 12px;">Phones <span id="cntCopyPhone" style="color: var(--muted);">(0)</span></button>
+            <button type="button" class="btn btn-ghost" id="exportColdDMs" style="font-size: 13px; padding: 7px 12px;">ColdDMs CSV</button>
             <div style="flex: 1;"></div>
-            <button type="button" class="btn" id="exportCSV" style="font-size: 13px; padding: 7px 12px;">
-              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-              CSV
-            </button>
+            <button type="button" class="btn" id="exportJSON" style="font-size: 13px; padding: 7px 12px;">JSON</button>
+            <button type="button" class="btn" id="exportCSV" style="font-size: 13px; padding: 7px 12px;">CSV</button>
           </div>
         </div>
 
         <div style="display: flex; align-items: center; justify-content: space-between; margin: 0 4px 10px;">
           <div style="color: var(--body); font-size: 13px;">
             Showing <span style="color: var(--near-black); font-weight: 600;" id="visibleCount"><%= results.length %></span>
-            <% if (totalScraped > results.length) { %><span style="color: var(--muted);"> · filtered from <%= totalScraped %> scraped</span><% } %>
+            <% if (totalScraped > results.length) { %><span style="color: var(--muted);"> · deduped from <%= totalScraped %> scraped</span><% } %>
             <% if (query?.searchString) { %><span style="color: var(--muted);"> · "<%= query.searchString %>"</span><% } %>
           </div>
         </div>
 
         <div class="card" style="overflow: hidden; padding: 0;">
-          <div style="max-height: calc(100vh - 500px); overflow-y: auto;">
+          <div style="max-height: calc(100vh - 520px); overflow: auto;">
             <table class="data-table" id="resultsTable">
               <thead>
                 <tr>
-                  <th style="width: 44px;"></th>
+                  <th style="width: 40px;"><input type="checkbox" id="selectAllCheck" class="row-check" title="Select all visible" aria-label="Select all visible"></th>
+                  <th style="width: 40px;"></th>
                   <th class="sortable" data-sort="title">Name <span class="sort-indicator">↕</span></th>
-                  <th class="sortable" data-sort="rating" style="width: 90px;">Rating <span class="sort-indicator">↕</span></th>
-                  <th class="sortable" data-sort="reviewCount" style="width: 88px; text-align: right;">Reviews <span class="sort-indicator">↕</span></th>
-                  <th class="sortable" data-sort="segmentCode" style="width: 108px;">Segment <span class="sort-indicator">↕</span></th>
-                  <th class="sortable" data-sort="outreach" style="width: 116px;">Outreach <span class="sort-indicator">↕</span></th>
-                  <th style="width: 152px;">Contact</th>
-                  <th style="width: 60px;">Maps</th>
+                  <th class="sortable" data-sort="rating" style="width: 80px;">Rating <span class="sort-indicator">↕</span></th>
+                  <th class="sortable" data-sort="reviewCount" style="width: 80px; text-align: right;">Reviews <span class="sort-indicator">↕</span></th>
+                  <th class="sortable" data-sort="segmentCode" style="width: 104px;">Segment <span class="sort-indicator">↕</span></th>
+                  <th class="sortable col-outreach col-hidden" data-sort="outreach" style="width: 100px;">Outreach <span class="sort-indicator">↕</span></th>
+                  <th class="sortable" data-sort="instagram" style="width: 160px;">Instagram <span class="sort-indicator">↕</span></th>
+                  <th class="sortable" data-sort="phone" style="width: 160px;">Phone <span class="sort-indicator">↕</span></th>
+                  <th class="sortable" data-sort="email" style="width: 220px;">Email <span class="sort-indicator">↕</span></th>
+                  <th class="col-linkedin col-hidden" style="width: 120px;">LinkedIn</th>
+                  <th class="col-booking col-hidden" style="width: 140px;">Booking</th>
+                  <th class="col-hours col-hidden" style="width: 120px;">Hours</th>
+                  <th class="col-price col-hidden" style="width: 70px;">Price</th>
+                  <th class="sortable" data-sort="qualityScore" style="width: 76px; text-align: center;">Quality <span class="sort-indicator">↕</span></th>
+                  <th style="width: 52px;">Maps</th>
                 </tr>
               </thead>
               <tbody id="resultsBody"></tbody>
@@ -439,22 +426,35 @@
         <div class="card" style="padding: 48px 24px; text-align: center;">
           <div class="ico-box" style="margin: 0 auto 16px;"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></div>
           <h2 style="font-size: 18px; margin-bottom: 6px;">No results match your filters</h2>
-          <p style="color: var(--body);">Try widening the rating range, increasing max reviews, or setting Target segment to "All candidates".</p>
+          <p style="color: var(--body);">Try widening the rating range, adding more comma-separated keywords, or removing exclude terms.</p>
         </div>
       <% } else if (!error) { %>
         <div class="card" style="padding: 56px 24px; text-align: center;">
           <div class="ico-box" style="margin: 0 auto 18px;"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
           <h2 style="font-size: 20px; margin-bottom: 8px;">Pick a vertical to start</h2>
-          <p style="color: var(--body); margin-bottom: 22px;">Or try one of these suggestions:</p>
+          <p style="color: var(--body); margin-bottom: 22px;">Or try one of these:</p>
           <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-            <button type="button" class="chip suggestion-chip" data-keyword="cafes" data-city="Shoreditch" data-state="UK">London cafes</button>
-            <button type="button" class="chip suggestion-chip" data-keyword="restaurants" data-city="Manchester" data-state="UK">Manchester restaurants</button>
-            <button type="button" class="chip suggestion-chip" data-keyword="hair salons" data-city="Birmingham" data-state="UK">Birmingham salons</button>
+            <button type="button" class="chip suggestion-chip" data-keyword="cafes, coffee shops, espresso bars" data-city="Shoreditch" data-state="UK">London cafes</button>
+            <button type="button" class="chip suggestion-chip" data-keyword="restaurants, bistros" data-city="Manchester" data-state="UK">Manchester restaurants</button>
+            <button type="button" class="chip suggestion-chip" data-keyword="hair salons, barbershops" data-city="Birmingham" data-state="UK">Birmingham salons</button>
             <button type="button" class="chip suggestion-chip" data-keyword="dental clinic" data-city="Leeds" data-state="UK">Leeds dental clinics</button>
           </div>
         </div>
       <% } %>
     </main>
+  </div>
+
+  <!-- Bulk action bar -->
+  <div class="bulk-bar" id="bulkBar">
+    <span class="bulk-count"><span id="bulkCountNum">0</span> selected</span>
+    <div class="bulk-divider"></div>
+    <button type="button" class="bulk-btn" id="bulkCopyEmails"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>Copy emails</button>
+    <button type="button" class="bulk-btn" id="bulkCopyPhones"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>Copy phones</button>
+    <button type="button" class="bulk-btn" id="bulkCopyIG"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>Copy Instagram</button>
+    <button type="button" class="bulk-btn" id="bulkSave">⭐ Save all</button>
+    <button type="button" class="bulk-btn" id="bulkExportCSV">Export CSV</button>
+    <div class="bulk-divider"></div>
+    <button type="button" class="bulk-btn" id="bulkClear">Clear</button>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -466,17 +466,18 @@
       channels: { email: true, phone: true, instagram: true },
       filters: { segment: 'all', saved: false, text: '' },
       sort: { key: null, dir: 'asc' },
-      expanded: new Set()
+      expanded: new Set(),
+      selected: new Set()
     };
 
-    // ——— Vertical presets & recommendation mapping ———
+    // ——— Presets ———
     const PRESETS = {
-      cafes:       { keyword: 'cafes',         ratingMin: 4.1, ratingMax: 4.7, maxReviews: '300' },
-      restaurants: { keyword: 'restaurants',   ratingMin: 4.0, ratingMax: 4.6, maxReviews: '500' },
-      salons:      { keyword: 'hair salons',   ratingMin: 4.1, ratingMax: 4.8, maxReviews: '200' },
-      hotels:      { keyword: 'hotels',        ratingMin: 3.8, ratingMax: 4.5, maxReviews: '1000' },
-      dental:      { keyword: 'dental clinic', ratingMin: 4.0, ratingMax: 4.9, maxReviews: '500' },
-      gyms:        { keyword: 'gyms',          ratingMin: 4.0, ratingMax: 4.7, maxReviews: '300' }
+      cafes:       { keyword: 'cafes, coffee shops, espresso bars', ratingMin: 4.1, ratingMax: 4.7, maxReviews: '300' },
+      restaurants: { keyword: 'restaurants, bistros, eateries',     ratingMin: 4.0, ratingMax: 4.6, maxReviews: '500' },
+      salons:      { keyword: 'hair salons, barbershops',           ratingMin: 4.1, ratingMax: 4.8, maxReviews: '200' },
+      hotels:      { keyword: 'hotels, boutique hotels',            ratingMin: 3.8, ratingMax: 4.5, maxReviews: '1000' },
+      dental:      { keyword: 'dental clinic, dentist',             ratingMin: 4.0, ratingMax: 4.9, maxReviews: '500' },
+      gyms:        { keyword: 'gyms, fitness studios',              ratingMin: 4.0, ratingMax: 4.7, maxReviews: '300' }
     };
     document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
       const p = PRESETS[b.dataset.preset];
@@ -497,11 +498,11 @@
       refreshPriorityHint();
     }));
 
-    // ——— Priority hint (keyword-driven, dismissible) ———
+    // ——— Priority hint ———
     const VERTICAL_MAP = [
       { words: ['salon', 'nail', 'barber', 'spa', 'beauty', 'hair'], key: 'beauty',
         text: '<strong>Recommended priority for this vertical:</strong> Instagram → Phone → Email. Toggle off Email to focus on the highest-intent channels first.' },
-      { words: ['restaurant', 'hotel', 'bar', 'pub', 'cafe', 'café', 'coffee'], key: 'hospitality',
+      { words: ['restaurant', 'hotel', 'bar', 'pub', 'cafe', 'café', 'coffee', 'bistro', 'eatery'], key: 'hospitality',
         text: '<strong>Recommended priority for this vertical:</strong> Phone → Instagram → Email. Restaurants and hotels typically answer phone calls during service hours.' },
       { words: ['dental', 'legal', 'accountant', 'lawyer', 'clinic', 'doctor', 'solicitor', 'attorney'], key: 'professional',
         text: '<strong>Recommended priority for this vertical:</strong> Email → Phone → Instagram. Professional services are more formal and respond better to email.' }
@@ -519,16 +520,12 @@
       const kw = document.querySelector('[name=keyword]')?.value || '';
       const match = detectVertical(kw);
       if (!match) { hint.classList.add('hidden'); hintState.lastKey = null; return; }
-      // Reset dismissal when the vertical changes
       if (hintState.lastKey !== match.key) { hintState.dismissed = false; hintState.lastKey = match.key; }
       if (hintState.dismissed) { hint.classList.add('hidden'); return; }
       body.innerHTML = match.text;
       hint.classList.remove('hidden');
     }
-    window.dismissHint = () => {
-      hintState.dismissed = true;
-      document.getElementById('priorityHint').classList.add('hidden');
-    };
+    window.dismissHint = () => { hintState.dismissed = true; document.getElementById('priorityHint').classList.add('hidden'); };
     document.getElementById('keywordInput')?.addEventListener('input', refreshPriorityHint);
 
     // ——— Persistence ———
@@ -540,25 +537,36 @@
       if (!<%= !!query ? 'true' : 'false' %>) {
         const set = (name, val) => { const el = document.querySelector(`[name=${name}]`); if (el && val) el.value = val; };
         set('keyword', prefs.keyword); set('city', prefs.city); set('state', prefs.state);
+        set('excludeKeywords', prefs.excludeKeywords);
         set('ratingMin', prefs.ratingMin); set('ratingMax', prefs.ratingMax);
         set('maxReviews', prefs.maxReviews); set('maxResults', prefs.maxResults);
         set('targetSegment', prefs.targetSegment);
       }
+      // Restore column visibility
+      const cols = (prefs.columns || {});
+      ['outreach', 'linkedin', 'booking', 'hours', 'price'].forEach(col => {
+        const visible = !!cols[col];
+        document.querySelectorAll(`.col-${col}`).forEach(el => el.classList.toggle('col-hidden', !visible));
+        const cb = document.querySelector(`[data-col="${col}"]`);
+        if (cb) cb.checked = visible;
+      });
       refreshPriorityHint();
     })();
 
     document.getElementById('searchForm').addEventListener('submit', function(e) {
       const fd = new FormData(e.target);
       savePrefs({
-        keyword: fd.get('keyword'), city: fd.get('city'), state: fd.get('state'),
+        keyword: fd.get('keyword'), excludeKeywords: fd.get('excludeKeywords'),
+        city: fd.get('city'), state: fd.get('state'),
         ratingMin: fd.get('ratingMin'), ratingMax: fd.get('ratingMax'),
         maxReviews: fd.get('maxReviews'), maxResults: fd.get('maxResults'),
         targetSegment: fd.get('targetSegment')
       });
       const btn = document.getElementById('searchBtn');
       btn.disabled = true;
-      document.getElementById('searchBtnText').innerHTML = '<span class="spinner" style="margin-right: 6px;"></span>Scraping & enriching...';
-      document.getElementById('searchHint').textContent = 'Takes 1–4 minutes depending on result count.';
+      const kwCount = (fd.get('keyword') || '').split(',').map(k => k.trim()).filter(Boolean).length;
+      document.getElementById('searchBtnText').innerHTML = `<span class="spinner" style="margin-right: 6px;"></span>${kwCount > 1 ? `Running ${kwCount} keyword searches...` : 'Scraping & enriching...'}`;
+      document.getElementById('searchHint').textContent = `Takes ${Math.max(1, kwCount)}–${Math.max(4, kwCount * 3)} minutes depending on result count.`;
     });
 
     fetch('/leads/saved').then(r => r.json()).then(leads => {
@@ -576,7 +584,7 @@
       const enrichRate = total ? Math.round((enriched / total) * 100) : 0;
       const segB = allResults.filter(r => r.segmentCode === 'B').length;
       const segC = allResults.filter(r => r.segmentCode === 'C').length;
-      // Mix is by primary outreach (the single best channel per lead)
+      const avgQuality = total ? Math.round(allResults.reduce((s, r) => s + (r.qualityScore || 0), 0) / total) : 0;
       const ig = allResults.filter(r => r.outreach === 'DM').length;
       const call = allResults.filter(r => r.outreach === 'Call').length;
       const email = allResults.filter(r => r.outreach === 'Email').length;
@@ -586,7 +594,7 @@
         <div class="stat-card">
           <div class="stat-label">Total leads</div>
           <div class="stat-value">${total}</div>
-          <div class="stat-sub">${totalScraped > total ? `from ${totalScraped} scraped` : 'after filters'}</div>
+          <div class="stat-sub">${totalScraped > total ? `deduped from ${totalScraped}` : 'after filters'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Segmentation</div>
@@ -611,9 +619,9 @@
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Enrichment rate</div>
-          <div class="stat-value">${enrichRate}%</div>
-          <div class="stat-sub">${enriched} of ${total} have contact info</div>
+          <div class="stat-label">Avg quality</div>
+          <div class="stat-value">${avgQuality}</div>
+          <div class="stat-sub">${enrichRate}% enrichment rate · ${enriched}/${total}</div>
         </div>
       `;
     }
@@ -629,9 +637,6 @@
       document.getElementById('cntSegOther').textContent = allResults.filter(r => r.segmentCode === '-').length;
     }
 
-    // ——— Channel toggle logic ———
-    // A lead passes if ANY toggled-ON channel has data.
-    // If all toggles are OFF → show nothing (edge case).
     function passesChannels(r) {
       const { email, phone, instagram } = state.channels;
       if (!email && !phone && !instagram) return false;
@@ -666,31 +671,85 @@
     }
 
     const escapeHTML = s => (s || '').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const escapeAttr = s => escapeHTML(s).replace(/"/g, '&quot;');
+
+    function igUrl(handle) {
+      if (!handle) return '';
+      if (/^https?:\/\//i.test(handle)) return handle;
+      const h = handle.replace(/^[@\/]+/, '');
+      return 'https://instagram.com/' + h;
+    }
+    function igHandle(handle) { return (handle || '').replace(/^[@\/]+/, ''); }
+
     const badgeSegment = c => c === 'B' ? '<span class="badge badge-seg-b">Segment B</span>' : c === 'C' ? '<span class="badge badge-seg-c">Segment C</span>' : '<span class="badge badge-seg-other">Other</span>';
-    // Primary outreach badge — 'DM' is internal code, label shows "Instagram"
     const badgeOutreach = o => o === 'DM' ? '<span class="badge badge-ig">Instagram</span>' : o === 'Call' ? '<span class="badge badge-call">Call</span>' : o === 'Email' ? '<span class="badge badge-email">Email</span>' : '<span class="badge badge-none">None</span>';
+    function qualityPill(score) {
+      const s = typeof score === 'number' ? score : 0;
+      const cls = s >= 70 ? 'high' : s >= 40 ? 'mid' : 'low';
+      return `<div class="quality-pill ${cls}" title="Quality score ${s}/100">${s}</div>`;
+    }
+
+    const ICO_COPY = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>`;
+    const ICO_IG = `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>`;
+    const ICO_PHONE = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>`;
+    const ICO_EMAIL = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`;
+
+    function contactCellIG(r) {
+      if (!r.instagram) return '<span class="empty-dash">—</span>';
+      const h = igHandle(r.instagram);
+      const url = igUrl(r.instagram);
+      return `<div class="contact-cell">
+        <a href="${escapeAttr(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ico-link ico-ig" title="Open Instagram">${ICO_IG}</a>
+        <a href="${escapeAttr(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="value" title="@${escapeAttr(h)}">@${escapeHTML(h)}</a>
+        <button type="button" class="copy-btn" onclick="event.stopPropagation(); copyValue(this, '${escapeAttr(h)}')" title="Copy handle">${ICO_COPY}</button>
+      </div>`;
+    }
+    function contactCellPhone(r) {
+      if (!r.phone) return '<span class="empty-dash">—</span>';
+      const p = r.phone;
+      return `<div class="contact-cell">
+        <a href="tel:${escapeAttr(p)}" onclick="event.stopPropagation()" class="ico-link ico-phone" title="Call">${ICO_PHONE}</a>
+        <a href="tel:${escapeAttr(p)}" onclick="event.stopPropagation()" class="value" title="${escapeAttr(p)}">${escapeHTML(p)}</a>
+        <button type="button" class="copy-btn" onclick="event.stopPropagation(); copyValue(this, '${escapeAttr(p)}')" title="Copy number">${ICO_COPY}</button>
+      </div>`;
+    }
+    function contactCellEmail(r) {
+      if (!r.email) return '<span class="empty-dash">—</span>';
+      const e = r.email;
+      return `<div class="contact-cell">
+        <a href="mailto:${escapeAttr(e)}" onclick="event.stopPropagation()" class="ico-link ico-email" title="Compose email">${ICO_EMAIL}</a>
+        <a href="mailto:${escapeAttr(e)}" onclick="event.stopPropagation()" class="value" title="${escapeAttr(e)}">${escapeHTML(e)}</a>
+        <button type="button" class="copy-btn" onclick="event.stopPropagation(); copyValue(this, '${escapeAttr(e)}')" title="Copy email">${ICO_COPY}</button>
+      </div>`;
+    }
 
     function renderRows() {
       const rows = applyFilters();
-      const vc = document.getElementById('visibleCount');
-      if (vc) vc.textContent = rows.length;
-      const cIG = document.getElementById('cntCopyIG'); if (cIG) cIG.textContent = '(' + rows.filter(r => r.instagram).length + ')';
-      const cE = document.getElementById('cntCopyEmail'); if (cE) cE.textContent = '(' + rows.filter(r => r.email).length + ')';
-      const cP = document.getElementById('cntCopyPhone'); if (cP) cP.textContent = '(' + rows.filter(r => r.phone).length + ')';
+      document.getElementById('visibleCount').textContent = rows.length;
+      document.getElementById('cntCopyIG').textContent = '(' + rows.filter(r => r.instagram).length + ')';
+      document.getElementById('cntCopyEmail').textContent = '(' + rows.filter(r => r.email).length + ')';
+      document.getElementById('cntCopyPhone').textContent = '(' + rows.filter(r => r.phone).length + ')';
 
       const body = document.getElementById('resultsBody');
-      if (!body) return;
       body.innerHTML = '';
+      // Invalidate stale selections (row filtered out)
+      const visibleIdxs = new Set(rows.map(r => allResults.indexOf(r)));
+      for (const idx of state.selected) if (!visibleIdxs.has(idx)) state.selected.delete(idx);
+
       if (rows.length === 0) {
-        body.innerHTML = `<tr><td colspan="8" style="padding: 36px; text-align: center; color: var(--muted);">No rows match these filters. <button class="btn btn-ghost" onclick="clearAllFilters()" style="font-size: 13px; margin-left: 6px;">Clear filters</button></td></tr>`;
+        body.innerHTML = `<tr><td colspan="16" style="padding: 36px; text-align: center; color: var(--muted);">No rows match these filters. <button class="btn btn-ghost" onclick="clearAllFilters()" style="font-size: 13px; margin-left: 6px;">Clear filters</button></td></tr>`;
+        updateBulkBar();
         return;
       }
       rows.forEach(r => {
         const origIdx = allResults.indexOf(r);
         const isSaved = !!savedLeads[r.title];
+        const isSelected = state.selected.has(origIdx);
         const tr = document.createElement('tr');
         tr.dataset.idx = origIdx;
+        if (isSelected) tr.classList.add('selected');
         tr.innerHTML = `
+          <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" data-idx="${origIdx}" ${isSelected ? 'checked' : ''}></td>
           <td onclick="event.stopPropagation(); toggleSave(${origIdx})">
             <button class="star-btn ${isSaved ? 'saved' : ''}" title="${isSaved ? 'Unsave' : 'Save lead'}">
               <svg width="18" height="18" fill="${isSaved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
@@ -700,16 +759,19 @@
             <div style="font-weight: 500; color: var(--near-black);">${escapeHTML(r.title)}</div>
             <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">${escapeHTML(r.category)}${r.address ? ' · ' + escapeHTML(r.address) : ''}</div>
           </td>
-          <td>${r.rating != null ? `<span style="color: var(--amber); font-weight: 500;">★ ${r.rating}</span>` : '<span style="color: var(--muted);">—</span>'}</td>
+          <td>${r.rating != null ? `<span style="color: var(--amber); font-weight: 500;">★ ${r.rating}</span>` : '<span class="empty-dash">—</span>'}</td>
           <td style="text-align: right; color: var(--body);">${r.reviewCount != null ? r.reviewCount : '—'}</td>
           <td>${badgeSegment(r.segmentCode)}</td>
-          <td>${badgeOutreach(r.outreach)}</td>
-          <td>
-            ${r.phone   ? `<button class="contact-ico" title="${escapeHTML(r.phone)}" onclick="event.stopPropagation(); copyValue(this, '${escapeHTML(r.phone)}')"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></button>` : `<button class="contact-ico disabled" type="button"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></button>`}
-            ${r.email   ? `<button class="contact-ico" title="${escapeHTML(r.email)}" onclick="event.stopPropagation(); copyValue(this, '${escapeHTML(r.email)}')"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></button>` : `<button class="contact-ico disabled" type="button"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></button>`}
-            ${r.instagram ? `<button class="contact-ico" title="@${escapeHTML(r.instagram)}" onclick="event.stopPropagation(); copyValue(this, '${escapeHTML(r.instagram)}')"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></button>` : `<button class="contact-ico disabled" type="button"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></button>`}
-          </td>
-          <td>${r.url ? `<a href="${escapeHTML(r.url)}" target="_blank" onclick="event.stopPropagation()" class="contact-ico" style="display: inline-flex; text-decoration: none;" title="Open in Google Maps"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg></a>` : ''}</td>
+          <td class="col-outreach col-hidden">${badgeOutreach(r.outreach)}</td>
+          <td>${contactCellIG(r)}</td>
+          <td>${contactCellPhone(r)}</td>
+          <td>${contactCellEmail(r)}</td>
+          <td class="col-linkedin col-hidden">${r.linkedin ? `<a href="https://linkedin.com/company/${escapeAttr(r.linkedin)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size: 13px;">${escapeHTML(r.linkedin)}</a>` : '<span class="empty-dash">—</span>'}</td>
+          <td class="col-booking col-hidden"><span style="font-size: 12px; color: var(--body);">${r.booking ? escapeHTML(r.booking) : '<span class="empty-dash">—</span>'}</span></td>
+          <td class="col-hours col-hidden"><span style="font-size: 12px; color: var(--body);">${r.hours ? escapeHTML(r.hours) : '<span class="empty-dash">—</span>'}</span></td>
+          <td class="col-price col-hidden"><span style="font-weight: 600; color: var(--near-black);">${r.priceTier ? escapeHTML(r.priceTier) : '<span class="empty-dash">—</span>'}</span></td>
+          <td style="text-align: center;">${qualityPill(r.qualityScore)}</td>
+          <td>${r.url ? `<a href="${escapeAttr(r.url)}" target="_blank" onclick="event.stopPropagation()" style="display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 5px; color: var(--muted);" title="Open in Google Maps"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg></a>` : ''}</td>
         `;
         tr.addEventListener('click', () => toggleExpand(origIdx));
         body.appendChild(tr);
@@ -718,32 +780,66 @@
           body.appendChild(buildDetailRow(r));
         }
       });
+      // Re-apply hidden column classes (in case prefs had toggles)
+      applyColumnVisibility();
+      // Wire checkboxes
+      body.querySelectorAll('.row-check').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+          const idx = parseInt(e.target.dataset.idx, 10);
+          if (e.target.checked) state.selected.add(idx); else state.selected.delete(idx);
+          const row = e.target.closest('tr');
+          if (row) row.classList.toggle('selected', e.target.checked);
+          updateBulkBar();
+        });
+      });
+      // Select-all checkbox state
+      const selectAll = document.getElementById('selectAllCheck');
+      if (selectAll) {
+        const allSelected = rows.length > 0 && rows.every(r => state.selected.has(allResults.indexOf(r)));
+        selectAll.checked = allSelected;
+        selectAll.indeterminate = !allSelected && rows.some(r => state.selected.has(allResults.indexOf(r)));
+      }
+      updateBulkBar();
+    }
+
+    function applyColumnVisibility() {
+      const prefs = loadPrefs();
+      const cols = prefs.columns || {};
+      ['outreach', 'linkedin', 'booking', 'hours', 'price'].forEach(col => {
+        const visible = !!cols[col];
+        document.querySelectorAll(`.col-${col}`).forEach(el => el.classList.toggle('col-hidden', !visible));
+      });
     }
 
     function buildDetailRow(r) {
       const tr = document.createElement('tr');
       tr.className = 'detail-row';
       tr.innerHTML = `
-        <td colspan="8">
+        <td colspan="16">
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px;">
             <div>
               <div class="ui-label" style="margin-bottom: 8px;">Contact</div>
-              ${r.phone     ? `<div style="margin-bottom: 6px;"><span class="caption">Phone · </span><a href="tel:${escapeHTML(r.phone)}">${escapeHTML(r.phone)}</a></div>` : ''}
-              ${r.email     ? `<div style="margin-bottom: 6px;"><span class="caption">Email · </span><a href="mailto:${escapeHTML(r.email)}">${escapeHTML(r.email)}</a></div>` : ''}
-              ${r.instagram ? `<div style="margin-bottom: 6px;"><span class="caption">Instagram · </span><a href="https://instagram.com/${escapeHTML(r.instagram)}" target="_blank" style="color: var(--pink);">@${escapeHTML(r.instagram)}</a></div>` : ''}
-              ${!r.phone && !r.email && !r.instagram ? `<div class="caption">No contact info found.</div>` : ''}
+              ${r.phone ? `<div style="margin-bottom: 6px;"><span class="caption">Phone · </span><a href="tel:${escapeAttr(r.phone)}">${escapeHTML(r.phone)}</a></div>` : ''}
+              ${r.email ? `<div style="margin-bottom: 6px;"><span class="caption">Email · </span><a href="mailto:${escapeAttr(r.email)}">${escapeHTML(r.email)}</a></div>` : ''}
+              ${r.instagram ? `<div style="margin-bottom: 6px;"><span class="caption">Instagram · </span><a href="${escapeAttr(igUrl(r.instagram))}" target="_blank" rel="noopener" style="color: var(--pink);">@${escapeHTML(igHandle(r.instagram))}</a></div>` : ''}
+              ${r.linkedin ? `<div style="margin-bottom: 6px;"><span class="caption">LinkedIn · </span><a href="https://linkedin.com/company/${escapeAttr(r.linkedin)}" target="_blank" rel="noopener">${escapeHTML(r.linkedin)}</a></div>` : ''}
+              ${!r.phone && !r.email && !r.instagram && !r.linkedin ? `<div class="caption">No contact info found.</div>` : ''}
             </div>
             <div>
               <div class="ui-label" style="margin-bottom: 8px;">Details</div>
-              ${r.website ? `<div style="margin-bottom: 6px;"><span class="caption">Website · </span><a href="${escapeHTML(r.website)}" target="_blank">${escapeHTML(r.website.replace(/https?:\/\/(www\.)?/, '').split('/')[0])}</a></div>` : ''}
+              ${r.website ? `<div style="margin-bottom: 6px;"><span class="caption">Website · </span><a href="${escapeAttr(r.website)}" target="_blank">${escapeHTML(r.website.replace(/https?:\/\/(www\.)?/, '').split('/')[0])}</a></div>` : ''}
+              ${r.booking ? `<div style="margin-bottom: 6px;"><span class="caption">Booking · </span>${escapeHTML(r.booking)}</div>` : ''}
+              ${r.hours ? `<div style="margin-bottom: 6px;"><span class="caption">Hours · </span>${escapeHTML(r.hours)}</div>` : ''}
+              ${r.priceTier ? `<div style="margin-bottom: 6px;"><span class="caption">Price · </span>${escapeHTML(r.priceTier)}</div>` : ''}
               ${r.address ? `<div style="margin-bottom: 6px; color: var(--body); font-size: 13px;">${escapeHTML(r.address)}</div>` : ''}
               ${r.category ? `<div class="caption">${escapeHTML(r.category)}</div>` : ''}
             </div>
             <div>
               <div class="ui-label" style="margin-bottom: 8px;">Quick actions</div>
               <div style="display: flex; flex-direction: column; gap: 8px;">
-                ${r.url ? `<a href="${escapeHTML(r.url)}" target="_blank" class="btn" style="font-size: 13px;">Open in Google Maps</a>` : ''}
-                ${r.website ? `<a href="${escapeHTML(r.website)}" target="_blank" class="btn" style="font-size: 13px;">Visit website</a>` : ''}
+                ${r.url ? `<a href="${escapeAttr(r.url)}" target="_blank" class="btn" style="font-size: 13px;">Open in Google Maps</a>` : ''}
+                ${r.website ? `<a href="${escapeAttr(r.website)}" target="_blank" class="btn" style="font-size: 13px;">Visit website</a>` : ''}
+                <div style="font-size: 12px; color: var(--muted); margin-top: 6px;">Data quality: ${qualityPill(r.qualityScore)}</div>
               </div>
             </div>
           </div>
@@ -782,7 +878,7 @@
       renderRows();
     }));
 
-    // ——— Segment / saved / text filters ———
+    // ——— Filter pills ———
     document.querySelectorAll('.filter-pill').forEach(p => p.addEventListener('click', () => {
       const f = p.dataset.filter, v = p.dataset.value;
       if (f === 'saved') {
@@ -826,6 +922,79 @@
       renderRows();
     }));
 
+    // ——— Select-all checkbox ———
+    document.getElementById('selectAllCheck')?.addEventListener('change', (e) => {
+      const rows = applyFilters();
+      if (e.target.checked) rows.forEach(r => state.selected.add(allResults.indexOf(r)));
+      else rows.forEach(r => state.selected.delete(allResults.indexOf(r)));
+      renderRows();
+    });
+
+    // ——— Columns menu ———
+    document.getElementById('columnsBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.getElementById('columnsMenu').classList.toggle('hidden');
+    });
+    document.addEventListener('click', (e) => {
+      const m = document.getElementById('columnsMenu');
+      if (m && !m.classList.contains('hidden') && !m.contains(e.target) && e.target.id !== 'columnsBtn') m.classList.add('hidden');
+    });
+    document.querySelectorAll('[data-col]').forEach(cb => cb.addEventListener('change', (e) => {
+      const col = cb.dataset.col;
+      const visible = cb.checked;
+      document.querySelectorAll(`.col-${col}`).forEach(el => el.classList.toggle('col-hidden', !visible));
+      const prefs = loadPrefs();
+      prefs.columns = prefs.columns || {};
+      prefs.columns[col] = visible;
+      savePrefs(prefs);
+    }));
+
+    // ——— Bulk action bar ———
+    function updateBulkBar() {
+      const bar = document.getElementById('bulkBar');
+      const count = state.selected.size;
+      if (count > 0) { bar.classList.add('visible'); document.getElementById('bulkCountNum').textContent = count; }
+      else bar.classList.remove('visible');
+    }
+    function selectedLeads() { return [...state.selected].map(i => allResults[i]).filter(Boolean); }
+    document.getElementById('bulkCopyEmails')?.addEventListener('click', () => {
+      const list = selectedLeads().filter(r => r.email).map(r => r.email);
+      if (!list.length) return showToast('No emails in selection');
+      navigator.clipboard.writeText(list.join('\n')).then(() => showToast(`Copied ${list.length} emails`));
+    });
+    document.getElementById('bulkCopyPhones')?.addEventListener('click', () => {
+      const list = selectedLeads().filter(r => r.phone).map(r => r.phone);
+      if (!list.length) return showToast('No phones in selection');
+      navigator.clipboard.writeText(list.join('\n')).then(() => showToast(`Copied ${list.length} phones`));
+    });
+    document.getElementById('bulkCopyIG')?.addEventListener('click', () => {
+      const list = selectedLeads().filter(r => r.instagram).map(r => igHandle(r.instagram));
+      if (!list.length) return showToast('No Instagram handles in selection');
+      navigator.clipboard.writeText(list.join('\n')).then(() => showToast(`Copied ${list.length} handles`));
+    });
+    document.getElementById('bulkSave')?.addEventListener('click', async () => {
+      const sel = selectedLeads();
+      let saved = 0;
+      for (const lead of sel) {
+        if (savedLeads[lead.title]) continue;
+        const res = await fetch('/leads/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(lead) });
+        const data = await res.json();
+        savedLeads[lead.title] = data.key;
+        saved++;
+      }
+      showToast(`Saved ${saved} new · ${sel.length - saved} already saved`);
+      render();
+    });
+    document.getElementById('bulkExportCSV')?.addEventListener('click', () => {
+      const sel = selectedLeads();
+      if (!sel.length) return showToast('Nothing selected');
+      exportCSV(sel, `leadmapper-selected-${Date.now()}.csv`);
+    });
+    document.getElementById('bulkClear')?.addEventListener('click', () => {
+      state.selected.clear();
+      renderRows();
+    });
+
     // ——— Toast & copy ———
     function showToast(msg) {
       const t = document.getElementById('toast');
@@ -837,7 +1006,7 @@
       navigator.clipboard.writeText(value).then(() => {
         btn.classList.add('copied');
         setTimeout(() => btn.classList.remove('copied'), 900);
-        showToast('Copied: ' + value);
+        showToast('Copied');
       });
     }
     window.copyValue = copyValue;
@@ -847,7 +1016,7 @@
     }
     document.getElementById('copyIG')?.addEventListener('click', () => {
       const rows = applyFilters();
-      copyList(rows.filter(r => r.instagram).map(r => r.instagram), 'No Instagram handles in current filter', 'Instagram handles copied');
+      copyList(rows.filter(r => r.instagram).map(r => igHandle(r.instagram)), 'No Instagram handles in current filter', 'Handles copied');
     });
     document.getElementById('copyEmails')?.addEventListener('click', () => {
       const rows = applyFilters();
@@ -860,26 +1029,38 @@
     document.getElementById('exportColdDMs')?.addEventListener('click', () => {
       const rows = applyFilters().filter(r => r.instagram);
       if (!rows.length) { showToast('No Instagram handles in current filter'); return; }
-      const csv = 'instagram,business_name,notes\n' + rows.map(r => `${r.instagram},"${(r.title || '').replace(/"/g,'""')}","${(r.category || '').replace(/"/g,'""')}"`).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'colddms-import.csv';
-      a.click();
+      const csv = 'instagram,business_name,notes\n' + rows.map(r => `${igHandle(r.instagram)},"${(r.title || '').replace(/"/g,'""')}","${(r.category || '').replace(/"/g,'""')}"`).join('\n');
+      downloadBlob(csv, 'text/csv', 'colddms-import.csv');
       showToast(`Downloaded ColdDMs CSV (${rows.length})`);
     });
-    document.getElementById('exportCSV')?.addEventListener('click', () => {
-      const rows = applyFilters();
-      if (!rows.length) { showToast('No rows to export'); return; }
-      const headers = ['Name','Phone','Email','Instagram','Website','Category','Address','Rating','Reviews','Segment','Outreach','Google Maps URL'];
-      const csvRows = rows.map(r => [r.title, r.phone, r.email, r.instagram || '', r.website, r.category, r.address, r.rating, r.reviewCount, r.segment || '', r.outreach || '', r.url].map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(','));
+
+    function exportCSV(rows, filename) {
+      const headers = ['Name','Phone','Email','Instagram','LinkedIn','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','Segment','Outreach','QualityScore','Google Maps URL'];
+      const csvRows = rows.map(r => [
+        r.title, r.phone, r.email, r.instagram || '', r.linkedin || '', r.booking || '', r.hours || '', r.priceTier || '',
+        r.website, r.category, r.address, r.rating, r.reviewCount, r.segment || '', r.outreach || '', r.qualityScore || '', r.url
+      ].map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(','));
       const csv = [headers.join(','), ...csvRows].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
+      downloadBlob(csv, 'text/csv', filename || `leadmapper-${Date.now()}.csv`);
+    }
+    function downloadBlob(content, type, name) {
+      const blob = new Blob([content], { type });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `leadmapper-${Date.now()}.csv`;
+      a.download = name;
       a.click();
+    }
+    document.getElementById('exportCSV')?.addEventListener('click', () => {
+      const rows = applyFilters();
+      if (!rows.length) return showToast('No rows to export');
+      exportCSV(rows);
       showToast(`Exported ${rows.length} rows`);
+    });
+    document.getElementById('exportJSON')?.addEventListener('click', () => {
+      const rows = applyFilters();
+      if (!rows.length) return showToast('No rows to export');
+      downloadBlob(JSON.stringify(rows, null, 2), 'application/json', `leadmapper-${Date.now()}.json`);
+      showToast(`Exported ${rows.length} rows as JSON`);
     });
 
     function render() { renderStats(); updateFilterCounts(); renderRows(); }
