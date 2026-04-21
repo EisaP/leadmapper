@@ -31,9 +31,11 @@
     .btn-primary { background: var(--brand-gradient); border: none; color: white; border-radius: 9999px; box-shadow: var(--shadow-cta); font-weight: 600; padding: 12px 24px; }
     .sidebar { background: var(--white); border-right: 1px solid var(--border); width: 236px; flex-shrink: 0; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; }
     .brand-lockup { display: flex; align-items: center; gap: 10px; padding: 22px 20px 18px; border-bottom: 1px solid var(--border); }
-    .logo-starise { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; font-size: 15px; color: var(--indigo); letter-spacing: 0.22em; text-transform: lowercase; }
-    .brand-lockup .divider { color: var(--border-strong); font-size: 14px; margin: 0 2px; }
-    .brand-lockup .product { font-size: 13px; font-weight: 500; color: var(--near-black); letter-spacing: -0.01em; }
+    .logo-starise { display: inline-flex; align-items: flex-start; color: var(--indigo); }
+    .logo-word { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 15px; letter-spacing: 0.22em; text-transform: lowercase; line-height: 1; padding-top: 5px; }
+    .logo-sparkle { width: 11px; height: 11px; margin-left: 0; margin-top: -3px; flex-shrink: 0; }
+    .brand-lockup .divider { color: var(--border-strong); font-size: 14px; margin: 0 2px; padding-top: 4px; }
+    .brand-lockup .product { font-size: 13px; font-weight: 500; color: var(--near-black); letter-spacing: -0.01em; padding-top: 4px; }
     .sidebar-nav { padding: 12px 8px; flex: 1; }
     .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 2px 0; border-radius: var(--radius-input); font-size: 14px; font-weight: 500; color: var(--body); text-decoration: none; position: relative; }
     .sidebar-nav a:hover { background: var(--section); color: var(--near-black); }
@@ -54,7 +56,7 @@
   <div style="display: flex; min-height: 100vh;">
     <aside class="sidebar">
       <div class="brand-lockup">
-        <span class="logo-starise">starise<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="margin-left: 2px; margin-top: -8px;"><path d="M12 0 L13.3 10.7 L24 12 L13.3 13.3 L12 24 L10.7 13.3 L0 12 L10.7 10.7 Z"/></svg></span>
+        <span class="logo-starise" aria-label="Starise"><span class="logo-word">starise</span><svg class="logo-sparkle" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0 L13.5 10.5 L24 12 L13.5 13.5 L12 24 L10.5 13.5 L0 12 L10.5 10.5 Z"/></svg></span>
         <span class="divider">·</span>
         <span class="product">LeadMapper</span>
       </div>

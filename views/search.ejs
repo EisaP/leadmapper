@@ -28,7 +28,6 @@
       --radius-pill: 9999px;
       --shadow-soft: 0 1px 2px rgba(15, 15, 26, 0.04);
       --shadow-cta: 0 4px 12px rgba(86, 100, 239, 0.2);
-      /* Semantic colors for badges — kept tight to brand palette */
       --pink: #DB2777;
       --pink-soft: #FDF2F8;
       --sky: #0284C7;
@@ -54,13 +53,11 @@
     a { color: var(--indigo); text-decoration: none; }
     a:hover { color: var(--indigo-hover); }
 
-    /* ——— Typography helpers ——— */
     .ui-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
     .section-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--indigo); margin-bottom: 12px; display: block; }
     .caption { font-size: 12px; color: var(--muted); line-height: 1.4; }
     .helper-text { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
 
-    /* ——— Inputs ——— */
     .input, .select {
       font-family: inherit; font-size: 14px; padding: 10px 12px;
       background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-input);
@@ -70,7 +67,6 @@
     .input::placeholder { color: #9897A6; }
     select.select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236B6B80'%3e%3cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 10px center; background-size: 14px; padding-right: 32px; cursor: pointer; }
 
-    /* ——— Buttons ——— */
     .btn {
       font-family: inherit; font-size: 14px; font-weight: 500;
       padding: 10px 16px; border-radius: var(--radius-input);
@@ -79,53 +75,30 @@
       transition: background 0.15s, border-color 0.15s, color 0.15s;
     }
     .btn:hover { background: var(--section); border-color: var(--border-strong); }
-    .btn-primary {
-      background: var(--brand-gradient); border: none; color: white;
-      padding: 12px 28px; border-radius: var(--radius-pill);
-      box-shadow: var(--shadow-cta); font-weight: 600;
-    }
+    .btn-primary { background: var(--brand-gradient); border: none; color: white; padding: 12px 28px; border-radius: var(--radius-pill); box-shadow: var(--shadow-cta); font-weight: 600; }
     .btn-primary:hover { background: var(--brand-gradient); opacity: 0.95; box-shadow: 0 6px 18px rgba(86, 100, 239, 0.28); }
     .btn-primary:disabled { opacity: 0.65; cursor: not-allowed; box-shadow: none; }
     .btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }
     .btn-ghost:hover { background: var(--section); color: var(--near-black); }
 
-    /* ——— Cards ——— */
-    .card {
-      background: var(--white); border: 1px solid var(--border);
-      border-radius: var(--radius-card); box-shadow: var(--shadow-soft);
-    }
+    .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-soft); }
 
-    /* ——— Sidebar ——— */
-    .sidebar {
-      background: var(--white); border-right: 1px solid var(--border);
-      width: 236px; flex-shrink: 0; display: flex; flex-direction: column;
-      height: 100vh; position: sticky; top: 0;
-    }
+    /* ——— Sidebar + logo ——— */
+    .sidebar { background: var(--white); border-right: 1px solid var(--border); width: 236px; flex-shrink: 0; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; }
     .brand-lockup { display: flex; align-items: center; gap: 10px; padding: 22px 20px 18px; border-bottom: 1px solid var(--border); }
-    .logo-starise {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-family: 'Inter', sans-serif; font-weight: 500; font-size: 15px;
-      color: var(--indigo); letter-spacing: 0.22em; text-transform: lowercase;
-    }
-    .logo-starise svg { margin-left: -2px; }
-    .brand-lockup .divider { color: var(--border-strong); font-size: 14px; margin: 0 2px; }
-    .brand-lockup .product { font-size: 13px; font-weight: 500; color: var(--near-black); letter-spacing: -0.01em; }
+    .logo-starise { display: inline-flex; align-items: flex-start; color: var(--indigo); }
+    .logo-word { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 15px; letter-spacing: 0.22em; text-transform: lowercase; line-height: 1; padding-top: 5px; }
+    .logo-sparkle { width: 11px; height: 11px; margin-left: 0px; margin-top: -3px; flex-shrink: 0; }
+    .brand-lockup .divider { color: var(--border-strong); font-size: 14px; margin: 0 2px; padding-top: 4px; }
+    .brand-lockup .product { font-size: 13px; font-weight: 500; color: var(--near-black); letter-spacing: -0.01em; padding-top: 4px; }
     .sidebar-nav { padding: 12px 8px; flex: 1; }
-    .sidebar-nav a {
-      display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 2px 0;
-      border-radius: var(--radius-input); font-size: 14px; font-weight: 500;
-      color: var(--body); text-decoration: none; position: relative;
-    }
+    .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 2px 0; border-radius: var(--radius-input); font-size: 14px; font-weight: 500; color: var(--body); text-decoration: none; position: relative; }
     .sidebar-nav a:hover { background: var(--section); color: var(--near-black); }
     .sidebar-nav a.active { background: var(--lavender); color: var(--indigo); }
     .sidebar-nav a.active::before { content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; background: var(--indigo); border-radius: 2px; }
     .sidebar-nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
     .sidebar-footer { padding: 16px 16px 20px; border-top: 1px solid var(--border); }
-    .credit-indicator {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 11px; font-weight: 500; color: var(--muted);
-      padding: 5px 10px; background: var(--section); border-radius: var(--radius-pill);
-    }
+    .credit-indicator { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; color: var(--muted); padding: 5px 10px; background: var(--section); border-radius: var(--radius-pill); }
     .credit-indicator .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--indigo); flex-shrink: 0; }
 
     /* ——— Pills / badges ——— */
@@ -133,42 +106,69 @@
     .badge-seg-b { background: var(--lavender); color: var(--indigo); }
     .badge-seg-c { background: var(--red-soft); color: var(--red); }
     .badge-seg-other { background: var(--section); color: var(--muted); }
-    .badge-dm { background: var(--pink-soft); color: var(--pink); }
+    .badge-ig { background: var(--pink-soft); color: var(--pink); }
     .badge-call { background: var(--sky-soft); color: var(--sky); }
     .badge-email { background: var(--teal-soft); color: var(--teal); }
     .badge-none { background: var(--section); color: var(--muted); }
 
     /* ——— Preset chips (verticals + suggestions) ——— */
-    .chip {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 13px; font-weight: 500; padding: 7px 14px;
-      border: 1px solid var(--border); border-radius: var(--radius-pill);
-      background: var(--white); color: var(--body); cursor: pointer;
-      transition: all 0.15s;
-    }
+    .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; padding: 7px 14px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--white); color: var(--body); cursor: pointer; transition: all 0.15s; }
     .chip:hover { border-color: var(--indigo); color: var(--indigo); background: var(--lavender); }
     .chip.active { background: var(--brand-gradient); border-color: transparent; color: white; box-shadow: var(--shadow-cta); }
 
-    /* ——— Filter pills (table filters) ——— */
-    .filter-pill {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 13px; font-weight: 500; padding: 5px 10px;
-      border: 1px solid var(--border); border-radius: var(--radius-pill);
-      background: var(--white); color: var(--body); cursor: pointer; transition: all 0.15s;
-    }
+    /* ——— Filter pills (segment + saved) ——— */
+    .filter-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--white); color: var(--body); cursor: pointer; transition: all 0.15s; }
     .filter-pill:hover { border-color: var(--border-strong); color: var(--near-black); }
     .filter-pill.active { background: var(--near-black); border-color: var(--near-black); color: white; }
     .filter-pill .count { background: rgba(0,0,0,0.06); color: inherit; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; }
     .filter-pill.active .count { background: rgba(255,255,255,0.2); }
 
+    /* ——— Channel toggles (Email / Phone / Instagram) ——— */
+    .channel-toggle {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: inherit; font-size: 14px; font-weight: 500;
+      padding: 8px 14px; border-radius: var(--radius-pill);
+      border: 1px solid var(--border); background: var(--white); color: var(--muted);
+      cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .channel-toggle:hover { color: var(--near-black); border-color: var(--border-strong); }
+    .channel-toggle svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .channel-toggle .count { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 10px; background: rgba(0,0,0,0.06); color: inherit; }
+    .channel-toggle.active { color: white; border-color: transparent; }
+    .channel-toggle.active .count { background: rgba(255,255,255,0.22); }
+    .channel-toggle[data-channel="email"].active { background: var(--teal); }
+    .channel-toggle[data-channel="phone"].active { background: var(--sky); }
+    .channel-toggle[data-channel="instagram"].active { background: var(--pink); }
+
+    /* ——— Priority hint panel ——— */
+    .priority-hint {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 16px; margin-bottom: 20px;
+      background: var(--lavender); border: 1px solid #E0D5FF;
+      border-radius: var(--radius-card);
+      font-size: 13px; color: var(--near-black);
+      position: relative;
+    }
+    .priority-hint .hint-ico {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: rgba(86, 100, 239, 0.15); color: var(--indigo);
+      display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .priority-hint .hint-ico svg { width: 14px; height: 14px; }
+    .priority-hint .hint-body { flex: 1; padding-top: 4px; line-height: 1.5; }
+    .priority-hint .hint-body strong { font-weight: 600; color: var(--indigo); }
+    .priority-hint .hint-close {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      padding: 4px; border-radius: 4px; transition: all 0.15s;
+      position: absolute; top: 10px; right: 10px;
+    }
+    .priority-hint .hint-close:hover { background: rgba(0,0,0,0.05); color: var(--near-black); }
+    .priority-hint.hidden { display: none; }
+
     /* ——— Data table ——— */
     .data-table { width: 100%; font-size: 14px; border-collapse: separate; border-spacing: 0; }
     .data-table thead { position: sticky; top: 0; background: var(--section); z-index: 5; }
-    .data-table th {
-      text-align: left; padding: 11px 14px; font-size: 11px; font-weight: 600;
-      color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;
-      border-bottom: 1px solid var(--border); user-select: none;
-    }
+    .data-table th { text-align: left; padding: 11px 14px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); user-select: none; }
     .data-table th.sortable { cursor: pointer; }
     .data-table th.sortable:hover { color: var(--near-black); }
     .data-table th.sortable.active { color: var(--indigo); }
@@ -183,43 +183,25 @@
     .data-table .detail-row td { padding: 20px 24px; }
 
     /* ——— Star button ——— */
-    .star-btn {
-      background: none; border: none; cursor: pointer; padding: 4px;
-      border-radius: 4px; color: var(--muted); transition: color 0.15s;
-    }
+    .star-btn { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 4px; color: var(--muted); transition: color 0.15s; }
     .star-btn:hover { color: var(--amber); background: var(--section); }
     .star-btn.saved { color: var(--amber); }
     .star-btn.saved svg { fill: var(--amber); }
 
     /* ——— Contact icon buttons ——— */
-    .contact-ico {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 28px; height: 28px; border-radius: 8px;
-      background: var(--section); color: var(--muted);
-      border: 1px solid var(--border); cursor: pointer; transition: all 0.15s;
-      margin-right: 4px;
-    }
+    .contact-ico { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; background: var(--section); color: var(--muted); border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; margin-right: 4px; }
     .contact-ico:hover { background: var(--lavender); color: var(--indigo); border-color: var(--indigo); }
     .contact-ico.copied { background: var(--indigo); color: white; border-color: var(--indigo); }
     .contact-ico svg { width: 14px; height: 14px; }
     .contact-ico.disabled { opacity: 0.3; cursor: not-allowed; }
     .contact-ico.disabled:hover { background: var(--section); color: var(--muted); border-color: var(--border); }
 
-    /* ——— Toast ——— */
-    .toast {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-      background: var(--near-black); color: white; padding: 10px 18px;
-      border-radius: var(--radius-input); font-size: 13px; font-weight: 500;
-      box-shadow: 0 8px 24px rgba(15, 15, 26, 0.18);
-      opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 100;
-    }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--near-black); color: white; padding: 10px 18px; border-radius: var(--radius-input); font-size: 13px; font-weight: 500; box-shadow: 0 8px 24px rgba(15, 15, 26, 0.18); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; z-index: 100; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
 
-    /* ——— Spinner ——— */
     .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ——— Stat cards ——— */
     .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 20px; }
     .stat-card .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-bottom: 10px; }
     .stat-card .stat-value { font-size: 28px; font-weight: 700; color: var(--near-black); line-height: 1; letter-spacing: -0.02em; }
@@ -229,15 +211,9 @@
     .mix-legend { display: flex; gap: 10px; margin-top: 10px; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
     .mix-legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: middle; }
 
-    /* ——— Icon container (Starise spec) ——— */
-    .ico-box {
-      width: 40px; height: 40px; border-radius: var(--radius-icon);
-      background: var(--lavender); color: var(--indigo);
-      display: inline-flex; align-items: center; justify-content: center;
-    }
+    .ico-box { width: 40px; height: 40px; border-radius: var(--radius-icon); background: var(--lavender); color: var(--indigo); display: inline-flex; align-items: center; justify-content: center; }
     .ico-box svg { width: 20px; height: 20px; }
 
-    /* ——— Details summary ——— */
     details > summary { list-style: none; cursor: pointer; user-select: none; }
     details > summary::-webkit-details-marker { display: none; }
     details[open] > summary .chev { transform: rotate(90deg); }
@@ -249,26 +225,19 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="brand-lockup">
-        <span class="logo-starise">
-          starise
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="margin-left: 2px; margin-top: -8px;"><path d="M12 0 L13.3 10.7 L24 12 L13.3 13.3 L12 24 L10.7 13.3 L0 12 L10.7 10.7 Z"/></svg>
+        <span class="logo-starise" aria-label="Starise">
+          <span class="logo-word">starise</span>
+          <svg class="logo-sparkle" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 0 L13.5 10.5 L24 12 L13.5 13.5 L12 24 L10.5 13.5 L0 12 L10.5 10.5 Z"/>
+          </svg>
         </span>
         <span class="divider">·</span>
         <span class="product">LeadMapper</span>
       </div>
       <nav class="sidebar-nav">
-        <a href="/" class="active">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          Search
-        </a>
-        <a href="/history">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          History
-        </a>
-        <a href="/leads">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
-          Saved leads
-        </a>
+        <a href="/" class="active"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>Search</a>
+        <a href="/history"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>History</a>
+        <a href="/leads"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>Saved leads</a>
       </nav>
       <div class="sidebar-footer">
         <div class="credit-indicator" title="SerpAPI usage this month"><span class="dot"></span>SerpAPI · <%= typeof serpUsage !== 'undefined' ? serpUsage : '—' %></div>
@@ -278,7 +247,6 @@
 
     <!-- Main -->
     <main style="flex: 1; padding: 36px 44px; min-width: 0; max-width: 1700px;">
-      <!-- Page header -->
       <div style="margin-bottom: 28px;">
         <span class="section-label">Prospecting</span>
         <h1 style="font-size: 28px; margin-bottom: 6px;">Find leads</h1>
@@ -297,14 +265,13 @@
       </div>
 
       <!-- Search form -->
-      <form method="POST" action="/search" id="searchForm" class="card" style="padding: 28px; margin-bottom: 24px;">
-        <!-- What to find -->
+      <form method="POST" action="/search" id="searchForm" class="card" style="padding: 28px; margin-bottom: 20px;">
         <div style="margin-bottom: 24px;">
           <span class="section-label">What to find</span>
           <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 120px; gap: 14px;">
             <div>
               <label class="ui-label" style="display: block; margin-bottom: 6px;">Keyword</label>
-              <input class="input" type="text" name="keyword" placeholder="e.g. cafes, dentist, hair salon" value="<%= query?.keyword || '' %>" required>
+              <input class="input" type="text" name="keyword" id="keywordInput" placeholder="e.g. cafes, dentist, hair salon" value="<%= query?.keyword || '' %>" required>
             </div>
             <div>
               <label class="ui-label" style="display: block; margin-bottom: 6px;">City</label>
@@ -325,10 +292,9 @@
           </div>
         </div>
 
-        <!-- Filters & strategy -->
         <div style="border-top: 1px solid var(--border); padding-top: 22px;">
-          <span class="section-label">Filters &amp; strategy</span>
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1.6fr; gap: 18px; align-items: start;">
+          <span class="section-label">Filters</span>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; align-items: start;">
             <div>
               <label class="ui-label" style="display: block; margin-bottom: 6px;">Rating range</label>
               <div style="display: flex; gap: 6px; align-items: center;">
@@ -358,19 +324,9 @@
               </select>
               <div class="helper-text">Pre-filters before results return.</div>
             </div>
-            <div>
-              <label class="ui-label" style="display: block; margin-bottom: 6px;">Outreach priority</label>
-              <select class="select" name="outreachPriority" id="priorityDropdown">
-                <option value="dm-first" <%= query?.outreachPriority === 'dm-first' ? 'selected' : '' %>>DM → Phone → Email  ·  beauty, lifestyle, IG-native</option>
-                <option value="phone-first" <%= (!query?.outreachPriority || query?.outreachPriority === 'phone-first') ? 'selected' : '' %>>Phone → DM → Email  ·  hospitality, restaurants, hotels</option>
-                <option value="email-first" <%= query?.outreachPriority === 'email-first' ? 'selected' : '' %>>Email → Phone → DM  ·  professional services</option>
-              </select>
-              <div class="helper-text">Priority determines which channel wins when a lead has multiple. Match to your target vertical.</div>
-            </div>
           </div>
         </div>
 
-        <!-- Advanced -->
         <details style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px;">
           <summary style="color: var(--muted); font-size: 12px; font-weight: 500;"><span class="chev">▸</span> Advanced</summary>
           <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px;">
@@ -379,7 +335,6 @@
           </div>
         </details>
 
-        <!-- Submit -->
         <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
           <button type="submit" class="btn btn-primary" id="searchBtn" style="min-width: 200px;">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -389,43 +344,52 @@
         </div>
       </form>
 
-      <!-- Error -->
+      <!-- Priority hint (keyword-triggered) -->
+      <div class="priority-hint hidden" id="priorityHint">
+        <span class="hint-ico"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></span>
+        <div class="hint-body" id="hintBody"></div>
+        <button class="hint-close" onclick="dismissHint()" aria-label="Dismiss hint"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+
       <% if (error) { %>
-        <div class="card" style="padding: 14px 18px; border-color: var(--red); background: var(--red-soft); color: var(--red); margin-bottom: 20px; font-size: 14px;">
-          <%= error %>
-        </div>
+        <div class="card" style="padding: 14px 18px; border-color: var(--red); background: var(--red-soft); color: var(--red); margin-bottom: 20px;"><%= error %></div>
       <% } %>
 
-      <!-- Results -->
       <% if (results && results.length > 0) { %>
-        <!-- Stats -->
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px;" id="statsGrid"></div>
 
-        <!-- Filter bar -->
+        <!-- Filter bar: channel toggles + segment + saved + text -->
         <div class="card" style="padding: 16px 18px; margin-bottom: 12px;">
-          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;" id="filterBar">
-            <span class="ui-label" style="margin-right: 4px;">Outreach</span>
-            <button class="filter-pill active" data-filter="outreach" data-value="all">All <span class="count" id="cntOutAll">0</span></button>
-            <button class="filter-pill" data-filter="outreach" data-value="DM">DMs <span class="count" id="cntOutDM">0</span></button>
-            <button class="filter-pill" data-filter="outreach" data-value="Call">Calls <span class="count" id="cntOutCall">0</span></button>
-            <button class="filter-pill" data-filter="outreach" data-value="Email">Emails <span class="count" id="cntOutEmail">0</span></button>
-            <button class="filter-pill" data-filter="outreach" data-value="None">None <span class="count" id="cntOutNone">0</span></button>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;">
+            <span class="ui-label" style="margin-right: 4px;">Show leads with</span>
+            <button class="channel-toggle active" data-channel="email" type="button">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+              Email <span class="count" id="cntEmail">0</span>
+            </button>
+            <button class="channel-toggle active" data-channel="phone" type="button">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+              Contact number <span class="count" id="cntPhone">0</span>
+            </button>
+            <button class="channel-toggle active" data-channel="instagram" type="button">
+              <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+              Instagram <span class="count" id="cntInstagram">0</span>
+            </button>
             <span style="width: 1px; height: 24px; background: var(--border); margin: 0 8px;"></span>
             <span class="ui-label" style="margin-right: 4px;">Segment</span>
-            <button class="filter-pill active" data-filter="segment" data-value="all">All <span class="count" id="cntSegAll">0</span></button>
-            <button class="filter-pill" data-filter="segment" data-value="B">B <span class="count" id="cntSegB">0</span></button>
-            <button class="filter-pill" data-filter="segment" data-value="C">C <span class="count" id="cntSegC">0</span></button>
-            <button class="filter-pill" data-filter="segment" data-value="-">Other <span class="count" id="cntSegOther">0</span></button>
+            <button class="filter-pill active" data-filter="segment" data-value="all" type="button">All <span class="count" id="cntSegAll">0</span></button>
+            <button class="filter-pill" data-filter="segment" data-value="B" type="button">B <span class="count" id="cntSegB">0</span></button>
+            <button class="filter-pill" data-filter="segment" data-value="C" type="button">C <span class="count" id="cntSegC">0</span></button>
+            <button class="filter-pill" data-filter="segment" data-value="-" type="button">Other <span class="count" id="cntSegOther">0</span></button>
             <span style="width: 1px; height: 24px; background: var(--border); margin: 0 8px;"></span>
-            <button class="filter-pill" data-filter="saved" data-value="true">⭐ Saved only</button>
+            <button class="filter-pill" data-filter="saved" data-value="true" type="button">⭐ Saved only</button>
             <div style="flex: 1;"></div>
-            <input class="input" id="textFilter" placeholder="Filter by name..." style="width: 240px; padding: 7px 12px; font-size: 13px;">
+            <input class="input" id="textFilter" placeholder="Filter by name..." style="width: 220px; padding: 7px 12px; font-size: 13px;">
           </div>
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--border);">
-            <span class="ui-label" style="margin-right: 4px;">Copy</span>
+            <span class="ui-label" style="margin-right: 4px;">Copy from filtered</span>
             <button type="button" class="btn btn-ghost" id="copyIG" style="font-size: 13px; padding: 7px 12px;">
               <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-              IG handles <span id="cntCopyIG" style="color: var(--muted);">(0)</span>
+              Instagram handles <span id="cntCopyIG" style="color: var(--muted);">(0)</span>
             </button>
             <button type="button" class="btn btn-ghost" id="copyEmails" style="font-size: 13px; padding: 7px 12px;">
               <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
@@ -452,9 +416,8 @@
           </div>
         </div>
 
-        <!-- Data table -->
         <div class="card" style="overflow: hidden; padding: 0;">
-          <div style="max-height: calc(100vh - 460px); overflow-y: auto;">
+          <div style="max-height: calc(100vh - 500px); overflow-y: auto;">
             <table class="data-table" id="resultsTable">
               <thead>
                 <tr>
@@ -500,19 +463,20 @@
     const allResults = <%- JSON.stringify(results || []) %>;
     let savedLeads = {};
     const state = {
-      filters: { outreach: 'all', segment: 'all', saved: false, text: '' },
+      channels: { email: true, phone: true, instagram: true },
+      filters: { segment: 'all', saved: false, text: '' },
       sort: { key: null, dir: 'asc' },
       expanded: new Set()
     };
 
-    // Vertical presets
+    // ——— Vertical presets & recommendation mapping ———
     const PRESETS = {
-      cafes:       { keyword: 'cafes',         priority: 'dm-first',    ratingMin: 4.1, ratingMax: 4.7, maxReviews: '300' },
-      restaurants: { keyword: 'restaurants',   priority: 'phone-first', ratingMin: 4.0, ratingMax: 4.6, maxReviews: '500' },
-      salons:      { keyword: 'hair salons',   priority: 'dm-first',    ratingMin: 4.1, ratingMax: 4.8, maxReviews: '200' },
-      hotels:      { keyword: 'hotels',        priority: 'phone-first', ratingMin: 3.8, ratingMax: 4.5, maxReviews: '1000' },
-      dental:      { keyword: 'dental clinic', priority: 'email-first', ratingMin: 4.0, ratingMax: 4.9, maxReviews: '500' },
-      gyms:        { keyword: 'gyms',          priority: 'dm-first',    ratingMin: 4.0, ratingMax: 4.7, maxReviews: '300' }
+      cafes:       { keyword: 'cafes',         ratingMin: 4.1, ratingMax: 4.7, maxReviews: '300' },
+      restaurants: { keyword: 'restaurants',   ratingMin: 4.0, ratingMax: 4.6, maxReviews: '500' },
+      salons:      { keyword: 'hair salons',   ratingMin: 4.1, ratingMax: 4.8, maxReviews: '200' },
+      hotels:      { keyword: 'hotels',        ratingMin: 3.8, ratingMax: 4.5, maxReviews: '1000' },
+      dental:      { keyword: 'dental clinic', ratingMin: 4.0, ratingMax: 4.9, maxReviews: '500' },
+      gyms:        { keyword: 'gyms',          ratingMin: 4.0, ratingMax: 4.7, maxReviews: '300' }
     };
     document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
       const p = PRESETS[b.dataset.preset];
@@ -520,19 +484,54 @@
       document.querySelector('[name=ratingMin]').value = p.ratingMin;
       document.querySelector('[name=ratingMax]').value = p.ratingMax;
       document.querySelector('[name=maxReviews]').value = p.maxReviews;
-      document.querySelector('[name=outreachPriority]').value = p.priority;
       document.querySelectorAll('[data-preset]').forEach(x => x.classList.remove('active'));
       b.classList.add('active');
       document.querySelector('[name=keyword]').focus();
+      refreshPriorityHint();
     }));
     document.querySelectorAll('.suggestion-chip').forEach(b => b.addEventListener('click', () => {
       document.querySelector('[name=keyword]').value = b.dataset.keyword;
       document.querySelector('[name=city]').value = b.dataset.city;
       document.querySelector('[name=state]').value = b.dataset.state;
       document.querySelector('#searchForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      refreshPriorityHint();
     }));
 
-    // Persist + restore
+    // ——— Priority hint (keyword-driven, dismissible) ———
+    const VERTICAL_MAP = [
+      { words: ['salon', 'nail', 'barber', 'spa', 'beauty', 'hair'], key: 'beauty',
+        text: '<strong>Recommended priority for this vertical:</strong> Instagram → Phone → Email. Toggle off Email to focus on the highest-intent channels first.' },
+      { words: ['restaurant', 'hotel', 'bar', 'pub', 'cafe', 'café', 'coffee'], key: 'hospitality',
+        text: '<strong>Recommended priority for this vertical:</strong> Phone → Instagram → Email. Restaurants and hotels typically answer phone calls during service hours.' },
+      { words: ['dental', 'legal', 'accountant', 'lawyer', 'clinic', 'doctor', 'solicitor', 'attorney'], key: 'professional',
+        text: '<strong>Recommended priority for this vertical:</strong> Email → Phone → Instagram. Professional services are more formal and respond better to email.' }
+    ];
+    let hintState = { lastKey: null, dismissed: false };
+    function detectVertical(keyword) {
+      const kw = (keyword || '').toLowerCase();
+      if (!kw) return null;
+      return VERTICAL_MAP.find(v => v.words.some(w => kw.includes(w))) || null;
+    }
+    function refreshPriorityHint() {
+      const hint = document.getElementById('priorityHint');
+      const body = document.getElementById('hintBody');
+      if (!hint || !body) return;
+      const kw = document.querySelector('[name=keyword]')?.value || '';
+      const match = detectVertical(kw);
+      if (!match) { hint.classList.add('hidden'); hintState.lastKey = null; return; }
+      // Reset dismissal when the vertical changes
+      if (hintState.lastKey !== match.key) { hintState.dismissed = false; hintState.lastKey = match.key; }
+      if (hintState.dismissed) { hint.classList.add('hidden'); return; }
+      body.innerHTML = match.text;
+      hint.classList.remove('hidden');
+    }
+    window.dismissHint = () => {
+      hintState.dismissed = true;
+      document.getElementById('priorityHint').classList.add('hidden');
+    };
+    document.getElementById('keywordInput')?.addEventListener('input', refreshPriorityHint);
+
+    // ——— Persistence ———
     const LS_KEY = 'leadmapper:prefs';
     const loadPrefs = () => { try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; } };
     const savePrefs = (p) => localStorage.setItem(LS_KEY, JSON.stringify({ ...loadPrefs(), ...p }));
@@ -543,8 +542,9 @@
         set('keyword', prefs.keyword); set('city', prefs.city); set('state', prefs.state);
         set('ratingMin', prefs.ratingMin); set('ratingMax', prefs.ratingMax);
         set('maxReviews', prefs.maxReviews); set('maxResults', prefs.maxResults);
-        set('targetSegment', prefs.targetSegment); set('outreachPriority', prefs.outreachPriority);
+        set('targetSegment', prefs.targetSegment);
       }
+      refreshPriorityHint();
     })();
 
     document.getElementById('searchForm').addEventListener('submit', function(e) {
@@ -553,7 +553,7 @@
         keyword: fd.get('keyword'), city: fd.get('city'), state: fd.get('state'),
         ratingMin: fd.get('ratingMin'), ratingMax: fd.get('ratingMax'),
         maxReviews: fd.get('maxReviews'), maxResults: fd.get('maxResults'),
-        targetSegment: fd.get('targetSegment'), outreachPriority: fd.get('outreachPriority')
+        targetSegment: fd.get('targetSegment')
       });
       const btn = document.getElementById('searchBtn');
       btn.disabled = true;
@@ -566,6 +566,7 @@
       render();
     }).catch(() => render());
 
+    // ——— Stats ———
     function renderStats() {
       const grid = document.getElementById('statsGrid');
       if (!grid) return;
@@ -575,7 +576,8 @@
       const enrichRate = total ? Math.round((enriched / total) * 100) : 0;
       const segB = allResults.filter(r => r.segmentCode === 'B').length;
       const segC = allResults.filter(r => r.segmentCode === 'C').length;
-      const dm = allResults.filter(r => r.outreach === 'DM').length;
+      // Mix is by primary outreach (the single best channel per lead)
+      const ig = allResults.filter(r => r.outreach === 'DM').length;
       const call = allResults.filter(r => r.outreach === 'Call').length;
       const email = allResults.filter(r => r.outreach === 'Email').length;
       const none = allResults.filter(r => r.outreach === 'None').length;
@@ -596,13 +598,13 @@
         <div class="stat-card">
           <div class="stat-label">Outreach mix</div>
           <div class="mix-bar">
-            <div class="mix-seg" style="width: ${pct(dm)}%; background: var(--pink);"></div>
+            <div class="mix-seg" style="width: ${pct(ig)}%; background: var(--pink);"></div>
             <div class="mix-seg" style="width: ${pct(call)}%; background: var(--sky);"></div>
             <div class="mix-seg" style="width: ${pct(email)}%; background: var(--teal);"></div>
             <div class="mix-seg" style="width: ${pct(none)}%; background: var(--border-strong);"></div>
           </div>
           <div class="mix-legend">
-            <span><span class="dot" style="background: var(--pink);"></span>DM ${pct(dm)}%</span>
+            <span><span class="dot" style="background: var(--pink);"></span>Instagram ${pct(ig)}%</span>
             <span><span class="dot" style="background: var(--sky);"></span>Call ${pct(call)}%</span>
             <span><span class="dot" style="background: var(--teal);"></span>Email ${pct(email)}%</span>
             <span><span class="dot" style="background: var(--border-strong);"></span>None ${pct(none)}%</span>
@@ -617,23 +619,33 @@
     }
 
     function updateFilterCounts() {
-      if (!document.getElementById('cntOutAll')) return;
-      document.getElementById('cntOutAll').textContent = allResults.length;
-      document.getElementById('cntOutDM').textContent = allResults.filter(r => r.outreach === 'DM').length;
-      document.getElementById('cntOutCall').textContent = allResults.filter(r => r.outreach === 'Call').length;
-      document.getElementById('cntOutEmail').textContent = allResults.filter(r => r.outreach === 'Email').length;
-      document.getElementById('cntOutNone').textContent = allResults.filter(r => r.outreach === 'None').length;
+      if (!document.getElementById('cntEmail')) return;
+      document.getElementById('cntEmail').textContent = allResults.filter(r => r.email).length;
+      document.getElementById('cntPhone').textContent = allResults.filter(r => r.phone).length;
+      document.getElementById('cntInstagram').textContent = allResults.filter(r => r.instagram).length;
       document.getElementById('cntSegAll').textContent = allResults.length;
       document.getElementById('cntSegB').textContent = allResults.filter(r => r.segmentCode === 'B').length;
       document.getElementById('cntSegC').textContent = allResults.filter(r => r.segmentCode === 'C').length;
       document.getElementById('cntSegOther').textContent = allResults.filter(r => r.segmentCode === '-').length;
     }
 
+    // ——— Channel toggle logic ———
+    // A lead passes if ANY toggled-ON channel has data.
+    // If all toggles are OFF → show nothing (edge case).
+    function passesChannels(r) {
+      const { email, phone, instagram } = state.channels;
+      if (!email && !phone && !instagram) return false;
+      if (email && r.email) return true;
+      if (phone && r.phone) return true;
+      if (instagram && r.instagram) return true;
+      return false;
+    }
+
     function applyFilters() {
-      const { outreach, segment, saved, text } = state.filters;
+      const { segment, saved, text } = state.filters;
       const q = text.trim().toLowerCase();
       let rows = allResults.filter(r => {
-        if (outreach !== 'all' && r.outreach !== outreach) return false;
+        if (!passesChannels(r)) return false;
         if (segment !== 'all' && r.segmentCode !== segment) return false;
         if (saved && !savedLeads[r.title]) return false;
         if (q && !r.title.toLowerCase().includes(q)) return false;
@@ -655,16 +667,19 @@
 
     const escapeHTML = s => (s || '').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const badgeSegment = c => c === 'B' ? '<span class="badge badge-seg-b">Segment B</span>' : c === 'C' ? '<span class="badge badge-seg-c">Segment C</span>' : '<span class="badge badge-seg-other">Other</span>';
-    const badgeOutreach = o => o === 'DM' ? '<span class="badge badge-dm">DM</span>' : o === 'Call' ? '<span class="badge badge-call">Call</span>' : o === 'Email' ? '<span class="badge badge-email">Email</span>' : '<span class="badge badge-none">None</span>';
+    // Primary outreach badge — 'DM' is internal code, label shows "Instagram"
+    const badgeOutreach = o => o === 'DM' ? '<span class="badge badge-ig">Instagram</span>' : o === 'Call' ? '<span class="badge badge-call">Call</span>' : o === 'Email' ? '<span class="badge badge-email">Email</span>' : '<span class="badge badge-none">None</span>';
 
     function renderRows() {
       const rows = applyFilters();
-      document.getElementById('visibleCount').textContent = rows.length;
-      document.getElementById('cntCopyIG').textContent = '(' + rows.filter(r => r.instagram).length + ')';
-      document.getElementById('cntCopyEmail').textContent = '(' + rows.filter(r => r.email).length + ')';
-      document.getElementById('cntCopyPhone').textContent = '(' + rows.filter(r => r.phone).length + ')';
+      const vc = document.getElementById('visibleCount');
+      if (vc) vc.textContent = rows.length;
+      const cIG = document.getElementById('cntCopyIG'); if (cIG) cIG.textContent = '(' + rows.filter(r => r.instagram).length + ')';
+      const cE = document.getElementById('cntCopyEmail'); if (cE) cE.textContent = '(' + rows.filter(r => r.email).length + ')';
+      const cP = document.getElementById('cntCopyPhone'); if (cP) cP.textContent = '(' + rows.filter(r => r.phone).length + ')';
 
       const body = document.getElementById('resultsBody');
+      if (!body) return;
       body.innerHTML = '';
       if (rows.length === 0) {
         body.innerHTML = `<tr><td colspan="8" style="padding: 36px; text-align: center; color: var(--muted);">No rows match these filters. <button class="btn btn-ghost" onclick="clearAllFilters()" style="font-size: 13px; margin-left: 6px;">Clear filters</button></td></tr>`;
@@ -690,9 +705,9 @@
           <td>${badgeSegment(r.segmentCode)}</td>
           <td>${badgeOutreach(r.outreach)}</td>
           <td>
-            ${r.phone   ? `<button class="contact-ico" title="${escapeHTML(r.phone)}" onclick="event.stopPropagation(); copyValue(this, '${escapeHTML(r.phone)}')"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></button>` : `<button class="contact-ico disabled"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></button>`}
-            ${r.email   ? `<button class="contact-ico" title="${escapeHTML(r.email)}" onclick="event.stopPropagation(); copyValue(this, '${escapeHTML(r.email)}')"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></button>` : `<button class="contact-ico disabled"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></button>`}
-            ${r.instagram ? `<button class="contact-ico" title="@${escapeHTML(r.instagram)}" onclick="event.stopPropagation(); copyValue(this, '${escapeHTML(r.instagram)}')"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></button>` : `<button class="contact-ico disabled"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></button>`}
+            ${r.phone   ? `<button class="contact-ico" title="${escapeHTML(r.phone)}" onclick="event.stopPropagation(); copyValue(this, '${escapeHTML(r.phone)}')"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></button>` : `<button class="contact-ico disabled" type="button"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></button>`}
+            ${r.email   ? `<button class="contact-ico" title="${escapeHTML(r.email)}" onclick="event.stopPropagation(); copyValue(this, '${escapeHTML(r.email)}')"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></button>` : `<button class="contact-ico disabled" type="button"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></button>`}
+            ${r.instagram ? `<button class="contact-ico" title="@${escapeHTML(r.instagram)}" onclick="event.stopPropagation(); copyValue(this, '${escapeHTML(r.instagram)}')"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></button>` : `<button class="contact-ico disabled" type="button"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></button>`}
           </td>
           <td>${r.url ? `<a href="${escapeHTML(r.url)}" target="_blank" onclick="event.stopPropagation()" class="contact-ico" style="display: inline-flex; text-decoration: none;" title="Open in Google Maps"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg></a>` : ''}</td>
         `;
@@ -759,7 +774,15 @@
     }
     window.toggleSave = toggleSave;
 
-    // Filter pill handlers
+    // ——— Channel toggles ———
+    document.querySelectorAll('.channel-toggle').forEach(t => t.addEventListener('click', () => {
+      const ch = t.dataset.channel;
+      state.channels[ch] = !state.channels[ch];
+      t.classList.toggle('active', state.channels[ch]);
+      renderRows();
+    }));
+
+    // ——— Segment / saved / text filters ———
     document.querySelectorAll('.filter-pill').forEach(p => p.addEventListener('click', () => {
       const f = p.dataset.filter, v = p.dataset.value;
       if (f === 'saved') {
@@ -778,8 +801,10 @@
       textTimer = setTimeout(() => { state.filters.text = e.target.value; renderRows(); }, 200);
     });
     window.clearAllFilters = () => {
-      state.filters = { outreach: 'all', segment: 'all', saved: false, text: '' };
+      state.channels = { email: true, phone: true, instagram: true };
+      state.filters = { segment: 'all', saved: false, text: '' };
       const tf = document.getElementById('textFilter'); if (tf) tf.value = '';
+      document.querySelectorAll('.channel-toggle').forEach(t => t.classList.add('active'));
       document.querySelectorAll('.filter-pill').forEach(p => {
         p.classList.toggle('active', p.dataset.value === 'all' && p.dataset.filter !== 'saved');
         if (p.dataset.filter === 'saved') p.classList.remove('active');
@@ -787,7 +812,7 @@
       renderRows();
     };
 
-    // Sort handlers
+    // ——— Sorting ———
     document.querySelectorAll('th.sortable').forEach(th => th.addEventListener('click', () => {
       const key = th.dataset.sort;
       if (state.sort.key === key) state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
@@ -801,7 +826,7 @@
       renderRows();
     }));
 
-    // Toast + copy
+    // ——— Toast & copy ———
     function showToast(msg) {
       const t = document.getElementById('toast');
       t.textContent = msg; t.classList.add('show');
@@ -822,7 +847,7 @@
     }
     document.getElementById('copyIG')?.addEventListener('click', () => {
       const rows = applyFilters();
-      copyList(rows.filter(r => r.instagram).map(r => r.instagram), 'No IG handles in current filter', 'IG handles copied');
+      copyList(rows.filter(r => r.instagram).map(r => r.instagram), 'No Instagram handles in current filter', 'Instagram handles copied');
     });
     document.getElementById('copyEmails')?.addEventListener('click', () => {
       const rows = applyFilters();
@@ -834,7 +859,7 @@
     });
     document.getElementById('exportColdDMs')?.addEventListener('click', () => {
       const rows = applyFilters().filter(r => r.instagram);
-      if (!rows.length) { showToast('No IG handles in current filter'); return; }
+      if (!rows.length) { showToast('No Instagram handles in current filter'); return; }
       const csv = 'instagram,business_name,notes\n' + rows.map(r => `${r.instagram},"${(r.title || '').replace(/"/g,'""')}","${(r.category || '').replace(/"/g,'""')}"`).join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });
       const a = document.createElement('a');
