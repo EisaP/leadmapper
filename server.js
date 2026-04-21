@@ -162,7 +162,9 @@ app.get('/', (req, res) => {
 
 // Perform search
 app.post('/search', async (req, res) => {
-  const { keyword, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, outreachPriority } = req.body;
+  const { keyword, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, targetSegment } = req.body;
+  // Enrichment is always-on by default; user can opt out via "Skip enrichment" advanced toggle.
+  const enrich = skipEnrichment === 'on' ? false : true;
 
   if (!keyword || !city || !state) {
     return res.render('search', {
@@ -254,8 +256,8 @@ app.post('/search', async (req, res) => {
 
     console.log(`[search] After filtering: ${filteredResults.length}`);
 
-    // Enrich contacts if requested
-    if (enrichContacts === 'on') {
+    // Enrich contacts by default (disable only via skipEnrichment)
+    if (enrich) {
       console.log(`[enrich] Enriching ${filteredResults.length} leads...`);
       const BATCH_SIZE = 5;
       for (let i = 0; i < filteredResults.length; i += BATCH_SIZE) {
@@ -321,24 +323,32 @@ app.post('/search', async (req, res) => {
       r.outreach = picked ? picked.tag : 'None';
     });
 
+    // Target segment filter (server-side; applied AFTER segment tagging)
+    let segmentFiltered = filteredResults;
+    const segFilter = (targetSegment || 'all').toUpperCase();
+    if (segFilter === 'B') segmentFiltered = filteredResults.filter(r => r.segmentCode === 'B');
+    else if (segFilter === 'C') segmentFiltered = filteredResults.filter(r => r.segmentCode === 'C');
+    else if (segFilter === 'BC') segmentFiltered = filteredResults.filter(r => r.segmentCode === 'B' || r.segmentCode === 'C');
+    console.log(`[search] After target-segment filter (${segFilter}): ${segmentFiltered.length}`);
+
     // Save to search history
     const timestamp = Date.now();
     const searchKey = `search:${timestamp}`;
     dbSet(searchKey, {
       query: searchString,
       keyword, city, state,
-      resultCount: filteredResults.length,
+      resultCount: segmentFiltered.length,
       totalScraped: mappedResults.length,
-      filters: { ratingMin: minVal, ratingMax: maxVal, maxReviews: maxReviewsVal },
+      filters: { ratingMin: minVal, ratingMax: maxVal, maxReviews: maxReviewsVal, targetSegment: segFilter.toLowerCase() },
       outreachPriority: outreachPriority || 'phone-first',
-      results: filteredResults,
+      results: segmentFiltered,
       date: new Date().toISOString()
     });
 
     res.render('search', {
-      results: filteredResults,
+      results: segmentFiltered,
       totalScraped: mappedResults.length,
-      query: { keyword, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, enrichContacts, outreachPriority, searchString },
+      query: { keyword, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, outreachPriority, targetSegment, searchString },
       error: null
     });
 

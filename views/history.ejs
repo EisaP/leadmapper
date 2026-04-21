@@ -3,67 +3,108 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>History — LeadMapper</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>History — LeadMapper · Starise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>body { font-family: 'Inter', sans-serif; } .sidebar { background: #1a1f1e; } .sidebar a.active { background: #4a7c59; } .sidebar a:hover { background: #2a352e; }</style>
+  <style>
+    :root {
+      --indigo: #5664EF; --indigo-hover: #4450DB; --purple: #9D57F5;
+      --brand-gradient: linear-gradient(135deg, #5664EF 0%, #9D57F5 100%);
+      --near-black: #0F0F1A; --body: #4A4A4A; --muted: #6B6B80;
+      --border: #E8E8F0; --border-strong: #D4D4E0;
+      --lavender: #F3EEFF; --section: #F9FAFD; --white: #FFFFFF;
+      --radius-card: 16px; --radius-input: 8px;
+      --shadow-soft: 0 1px 2px rgba(15, 15, 26, 0.04);
+      --shadow-cta: 0 4px 12px rgba(86, 100, 239, 0.2);
+      --red: #DC2626; --red-soft: #FEF2F2;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: var(--section); color: var(--body); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    h1 { color: var(--near-black); font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+    a { color: var(--indigo); text-decoration: none; }
+    a:hover { color: var(--indigo-hover); }
+    .section-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--indigo); margin-bottom: 12px; display: block; }
+    .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-soft); }
+    .btn { font-family: inherit; font-size: 14px; font-weight: 500; padding: 10px 16px; border-radius: var(--radius-input); border: 1px solid var(--border); background: var(--white); color: var(--near-black); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s; }
+    .btn:hover { background: var(--section); border-color: var(--border-strong); }
+    .btn-primary { background: var(--brand-gradient); border: none; color: white; border-radius: 9999px; box-shadow: var(--shadow-cta); font-weight: 600; padding: 12px 24px; }
+    .sidebar { background: var(--white); border-right: 1px solid var(--border); width: 236px; flex-shrink: 0; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; }
+    .brand-lockup { display: flex; align-items: center; gap: 10px; padding: 22px 20px 18px; border-bottom: 1px solid var(--border); }
+    .logo-starise { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; font-size: 15px; color: var(--indigo); letter-spacing: 0.22em; text-transform: lowercase; }
+    .brand-lockup .divider { color: var(--border-strong); font-size: 14px; margin: 0 2px; }
+    .brand-lockup .product { font-size: 13px; font-weight: 500; color: var(--near-black); letter-spacing: -0.01em; }
+    .sidebar-nav { padding: 12px 8px; flex: 1; }
+    .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 2px 0; border-radius: var(--radius-input); font-size: 14px; font-weight: 500; color: var(--body); text-decoration: none; position: relative; }
+    .sidebar-nav a:hover { background: var(--section); color: var(--near-black); }
+    .sidebar-nav a.active { background: var(--lavender); color: var(--indigo); }
+    .sidebar-nav a.active::before { content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; background: var(--indigo); border-radius: 2px; }
+    .sidebar-nav a svg { width: 18px; height: 18px; }
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+    .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 9999px; }
+    .badge-count { background: var(--lavender); color: var(--indigo); }
+    .data-table { width: 100%; font-size: 14px; border-collapse: separate; border-spacing: 0; }
+    .data-table th { text-align: left; padding: 11px 14px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); background: var(--section); }
+    .data-table td { padding: 14px; border-bottom: 1px solid var(--border); color: var(--near-black); }
+    .data-table tbody tr:hover { background: var(--section); }
+    .ico-box { width: 40px; height: 40px; border-radius: 12px; background: var(--lavender); color: var(--indigo); display: inline-flex; align-items: center; justify-content: center; }
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
-  <div class="flex h-screen overflow-hidden">
-    <nav class="sidebar w-16 lg:w-56 flex-shrink-0 flex flex-col items-center lg:items-stretch py-4 text-white">
-      <div class="flex items-center gap-2 px-4 mb-8">
-        <svg class="w-7 h-7 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-        <span class="hidden lg:block font-bold text-lg">LeadMapper</span>
+<body>
+  <div style="display: flex; min-height: 100vh;">
+    <aside class="sidebar">
+      <div class="brand-lockup">
+        <span class="logo-starise">starise<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="margin-left: 2px; margin-top: -8px;"><path d="M12 0 L13.3 10.7 L24 12 L13.3 13.3 L12 24 L10.7 13.3 L0 12 L10.7 10.7 Z"/></svg></span>
+        <span class="divider">·</span>
+        <span class="product">LeadMapper</span>
       </div>
-      <a href="/" class="flex items-center gap-3 px-4 py-2.5 rounded-lg mx-2 mb-1 text-sm">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-        <span class="hidden lg:block">Search</span>
-      </a>
-      <a href="/history" class="flex items-center gap-3 px-4 py-2.5 rounded-lg mx-2 mb-1 text-sm active">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <span class="hidden lg:block">History</span>
-      </a>
-      <a href="/leads" class="flex items-center gap-3 px-4 py-2.5 rounded-lg mx-2 mb-1 text-sm">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
-        <span class="hidden lg:block">Leads</span>
-      </a>
-    </nav>
+      <nav class="sidebar-nav">
+        <a href="/"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>Search</a>
+        <a href="/history" class="active"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>History</a>
+        <a href="/leads"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>Saved leads</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div style="font-size: 11px; color: var(--muted);">Internal tool · Starise</div>
+      </div>
+    </aside>
 
-    <main class="flex-1 overflow-y-auto p-6">
-      <h1 class="text-2xl font-bold mb-6">Search History</h1>
+    <main style="flex: 1; padding: 36px 44px; min-width: 0; max-width: 1400px;">
+      <div style="margin-bottom: 24px;">
+        <span class="section-label">Prospecting</span>
+        <h1 style="font-size: 28px; margin-bottom: 6px;">Search history</h1>
+        <p style="color: var(--body); font-size: 15px;">Every search you've run, with filters and result counts. Click a row to re-open the results.</p>
+      </div>
 
       <% if (searches.length === 0) { %>
-        <div class="flex flex-col items-center justify-center py-20 text-gray-400">
-          <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          <p class="text-lg font-medium text-gray-500">No search history yet</p>
-          <p class="text-sm mt-1">Your searches will appear here.</p>
-          <a href="/" class="mt-4 bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-800">Start Searching</a>
+        <div class="card" style="padding: 56px 24px; text-align: center;">
+          <div class="ico-box" style="margin: 0 auto 18px;"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+          <h2 style="font-size: 18px; margin: 0 0 6px; color: var(--near-black);">No searches yet</h2>
+          <p style="color: var(--body); margin: 0 0 20px;">Your searches will appear here.</p>
+          <a href="/" class="btn btn-primary">Start searching</a>
         </div>
       <% } else { %>
-        <div class="bg-white rounded-xl border overflow-hidden">
-          <table class="w-full text-sm">
-            <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+        <div class="card" style="overflow: hidden; padding: 0;">
+          <table class="data-table">
+            <thead>
               <tr>
-                <th class="px-4 py-3 text-left">Search Query</th>
-                <th class="px-4 py-3 text-left">Location</th>
-                <th class="px-4 py-3 text-center">Results</th>
-                <th class="px-4 py-3 text-left">Date</th>
-                <th class="px-4 py-3 text-center">Actions</th>
+                <th>Keyword</th>
+                <th>Location</th>
+                <th style="text-align: center; width: 100px;">Results</th>
+                <th style="width: 180px;">Date</th>
+                <th style="text-align: right; width: 160px;">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody>
               <% searches.forEach(s => { %>
-              <tr class="hover:bg-gray-50">
-                <td class="px-4 py-3 font-medium"><%= s.keyword %></td>
-                <td class="px-4 py-3 text-gray-600"><%= s.city %>, <%= s.state %></td>
-                <td class="px-4 py-3 text-center">
-                  <span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-full"><%= s.resultCount %></span>
-                </td>
-                <td class="px-4 py-3 text-gray-500"><%= new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></td>
-                <td class="px-4 py-3 text-center">
-                  <a href="/history/<%= s.key %>" class="text-green-700 hover:underline text-sm mr-3">View</a>
-                  <form method="POST" action="/history/delete/<%= s.key %>" class="inline" onsubmit="return confirm('Delete this search?')">
-                    <button type="submit" class="text-red-500 hover:underline text-sm">Delete</button>
+              <tr>
+                <td style="font-weight: 500;"><%= s.keyword %></td>
+                <td style="color: var(--body);"><%= s.city %>, <%= s.state %></td>
+                <td style="text-align: center;"><span class="badge badge-count"><%= s.resultCount %></span></td>
+                <td style="color: var(--muted); font-size: 13px;"><%= new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></td>
+                <td style="text-align: right;">
+                  <a href="/history/<%= s.key %>" style="margin-right: 14px; font-size: 13px; font-weight: 500;">View</a>
+                  <form method="POST" action="/history/delete/<%= s.key %>" style="display: inline;" onsubmit="return confirm('Delete this search?')">
+                    <button type="submit" style="background: none; border: none; color: var(--red); font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;">Delete</button>
                   </form>
                 </td>
               </tr>
