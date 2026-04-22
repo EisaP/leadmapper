@@ -68,43 +68,111 @@ async function serpApiSearch(query, start) {
   return response.json();
 }
 
-// --- Email / Phone / Instagram / LinkedIn / Booking platform enrichment ---
-async function enrichLead(websiteUrl) {
-  if (!websiteUrl) return { email: '', phone: '', instagram: '', linkedin: '', booking: '' };
+// --- Aggregator / directory blocklist ---
+// When a business's Google Maps "website" field points to one of these domains, we DO NOT scrape it.
+// These sites expose their own platform contacts, not the business's, and scraping them yields junk.
+const AGGREGATOR_DOMAINS = [
+  // Food delivery
+  'talabat.com', 'deliveroo.com', 'deliveroo.co.uk', 'ubereats.com', 'justeat.com', 'just-eat.com', 'just-eat.co.uk',
+  'doordash.com', 'grubhub.com', 'zomato.com', 'swiggy.com', 'snackpass.co', 'mrd.com', 'menulog.com.au',
+  // Reservations / booking
+  'opentable.com', 'opentable.co.uk', 'resy.com', 'thefork.com', 'thefork.co.uk', 'exploretock.com', 'tock.com',
+  'sevenrooms.com', 'fresha.com', 'booksy.com', 'treatwell.com', 'treatwell.co.uk', 'mindbodyonline.com',
+  'squareup.com', 'book.squareup.com', 'calendly.com', 'setmore.com', 'acuityscheduling.com',
+  // Directories / review sites
+  'yelp.com', 'yelp.co.uk', 'tripadvisor.com', 'tripadvisor.co.uk', 'tripadvisor.co.in',
+  // Link-in-bio tools
+  'linktree.com', 'linktr.ee', 'beacons.ai', 'bio.site', 'taplink.at', 'flowpage.com', 'allmylinks.com',
+  // Social + misc (never treat a social link as the business site for scraping)
+  'facebook.com', 'fb.me', 'instagram.com', 'instagr.am', 'wa.me', 'api.whatsapp.com', 'tiktok.com',
+  'google.com', 'maps.google.com', 'goo.gl', 'bit.ly', 'tinyurl.com'
+];
+function isAggregatorDomain(url) {
+  if (!url) return false;
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    return AGGREGATOR_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
+  } catch { return false; }
+}
 
+// Known junk / platform Instagram handles — never attribute these to a business lead
+const JUNK_IG_HANDLES = new Set([
+  // Aggregator brands
+  'talabat', 'talabatqatar', 'talabatksa', 'talabatuae', 'talabategypt', 'talabatbahrain', 'talabatkuwait', 'talabatoman',
+  'deliveroo', 'deliveroo_uk', 'deliveroo_ae', 'deliveroo_fr', 'deliveroo_it', 'deliveroo_es', 'deliveroo_hk',
+  'ubereats', 'ubereatsapp', 'uber', 'doordash', 'grubhub', 'justeat', 'justeatuk', 'menulog',
+  'opentable', 'resy', 'fresha', 'booksy', 'treatwell', 'mindbody',
+  'yelp', 'tripadvisor', 'zomato', 'swiggy', 'thefork', 'thefork_uk',
+  // Platforms / tools
+  'instagram', 'facebook', 'linkedin', 'tiktok', 'youtube', 'twitter', 'whatsapp',
+  'shopify', 'shopifypartners', 'wix', 'wixmyway', 'squarespace', 'godaddy', 'mailchimp', 'wordpress',
+  'linktree', 'beaconsai', 'biosite', 'stripe'
+]);
+
+// Normalize strings for fuzzy comparison (lowercase, strip non-alphanum)
+function normForMatch(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+function handleMatchesBusiness(handle, businessName) {
+  const h = normForMatch(handle);
+  const b = normForMatch(businessName);
+  if (!h || !b || h.length < 3) return false;
+  if (b.includes(h) && h.length >= 4) return true;
+  if (h.includes(b) && b.length >= 4) return true;
+  // First significant word of business
+  const words = (businessName || '').toLowerCase().match(/[a-z0-9]+/g) || [];
+  const firstMeaningful = words.find(w => w.length >= 4 && !['cafe','coffee','restaurant','salon','bar','hair','shop','the','and'].includes(w));
+  if (firstMeaningful && h.includes(firstMeaningful)) return true;
+  return false;
+}
+
+// --- Email / Phone / Instagram / LinkedIn / Booking platform enrichment ---
+async function enrichLead(websiteUrl, businessName) {
+  const empty = { email: '', phone: '', instagram: '', linkedin: '', booking: '', isAggregator: false };
+  if (!websiteUrl) return empty;
+
+  // If the website field is an aggregator/directory, DO NOT scrape it — it'll return the platform's contacts, not the business's.
+  if (isAggregatorDomain(websiteUrl)) {
+    // Still try to extract IG handle if the website URL IS literally an instagram.com/handle (reliable signal: business's own IG).
+    const igDirect = websiteUrl.match(/(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/i);
+    const directHandle = igDirect ? igDirect[1].toLowerCase() : '';
+    const igIgnore = new Set(['p', 'reel', 'reels', 'stories', 'explore', 'accounts', 'about', 'developer', 'legal', 'terms', 'privacy', 'directory', 'static', 'share']);
+    const goodDirect = directHandle && !igIgnore.has(directHandle) && !JUNK_IG_HANDLES.has(directHandle) ? directHandle : '';
+    return { ...empty, instagram: goodDirect, isAggregator: true };
+  }
+
+  // Legitimate business website — scrape with care
   const emails = new Set();
   const phones = new Set();
-  const instagrams = new Set();
-  const linkedins = new Set();
+  const linkedinsCompany = new Set();
+  const linkedinsIn = new Set();
   const bookings = new Set();
+  const igCandidates = []; // {handle, score}
 
   const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
   const ignoreEmails = /\.(png|jpg|jpeg|gif|svg|css|js|ico|webp|woff)$/i;
   const junkDomains = /(@example\.com|@domain\.com|@test\.com|@localhost|@email\.com|@yoursite\.com|@yourdomain\.com|@.*sentry\.io|@wixpress\.com|@mailinator\.com|@placeholder\.com|noreply@|no-reply@|donotreply@)/i;
   const igRegex = /(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/gi;
   const igIgnore = new Set(['p', 'reel', 'reels', 'stories', 'explore', 'accounts', 'about', 'developer', 'legal', 'terms', 'privacy', 'directory', 'static', 'share']);
-  // LinkedIn company or school page
-  const liRegex = /linkedin\.com\/(?:company|school|in)\/([a-zA-Z0-9_\-%.]{1,80})\/?/gi;
-  // Booking / reservation platforms (case-insensitive substring check)
+  // Full LinkedIn URLs — prefer /company/ over /in/ (personal profile). Reject /jobs/, /pulse/, /learning/, /help/.
+  const liCompanyRegex = /https?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/company\/[a-zA-Z0-9\-_%.]{1,100}/gi;
+  const liInRegex = /https?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/in\/[a-zA-Z0-9\-_%.]{1,100}/gi;
+  const liRejectRegex = /linkedin\.com\/(jobs|pulse|learning|help|feed|posts|events|notifications|messaging)/i;
+  const cleanLinkedIn = (u) => u.replace(/[?#].*$/, '').replace(/\/+$/, '');
+  // Booking platforms
   const bookingPlatforms = [
-    { name: 'OpenTable',  re: /opentable\.com/i },
-    { name: 'Resy',       re: /resy\.com/i },
-    { name: 'Tock',       re: /exploretock\.com|www\.tock\.com/i },
-    { name: 'SevenRooms', re: /sevenrooms\.com/i },
-    { name: 'Fresha',     re: /fresha\.com/i },
-    { name: 'Booksy',     re: /booksy\.com/i },
-    { name: 'Treatwell',  re: /treatwell\./i },
-    { name: 'Mindbody',   re: /mindbodyonline\.com/i },
+    { name: 'OpenTable',  re: /opentable\.com/i }, { name: 'Resy', re: /resy\.com/i },
+    { name: 'Tock',       re: /exploretock\.com|(?<![a-z])tock\.com/i }, { name: 'SevenRooms', re: /sevenrooms\.com/i },
+    { name: 'Fresha',     re: /fresha\.com/i }, { name: 'Booksy', re: /booksy\.com/i },
+    { name: 'Treatwell',  re: /treatwell\./i }, { name: 'Mindbody', re: /mindbodyonline\.com/i },
     { name: 'Square',     re: /squareup\.com\/appointments|book\.squareup\.com/i },
-    { name: 'Calendly',   re: /calendly\.com/i },
-    { name: 'Setmore',    re: /setmore\.com/i },
+    { name: 'Calendly',   re: /calendly\.com/i }, { name: 'Setmore', re: /setmore\.com/i },
     { name: 'Acuity',     re: /acuityscheduling\.com/i },
   ];
 
-  // If the listed website IS an Instagram URL, extract handle directly
-  const igDirectMatch = websiteUrl.match(/(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/i);
-  if (igDirectMatch && !igIgnore.has(igDirectMatch[1].toLowerCase())) {
-    instagrams.add(igDirectMatch[1].toLowerCase());
+  // Direct Instagram handle from website field (reliable)
+  const igDirect = websiteUrl.match(/(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/i);
+  if (igDirect) {
+    const h = igDirect[1].toLowerCase();
+    if (!igIgnore.has(h) && !JUNK_IG_HANDLES.has(h)) igCandidates.push({ handle: h, score: 1000 }); // direct wins
   }
 
   const pagesToTry = [
@@ -118,64 +186,91 @@ async function enrichLead(websiteUrl) {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
-
       const resp = await fetch(pageUrl, {
         signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; LeadMapper/1.0)',
-          'Accept': 'text/html',
-        },
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LeadMapper/1.0)', 'Accept': 'text/html' },
         redirect: 'follow',
       });
       clearTimeout(timeout);
-
       if (!resp.ok) continue;
-
       const contentType = resp.headers.get('content-type') || '';
       if (!contentType.includes('text/html')) continue;
-
       const html = await resp.text();
 
       // Emails
-      const foundEmails = html.match(emailRegex) || [];
-      foundEmails.forEach(e => { if (!ignoreEmails.test(e) && !junkDomains.test(e)) emails.add(e.toLowerCase()); });
+      (html.match(emailRegex) || []).forEach(e => {
+        if (!ignoreEmails.test(e) && !junkDomains.test(e)) emails.add(e.toLowerCase());
+      });
 
-      // Phones from tel: links (more reliable than raw regex)
-      const telLinks = html.match(/href=["']tel:([^"']+)["']/gi) || [];
-      telLinks.forEach(t => {
+      // Phones from tel: links
+      (html.match(/href=["']tel:([^"']+)["']/gi) || []).forEach(t => {
         const num = t.replace(/href=["']tel:/i, '').replace(/["']/g, '').trim();
         if (num.length >= 7) phones.add(num);
       });
 
-      // Instagram handles
+      // Instagram handles — collect candidates with context scoring
       let igMatch;
       while ((igMatch = igRegex.exec(html)) !== null) {
         const handle = igMatch[1].toLowerCase();
-        if (!igIgnore.has(handle)) instagrams.add(handle);
+        if (igIgnore.has(handle) || JUNK_IG_HANDLES.has(handle)) continue;
+        // Context: 300 chars around the link
+        const start = Math.max(0, igMatch.index - 300);
+        const end = Math.min(html.length, igMatch.index + igMatch[0].length + 300);
+        const ctx = html.slice(start, end).toLowerCase();
+        let score = 0;
+        if (/<footer|footer[>"\s]|class=["'][^"']*footer/.test(ctx)) score += 15;
+        if (/social|follow us|our instagram|find us on|connect with us|follow me/.test(ctx)) score += 12;
+        // If link text near it mentions "instagram"
+        if (/>\s*instagram\s*</i.test(ctx)) score += 8;
+        // Later in document = more likely footer
+        if (igMatch.index > html.length * 0.6) score += 4;
+        // Fuzzy match against business name
+        if (handleMatchesBusiness(handle, businessName)) score += 40;
+        // Penalize very short / numeric-only handles
+        if (handle.length < 4) score -= 8;
+        igCandidates.push({ handle, score });
       }
 
-      // LinkedIn company / in slugs
-      let liMatch;
-      while ((liMatch = liRegex.exec(html)) !== null) {
-        const slug = liMatch[1].toLowerCase();
-        if (slug && slug.length > 1) linkedins.add(slug);
-      }
+      // LinkedIn — prefer /company/ URLs
+      (html.match(liCompanyRegex) || []).forEach(u => {
+        const clean = cleanLinkedIn(u);
+        if (!liRejectRegex.test(clean)) linkedinsCompany.add(clean);
+      });
+      (html.match(liInRegex) || []).forEach(u => {
+        const clean = cleanLinkedIn(u);
+        if (!liRejectRegex.test(clean)) linkedinsIn.add(clean);
+      });
 
-      // Booking platforms
+      // Booking platforms (only on the business's own site — ignore on aggregators obviously, but we already returned above)
       bookingPlatforms.forEach(bp => { if (bp.re.test(html)) bookings.add(bp.name); });
 
-      if (emails.size > 0 && linkedins.size > 0) break;
+      // Early exit once we have good coverage
+      if (emails.size > 0 && (linkedinsCompany.size > 0 || linkedinsIn.size > 0) && igCandidates.length > 0) break;
     } catch {
       continue;
     }
   }
 
+  // Pick best Instagram handle: highest score, with dedupe
+  const byHandle = new Map();
+  for (const c of igCandidates) {
+    const prev = byHandle.get(c.handle);
+    if (!prev || c.score > prev.score) byHandle.set(c.handle, c);
+  }
+  const bestIg = [...byHandle.values()].sort((a, b) => b.score - a.score)[0];
+  // Only accept if score is positive (filters out weakly-linked random handles)
+  const instagram = bestIg && bestIg.score > 0 ? bestIg.handle : '';
+
+  // Pick best LinkedIn: /company/ URL preferred, then /in/
+  const linkedin = [...linkedinsCompany][0] || [...linkedinsIn][0] || '';
+
   return {
     email:     [...emails][0] || '',
     phone:     [...phones][0] || '',
-    instagram: [...instagrams][0] || '',
-    linkedin:  [...linkedins][0] || '',
+    instagram,
+    linkedin,
     booking:   [...bookings].join(', '),
+    isAggregator: false,
   };
 }
 
@@ -290,6 +385,7 @@ app.post('/search', async (req, res) => {
         hours: hours,
         priceTier: priceTier,
         placeId: item.place_id || '',
+        isAggregator: isAggregatorDomain(item.website),
         category: item.type || '',
         address: item.address || '',
         city: city,
@@ -326,12 +422,15 @@ app.post('/search', async (req, res) => {
       for (let i = 0; i < filteredResults.length; i += BATCH_SIZE) {
         const batch = filteredResults.slice(i, i + BATCH_SIZE);
         const enrichments = await Promise.all(
-          batch.map(r => enrichLead(r.website))
+          batch.map(r => enrichLead(r.website, r.title))
         );
         enrichments.forEach((enriched, j) => {
           const idx = i + j;
+          // Propagate aggregator flag (either mapped-time detection or enrichLead's determination)
+          if (enriched.isAggregator) filteredResults[idx].isAggregator = true;
           if (enriched.email) filteredResults[idx].email = enriched.email;
           if (enriched.phone && !filteredResults[idx].phone) filteredResults[idx].phone = enriched.phone;
+          // Only overwrite IG if scraping returned a handle. For aggregator sites, enrichLead only returns IG if the website field IS instagram.com/handle directly.
           if (enriched.instagram && !filteredResults[idx].instagram) filteredResults[idx].instagram = enriched.instagram;
           if (enriched.linkedin) filteredResults[idx].linkedin = enriched.linkedin;
           if (enriched.booking) filteredResults[idx].booking = enriched.booking;

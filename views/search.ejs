@@ -21,6 +21,8 @@
       --pink: #DB2777; --pink-soft: #FDF2F8;
       --sky: #0284C7; --sky-soft: #F0F9FF;
       --teal: #0D9488; --teal-soft: #F0FDFA;
+      --linkedin: #0A66C2; --linkedin-soft: #EFF6FF;
+      --warn: #D97706; --warn-soft: #FEF3C7;
       --amber: #D97706; --amber-soft: #FEF3C7;
       --red: #DC2626; --red-soft: #FEF2F2;
     }
@@ -129,6 +131,17 @@
     .channel-toggle[data-channel="email"].active { background: var(--teal); }
     .channel-toggle[data-channel="phone"].active { background: var(--sky); }
     .channel-toggle[data-channel="instagram"].active { background: var(--pink); }
+    .channel-toggle[data-channel="linkedin"].active { background: var(--linkedin); }
+
+    /* Aggregator warning badge inline in row */
+    .aggregator-warn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px; border-radius: 4px;
+      background: var(--warn-soft); color: var(--warn);
+      font-size: 11px; font-weight: 700; cursor: help;
+      margin-left: 6px; vertical-align: middle; flex-shrink: 0;
+    }
+    .badge-linkedin { background: var(--linkedin-soft); color: var(--linkedin); }
 
     .priority-hint { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; margin-bottom: 20px; background: var(--lavender); border: 1px solid #E0D5FF; border-radius: var(--radius-card); font-size: 13px; color: var(--near-black); position: relative; }
     .priority-hint .hint-ico { width: 28px; height: 28px; border-radius: 8px; background: rgba(86, 100, 239, 0.15); color: var(--indigo); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -175,6 +188,7 @@
     .contact-cell .ico-link.ico-ig { color: var(--pink); background: var(--pink-soft); }
     .contact-cell .ico-link.ico-phone { color: var(--sky); background: var(--sky-soft); }
     .contact-cell .ico-link.ico-email { color: var(--teal); background: var(--teal-soft); }
+    .contact-cell .ico-link.ico-linkedin { color: var(--linkedin); background: var(--linkedin-soft); }
     .contact-cell .value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--near-black); text-decoration: none; font-size: 13px; font-weight: 500; }
     .contact-cell a.value:hover { color: var(--indigo); text-decoration: underline; }
     .contact-cell .copy-btn { opacity: 0; visibility: hidden; padding: 3px 5px; border: none; background: transparent; color: var(--muted); cursor: pointer; border-radius: 4px; transition: all 0.12s; flex-shrink: 0; }
@@ -401,6 +415,10 @@
               <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
               Instagram <span class="count" id="cntInstagram">0</span>
             </button>
+            <button class="channel-toggle active" data-channel="linkedin" type="button">
+              <svg fill="currentColor" viewBox="0 0 24 24"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg>
+              LinkedIn <span class="count" id="cntLinkedIn">0</span>
+            </button>
             <span style="width: 1px; height: 24px; background: var(--border); margin: 0 8px;"></span>
             <span class="ui-label" style="margin-right: 4px;">Segment</span>
             <button class="filter-pill active" data-filter="segment" data-value="all" type="button">All <span class="count" id="cntSegAll">0</span></button>
@@ -419,7 +437,6 @@
               <div class="col-menu hidden" id="columnsMenu">
                 <div class="col-menu-title">Optional columns</div>
                 <label><input type="checkbox" data-col="outreach"> Outreach primary</label>
-                <label><input type="checkbox" data-col="linkedin"> LinkedIn</label>
                 <label><input type="checkbox" data-col="booking"> Booking platform</label>
                 <label><input type="checkbox" data-col="hours"> Hours</label>
                 <label><input type="checkbox" data-col="price"> Price tier</label>
@@ -461,7 +478,7 @@
                   <th class="sortable" data-sort="instagram" style="width: 160px;">Instagram <span class="sort-indicator">↕</span></th>
                   <th class="sortable" data-sort="phone" style="width: 160px;">Phone <span class="sort-indicator">↕</span></th>
                   <th class="sortable" data-sort="email" style="width: 220px;">Email <span class="sort-indicator">↕</span></th>
-                  <th class="col-linkedin col-hidden" style="width: 120px;">LinkedIn</th>
+                  <th class="sortable" data-sort="linkedin" style="width: 160px;">LinkedIn <span class="sort-indicator">↕</span></th>
                   <th class="col-booking col-hidden" style="width: 140px;">Booking</th>
                   <th class="col-hours col-hidden" style="width: 120px;">Hours</th>
                   <th class="col-price col-hidden" style="width: 70px;">Price</th>
@@ -514,7 +531,7 @@
     const allResults = <%- JSON.stringify(results || []) %>;
     let savedLeads = {};
     const state = {
-      channels: { email: true, phone: true, instagram: true },
+      channels: { email: true, phone: true, instagram: true, linkedin: true },
       filters: { segment: 'all', saved: false, text: '' },
       sort: { key: null, dir: 'asc' },
       expanded: new Set(),
@@ -595,7 +612,7 @@
       }
       // Restore column visibility
       const cols = (prefs.columns || {});
-      ['outreach', 'linkedin', 'booking', 'hours', 'price'].forEach(col => {
+      ['outreach', 'booking', 'hours', 'price'].forEach(col => {
         const visible = !!cols[col];
         document.querySelectorAll(`.col-${col}`).forEach(el => el.classList.toggle('col-hidden', !visible));
         const cb = document.querySelector(`[data-col="${col}"]`);
@@ -685,6 +702,8 @@
       document.getElementById('cntEmail').textContent = allResults.filter(r => r.email).length;
       document.getElementById('cntPhone').textContent = allResults.filter(r => r.phone).length;
       document.getElementById('cntInstagram').textContent = allResults.filter(r => r.instagram).length;
+      const liEl = document.getElementById('cntLinkedIn');
+      if (liEl) liEl.textContent = allResults.filter(r => r.linkedin).length;
       document.getElementById('cntSegAll').textContent = allResults.length;
       document.getElementById('cntSegB').textContent = allResults.filter(r => r.segmentCode === 'B').length;
       document.getElementById('cntSegC').textContent = allResults.filter(r => r.segmentCode === 'C').length;
@@ -692,11 +711,12 @@
     }
 
     function passesChannels(r) {
-      const { email, phone, instagram } = state.channels;
-      if (!email && !phone && !instagram) return false;
+      const { email, phone, instagram, linkedin } = state.channels;
+      if (!email && !phone && !instagram && !linkedin) return false;
       if (email && r.email) return true;
       if (phone && r.phone) return true;
       if (instagram && r.instagram) return true;
+      if (linkedin && r.linkedin) return true;
       return false;
     }
 
@@ -751,6 +771,7 @@
     const ICO_IG = `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>`;
     const ICO_PHONE = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>`;
     const ICO_EMAIL = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`;
+    const ICO_LINKEDIN = `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19a.66.66 0 000 .14V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg>`;
 
     function contactCellIG(r) {
       if (!r.instagram) return '<span class="empty-dash">—</span>';
@@ -778,6 +799,18 @@
         <a href="mailto:${escapeAttr(e)}" onclick="event.stopPropagation()" class="ico-link ico-email" title="Compose email">${ICO_EMAIL}</a>
         <a href="mailto:${escapeAttr(e)}" onclick="event.stopPropagation()" class="value" title="${escapeAttr(e)}">${escapeHTML(e)}</a>
         <button type="button" class="copy-btn" onclick="event.stopPropagation(); copyValue(this, '${escapeAttr(e)}')" title="Copy email">${ICO_COPY}</button>
+      </div>`;
+    }
+    function contactCellLinkedIn(r) {
+      if (!r.linkedin) return '<span class="empty-dash">—</span>';
+      const url = r.linkedin.startsWith('http') ? r.linkedin : ('https://' + r.linkedin);
+      // Extract the readable slug: "/company/foo" or "/in/foo" → "foo"
+      const m = url.match(/linkedin\.com\/(?:company|in|school)\/([^/?#]+)/i);
+      const slug = m ? m[1] : url.replace(/^https?:\/\/(?:www\.)?/, '').replace(/^linkedin\.com\//, '');
+      return `<div class="contact-cell">
+        <a href="${escapeAttr(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ico-link ico-linkedin" title="Open LinkedIn page">${ICO_LINKEDIN}</a>
+        <a href="${escapeAttr(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="value" title="${escapeAttr(url)}">${escapeHTML(slug)}</a>
+        <button type="button" class="copy-btn" onclick="event.stopPropagation(); copyValue(this, '${escapeAttr(url)}')" title="Copy LinkedIn URL">${ICO_COPY}</button>
       </div>`;
     }
 
@@ -814,7 +847,10 @@
             </button>
           </td>
           <td>
-            <div style="font-weight: 500; color: var(--near-black);">${escapeHTML(r.title)}</div>
+            <div style="font-weight: 500; color: var(--near-black); display: flex; align-items: center;">
+              <span>${escapeHTML(r.title)}</span>
+              ${r.isAggregator ? `<span class="aggregator-warn" title="This business's listed website is a third-party platform (e.g. Talabat, Yelp, OpenTable). Contact info may be incomplete — verify the Instagram and phone before outreach.">⚠</span>` : ''}
+            </div>
             <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">${escapeHTML(r.category)}${r.address ? ' · ' + escapeHTML(r.address) : ''}</div>
           </td>
           <td>${r.rating != null ? `<span style="color: var(--amber); font-weight: 500;">★ ${r.rating}</span>` : '<span class="empty-dash">—</span>'}</td>
@@ -824,7 +860,7 @@
           <td>${contactCellIG(r)}</td>
           <td>${contactCellPhone(r)}</td>
           <td>${contactCellEmail(r)}</td>
-          <td class="col-linkedin col-hidden">${r.linkedin ? `<a href="https://linkedin.com/company/${escapeAttr(r.linkedin)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size: 13px;">${escapeHTML(r.linkedin)}</a>` : '<span class="empty-dash">—</span>'}</td>
+          <td class="col-linkedin">${contactCellLinkedIn(r)}</td>
           <td class="col-booking col-hidden"><span style="font-size: 12px; color: var(--body);">${r.booking ? escapeHTML(r.booking) : '<span class="empty-dash">—</span>'}</span></td>
           <td class="col-hours col-hidden"><span style="font-size: 12px; color: var(--body);">${r.hours ? escapeHTML(r.hours) : '<span class="empty-dash">—</span>'}</span></td>
           <td class="col-price col-hidden"><span style="font-weight: 600; color: var(--near-black);">${r.priceTier ? escapeHTML(r.priceTier) : '<span class="empty-dash">—</span>'}</span></td>
@@ -863,7 +899,7 @@
     function applyColumnVisibility() {
       const prefs = loadPrefs();
       const cols = prefs.columns || {};
-      ['outreach', 'linkedin', 'booking', 'hours', 'price'].forEach(col => {
+      ['outreach', 'booking', 'hours', 'price'].forEach(col => {
         const visible = !!cols[col];
         document.querySelectorAll(`.col-${col}`).forEach(el => el.classList.toggle('col-hidden', !visible));
       });
@@ -880,7 +916,8 @@
               ${r.phone ? `<div style="margin-bottom: 6px;"><span class="caption">Phone · </span><a href="tel:${escapeAttr(r.phone)}">${escapeHTML(r.phone)}</a></div>` : ''}
               ${r.email ? `<div style="margin-bottom: 6px;"><span class="caption">Email · </span><a href="mailto:${escapeAttr(r.email)}">${escapeHTML(r.email)}</a></div>` : ''}
               ${r.instagram ? `<div style="margin-bottom: 6px;"><span class="caption">Instagram · </span><a href="${escapeAttr(igUrl(r.instagram))}" target="_blank" rel="noopener" style="color: var(--pink);">@${escapeHTML(igHandle(r.instagram))}</a></div>` : ''}
-              ${r.linkedin ? `<div style="margin-bottom: 6px;"><span class="caption">LinkedIn · </span><a href="https://linkedin.com/company/${escapeAttr(r.linkedin)}" target="_blank" rel="noopener">${escapeHTML(r.linkedin)}</a></div>` : ''}
+              ${r.linkedin ? (() => { const u = r.linkedin.startsWith('http') ? r.linkedin : ('https://' + r.linkedin); return `<div style="margin-bottom: 6px;"><span class="caption">LinkedIn · </span><a href="${escapeAttr(u)}" target="_blank" rel="noopener" style="color: var(--linkedin);">${escapeHTML(u.replace(/^https?:\/\/(www\.)?/, ''))}</a></div>`; })() : ''}
+              ${r.isAggregator ? `<div style="margin-top: 10px; padding: 8px 10px; background: var(--warn-soft); border-radius: 6px; font-size: 12px; color: var(--warn);"><strong>⚠ Listed website is a third-party platform.</strong> Contact info may be incomplete — verify Instagram and phone before outreach.</div>` : ''}
               ${!r.phone && !r.email && !r.instagram && !r.linkedin ? `<div class="caption">No contact info found.</div>` : ''}
             </div>
             <div>
@@ -955,7 +992,7 @@
       textTimer = setTimeout(() => { state.filters.text = e.target.value; renderRows(); }, 200);
     });
     window.clearAllFilters = () => {
-      state.channels = { email: true, phone: true, instagram: true };
+      state.channels = { email: true, phone: true, instagram: true, linkedin: true };
       state.filters = { segment: 'all', saved: false, text: '' };
       const tf = document.getElementById('textFilter'); if (tf) tf.value = '';
       document.querySelectorAll('.channel-toggle').forEach(t => t.classList.add('active'));
