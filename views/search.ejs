@@ -185,6 +185,8 @@
     .contact-cell .ico-link.ico-ig { color: var(--pink); background: var(--pink-soft); }
     .contact-cell .ico-link.ico-phone { color: var(--sky); background: var(--sky-soft); }
     .contact-cell .ico-link.ico-email { color: var(--teal); background: var(--teal-soft); }
+    /* Small amber dot after IG handle when resolved via Google fallback — indicates "please verify" */
+    .ig-fallback-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); margin-left: 4px; vertical-align: middle; cursor: help; }
     .contact-cell .value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--near-black); text-decoration: none; font-size: 13px; font-weight: 500; }
     .contact-cell a.value:hover { color: var(--indigo); text-decoration: underline; }
     .contact-cell .copy-btn { opacity: 0; visibility: hidden; padding: 3px 5px; border: none; background: transparent; color: var(--muted); cursor: pointer; border-radius: 4px; transition: all 0.12s; flex-shrink: 0; }
@@ -371,6 +373,12 @@
           <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px;">
             <input type="checkbox" name="skipEnrichment" id="skipEnrichment" <%= query?.skipEnrichment === 'on' ? 'checked' : '' %>>
             <label for="skipEnrichment" style="font-size: 13px; color: var(--body);">Skip enrichment — faster, returns listings without email/phone/Instagram</label>
+          </div>
+          <div style="margin-top: 10px; display: flex; align-items: flex-start; gap: 10px;">
+            <input type="checkbox" name="useIgFallback" id="useIgFallback" value="on" <%= (!query || query?.useIgFallback !== 'off') ? 'checked' : '' %> style="margin-top: 3px;">
+            <label for="useIgFallback" style="font-size: 13px; color: var(--body); line-height: 1.5;">
+              <strong>Use Google fallback to find missing Instagram handles</strong> — for leads with aggregator-only websites (e.g. Talabat) or no website, search Google for <code style="font-size: 12px; background: var(--section); padding: 1px 4px; border-radius: 3px;">"business name" "city" instagram</code>. Uses 1 extra SerpAPI credit per lead that needs it, capped at 30 per run.
+            </label>
           </div>
         </details>
 
@@ -600,6 +608,9 @@
         set('ratingMin', prefs.ratingMin); set('ratingMax', prefs.ratingMax);
         set('maxReviews', prefs.maxReviews); set('maxResults', prefs.maxResults);
         set('targetSegment', prefs.targetSegment);
+        // Restore IG fallback checkbox (default ON if never set)
+        const igCb = document.getElementById('useIgFallback');
+        if (igCb && prefs.useIgFallback === 'off') igCb.checked = false;
       }
       // Restore column visibility
       const cols = (prefs.columns || {});
@@ -619,7 +630,8 @@
         city: fd.get('city'), state: fd.get('state'),
         ratingMin: fd.get('ratingMin'), ratingMax: fd.get('ratingMax'),
         maxReviews: fd.get('maxReviews'), maxResults: fd.get('maxResults'),
-        targetSegment: fd.get('targetSegment')
+        targetSegment: fd.get('targetSegment'),
+        useIgFallback: fd.get('useIgFallback') ? 'on' : 'off'
       });
       const btn = document.getElementById('searchBtn');
       btn.disabled = true;
@@ -641,6 +653,9 @@
       const totalScraped = <%= totalScraped || 0 %>;
       const enriched = allResults.filter(r => r.email || r.phone || r.instagram).length;
       const enrichRate = total ? Math.round((enriched / total) * 100) : 0;
+      const igFromSite = allResults.filter(r => r.instagram && r.instagramSource === 'website').length;
+      const igFromMaps = allResults.filter(r => r.instagram && r.instagramSource === 'maps').length;
+      const igFromFallback = allResults.filter(r => r.instagram && r.instagramSource === 'google_fallback').length;
       const segB = allResults.filter(r => r.segmentCode === 'B').length;
       const segC = allResults.filter(r => r.segmentCode === 'C').length;
       const avgQuality = total ? Math.round(allResults.reduce((s, r) => s + (r.qualityScore || 0), 0) / total) : 0;
@@ -683,7 +698,7 @@
         <div class="stat-card">
           <div class="stat-label">Avg quality</div>
           <div class="stat-value">${avgQuality}</div>
-          <div class="stat-sub">${enrichRate}% enrichment rate · ${enriched}/${total}</div>
+          <div class="stat-sub">${enrichRate}% enrichment rate · ${enriched}/${total}${igFromFallback > 0 ? ` · <span title="Of ${igFromSite + igFromMaps + igFromFallback} Instagram handles: ${igFromSite} from website, ${igFromMaps} from Maps, ${igFromFallback} from Google fallback (please verify these).">${igFromFallback} IG via Google fallback</span>` : ''}</div>
         </div>
       `;
     }
@@ -764,9 +779,19 @@
       if (!r.instagram) return '<span class="empty-dash">—</span>';
       const h = igHandle(r.instagram);
       const url = igUrl(r.instagram);
+      const isFallback = r.instagramSource === 'google_fallback';
+      const icoTitle = isFallback
+        ? 'Instagram found via Google search — verify before outreach.'
+        : 'Open Instagram';
+      const valueTitle = isFallback
+        ? `@${h} (resolved via Google fallback — please verify)`
+        : `@${h}`;
+      const fallbackMark = isFallback
+        ? `<span class="ig-fallback-dot" title="Resolved via Google fallback — please verify before outreach" aria-label="Resolved via Google fallback"></span>`
+        : '';
       return `<div class="contact-cell">
-        <a href="${escapeAttr(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ico-link ico-ig" title="Open Instagram">${ICO_IG}</a>
-        <a href="${escapeAttr(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="value" title="@${escapeAttr(h)}">@${escapeHTML(h)}</a>
+        <a href="${escapeAttr(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ico-link ico-ig" title="${escapeAttr(icoTitle)}">${ICO_IG}</a>
+        <a href="${escapeAttr(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="value" title="${escapeAttr(valueTitle)}">@${escapeHTML(h)}${fallbackMark}</a>
         <button type="button" class="copy-btn" onclick="event.stopPropagation(); copyValue(this, '${escapeAttr(h)}')" title="Copy handle">${ICO_COPY}</button>
       </div>`;
     }

@@ -68,6 +68,87 @@ async function serpApiSearch(query, start) {
   return response.json();
 }
 
+// --- SerpAPI Google web search (for Instagram fallback) ---
+async function serpApiGoogleSearch(query, num = 10) {
+  const params = new URLSearchParams({
+    engine: 'google',
+    q: query,
+    api_key: SERPAPI_KEY,
+    num: String(num),
+  });
+  const url = `https://serpapi.com/search.json?${params}`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!response.ok) throw new Error(`SerpAPI google ${response.status}`);
+    return response.json();
+  } catch (e) {
+    clearTimeout(timeout);
+    throw e;
+  }
+}
+
+// --- Google fallback Instagram discovery ---
+// Used when primary enrichment couldn't find an IG handle AND the business's listed website
+// was rejected (aggregator) or missing. Searches Google for "business" "city" instagram and validates candidates.
+async function googleFallbackInstagram(businessName, city) {
+  if (!businessName || !city) return null;
+  const query = `"${businessName}" "${city}" instagram`;
+  console.log(`[ig-fallback] Query: ${query}`);
+  let data;
+  try {
+    data = await serpApiGoogleSearch(query, 10);
+  } catch (e) {
+    console.log(`[ig-fallback] SerpAPI error: ${e.message}`);
+    return null;
+  }
+  // Collect IG URLs from organic_results + knowledge_graph + answer_box
+  const urls = [];
+  const pushFrom = (v) => {
+    if (!v) return;
+    if (typeof v === 'string') {
+      const m = v.match(/https?:\/\/(?:www\.)?(?:instagram\.com|instagr\.am)\/[a-zA-Z0-9_.][a-zA-Z0-9_./?=&-]*/gi);
+      if (m) m.forEach(u => urls.push(u));
+    } else if (Array.isArray(v)) {
+      v.forEach(pushFrom);
+    } else if (typeof v === 'object') {
+      Object.values(v).forEach(pushFrom);
+    }
+  };
+  pushFrom(data.organic_results);
+  pushFrom(data.knowledge_graph);
+  pushFrom(data.answer_box);
+
+  // Validate each: profile URL only, not junk, fuzzy-match business name
+  const rejectedPathRe = /\/(p|reel|reels|stories|tv|explore|accounts|direct|about|developer|legal|terms|privacy)\b/i;
+  const handleRe = /(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/i;
+  const candidates = [];
+  for (const u of urls) {
+    if (rejectedPathRe.test(u)) continue;
+    const m = u.match(handleRe);
+    if (!m) continue;
+    const h = m[1].toLowerCase();
+    if (JUNK_IG_HANDLES.has(h)) continue;
+    if (h.length < 3) continue;
+    if (!handleMatchesBusiness(h, businessName)) continue;
+    // Score: prefer exact substring match, longer handles, and appearing earlier (earlier in urls[] = earlier in Google)
+    let score = 0;
+    const nName = normForMatch(businessName);
+    const nH = normForMatch(h);
+    if (nH === nName) score += 100;
+    if (nH.startsWith(nName) || nName.startsWith(nH)) score += 30;
+    score += Math.min(h.length, 25);
+    score -= candidates.length; // rank-based prefer earlier results
+    if (!candidates.find(c => c.handle === h)) candidates.push({ handle: h, score });
+  }
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => b.score - a.score);
+  console.log(`[ig-fallback] Picked "${candidates[0].handle}" from ${candidates.length} valid candidate(s)`);
+  return candidates[0].handle;
+}
+
 // --- Aggregator / directory blocklist ---
 // When a business's Google Maps "website" field points to one of these domains, we DO NOT scrape it.
 // These sites expose their own platform contacts, not the business's, and scraping them yields junk.
@@ -262,9 +343,11 @@ app.get('/', (req, res) => {
 
 // Perform search
 app.post('/search', async (req, res) => {
-  const { keyword, excludeKeywords, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, targetSegment } = req.body;
+  const { keyword, excludeKeywords, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, targetSegment, useIgFallback } = req.body;
   // Enrichment is always-on by default; user can opt out via "Skip enrichment" advanced toggle.
   const enrich = skipEnrichment === 'on' ? false : true;
+  // IG Google fallback is opt-in on by default (undefined → true); user disables via `useIgFallback === 'off'`.
+  const igFallbackEnabled = useIgFallback !== 'off';
 
   if (!keyword || !city || !state) {
     return res.render('search', {
@@ -359,6 +442,9 @@ app.post('/search', async (req, res) => {
         website: item.website || '',
         email: '',
         instagram: ig,
+        // Source of the Instagram handle: 'maps' (extracted from Google Maps "website" field that was an IG URL),
+        // 'website' (scraped from business's own site), 'google_fallback' (resolved via Google search), or null.
+        instagramSource: ig ? 'maps' : null,
         booking: '',
         hours: hours,
         priceTier: priceTier,
@@ -409,13 +495,66 @@ app.post('/search', async (req, res) => {
           if (enriched.email) filteredResults[idx].email = enriched.email;
           if (enriched.phone && !filteredResults[idx].phone) filteredResults[idx].phone = enriched.phone;
           // Only overwrite IG if scraping returned a handle. For aggregator sites, enrichLead only returns IG if the website field IS instagram.com/handle directly.
-          if (enriched.instagram && !filteredResults[idx].instagram) filteredResults[idx].instagram = enriched.instagram;
+          if (enriched.instagram && !filteredResults[idx].instagram) {
+            filteredResults[idx].instagram = enriched.instagram;
+            filteredResults[idx].instagramSource = 'website';
+          }
           if (enriched.booking) filteredResults[idx].booking = enriched.booking;
         });
         console.log(`[enrich] Batch ${Math.floor(i / BATCH_SIZE) + 1} done (${Math.min(i + BATCH_SIZE, filteredResults.length)}/${filteredResults.length})`);
       }
       const emailCount = filteredResults.filter(r => r.email).length;
       console.log(`[enrich] Found emails for ${emailCount}/${filteredResults.length} leads`);
+    }
+
+    // --- Instagram Google-search fallback phase ---
+    // Targets leads that finished primary enrichment WITHOUT an IG handle AND either have an
+    // aggregator-rejected website or no website at all. Other leads (with a normal website that
+    // just didn't mention IG) are assumed to genuinely have no IG — we don't burn extra credits on them.
+    if (enrich && igFallbackEnabled) {
+      const candidates = filteredResults.filter(r => !r.instagram && (r.isAggregator || !r.website));
+      // Cap: top 30 by rating (desc), so extra credit burn is bounded even on large searches
+      const FALLBACK_CAP = 30;
+      let fallbackQueue = candidates;
+      if (candidates.length > FALLBACK_CAP) {
+        fallbackQueue = candidates.slice().sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, FALLBACK_CAP);
+        console.log(`[ig-fallback] ${candidates.length} leads need fallback — capping at top ${FALLBACK_CAP} by rating`);
+      }
+      if (fallbackQueue.length > 0) {
+        console.log(`[ig-fallback] Running Google fallback for ${fallbackQueue.length} leads (extra ${fallbackQueue.length} SerpAPI credits)`);
+        const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+        const CONCURRENCY = 2;
+        let found = 0;
+        for (let i = 0; i < fallbackQueue.length; i += CONCURRENCY) {
+          const batch = fallbackQueue.slice(i, i + CONCURRENCY);
+          const results = await Promise.all(batch.map(async lead => {
+            // Server-side cache by placeId
+            const cacheKey = lead.placeId ? `igcache:${lead.placeId}` : null;
+            if (cacheKey) {
+              const cached = dbGet(cacheKey);
+              if (cached && cached.ts && (Date.now() - cached.ts) < CACHE_TTL_MS) {
+                return { lead, handle: cached.handle || null, fromCache: true };
+              }
+            }
+            let handle = null;
+            try {
+              handle = await googleFallbackInstagram(lead.title, lead.city);
+            } catch (e) {
+              console.log(`[ig-fallback] Failed for "${lead.title}": ${e.message}`);
+            }
+            if (cacheKey) dbSet(cacheKey, { handle: handle || '', ts: Date.now() });
+            return { lead, handle, fromCache: false };
+          }));
+          results.forEach(({ lead, handle }) => {
+            if (handle) {
+              lead.instagram = handle;
+              lead.instagramSource = 'google_fallback';
+              found++;
+            }
+          });
+        }
+        console.log(`[ig-fallback] Resolved ${found}/${fallbackQueue.length} via Google fallback`);
+      }
     }
 
     // Tag segments and contact method
@@ -496,7 +635,7 @@ app.post('/search', async (req, res) => {
     res.render('search', {
       results: segmentFiltered,
       totalScraped: mappedResults.length,
-      query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, outreachPriority, targetSegment, searchString: keywords.join(', ') + ` in ${city}, ${state}` },
+      query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useIgFallback, outreachPriority, targetSegment, searchString: keywords.join(', ') + ` in ${city}, ${state}` },
       error: null
     });
 
