@@ -296,11 +296,14 @@
               <label class="ui-label" style="display: block; margin-bottom: 6px;">Target segment</label>
               <select class="select" name="targetSegment">
                 <option value="all" <%= (!query?.targetSegment || query?.targetSegment === 'all') ? 'selected' : '' %>>All candidates</option>
-                <option value="B" <%= query?.targetSegment === 'B' ? 'selected' : '' %>>Segment B only</option>
-                <option value="C" <%= query?.targetSegment === 'C' ? 'selected' : '' %>>Segment C only</option>
+                <option value="B" <%= query?.targetSegment === 'B' ? 'selected' : '' %>>Segment B — good rating, under-reviewed</option>
+                <option value="C" <%= query?.targetSegment === 'C' ? 'selected' : '' %>>Segment C — low rating, needs help</option>
                 <option value="BC" <%= query?.targetSegment === 'BC' ? 'selected' : '' %>>Both B and C</option>
               </select>
-              <div class="helper-text">Pre-filters before results return.</div>
+              <div class="helper-text">
+                <strong style="color: var(--indigo);">Segment B:</strong> 4.1–4.7 ★ &amp; ≤ 300 reviews · under-exposed, easy upside.<br>
+                <strong style="color: var(--red);">Segment C:</strong> &lt; 4.1 ★ &amp; ≥ 80 reviews · reputation recovery target (Starise ICP).
+              </div>
             </div>
           </div>
         </div>
@@ -599,8 +602,8 @@
         <div class="stat-card">
           <div class="stat-label">Segmentation</div>
           <div style="display: flex; gap: 20px; align-items: baseline;">
-            <div><div class="stat-value" style="color: var(--indigo);">${segB}</div><div class="stat-sub">Segment B</div></div>
-            <div><div class="stat-value" style="color: var(--red);">${segC}</div><div class="stat-sub">Segment C</div></div>
+            <div title="Segment B: good rating (4.1–4.7 ★) with ≤300 reviews. Under-exposed — easy upside."><div class="stat-value" style="color: var(--indigo);">${segB}</div><div class="stat-sub">Segment B · good, under-reviewed</div></div>
+            <div title="Segment C: rating below 4.1 ★ with ≥80 reviews. Reputation recovery target."><div class="stat-value" style="color: var(--red);">${segC}</div><div class="stat-sub">Segment C · low rating</div></div>
           </div>
         </div>
         <div class="stat-card">
@@ -681,7 +684,11 @@
     }
     function igHandle(handle) { return (handle || '').replace(/^[@\/]+/, ''); }
 
-    const badgeSegment = c => c === 'B' ? '<span class="badge badge-seg-b">Segment B</span>' : c === 'C' ? '<span class="badge badge-seg-c">Segment C</span>' : '<span class="badge badge-seg-other">Other</span>';
+    const badgeSegment = c => c === 'B'
+      ? '<span class="badge badge-seg-b" title="Segment B: good rating (4.1–4.7 ★) with ≤300 reviews. Under-exposed — easy upside from more reviews.">Segment B</span>'
+      : c === 'C'
+      ? '<span class="badge badge-seg-c" title="Segment C: rating below 4.1 ★ with ≥80 reviews. Reputation recovery target — Starise\'s ICP.">Segment C</span>'
+      : '<span class="badge badge-seg-other" title="Not a target segment — either rating too high, too few reviews, or between B and C thresholds.">Other</span>';
     const badgeOutreach = o => o === 'DM' ? '<span class="badge badge-ig">Instagram</span>' : o === 'Call' ? '<span class="badge badge-call">Call</span>' : o === 'Email' ? '<span class="badge badge-email">Email</span>' : '<span class="badge badge-none">None</span>';
     function qualityPill(score) {
       const s = typeof score === 'number' ? score : 0;
