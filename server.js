@@ -407,8 +407,9 @@ app.post('/search', async (req, res) => {
     // Save to search history
     const timestamp = Date.now();
     const searchKey = `search:${timestamp}`;
+    const searchLabel = `${keywords.join(', ')} in ${city}, ${state}`;
     dbSet(searchKey, {
-      query: searchString,
+      query: searchLabel,
       keyword, city, state,
       resultCount: segmentFiltered.length,
       totalScraped: mappedResults.length,
