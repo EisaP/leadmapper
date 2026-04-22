@@ -124,9 +124,9 @@ function handleMatchesBusiness(handle, businessName) {
   return false;
 }
 
-// --- Email / Phone / Instagram / LinkedIn / Booking platform enrichment ---
+// --- Email / Phone / Instagram / Booking platform enrichment ---
 async function enrichLead(websiteUrl, businessName) {
-  const empty = { email: '', phone: '', instagram: '', linkedin: '', booking: '', isAggregator: false };
+  const empty = { email: '', phone: '', instagram: '', booking: '', isAggregator: false };
   if (!websiteUrl) return empty;
 
   // If the website field is an aggregator/directory, DO NOT scrape it — it'll return the platform's contacts, not the business's.
@@ -142,8 +142,6 @@ async function enrichLead(websiteUrl, businessName) {
   // Legitimate business website — scrape with care
   const emails = new Set();
   const phones = new Set();
-  const linkedinsCompany = new Set();
-  const linkedinsIn = new Set();
   const bookings = new Set();
   const igCandidates = []; // {handle, score}
 
@@ -152,11 +150,6 @@ async function enrichLead(websiteUrl, businessName) {
   const junkDomains = /(@example\.com|@domain\.com|@test\.com|@localhost|@email\.com|@yoursite\.com|@yourdomain\.com|@.*sentry\.io|@wixpress\.com|@mailinator\.com|@placeholder\.com|noreply@|no-reply@|donotreply@)/i;
   const igRegex = /(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/gi;
   const igIgnore = new Set(['p', 'reel', 'reels', 'stories', 'explore', 'accounts', 'about', 'developer', 'legal', 'terms', 'privacy', 'directory', 'static', 'share']);
-  // Full LinkedIn URLs — prefer /company/ over /in/ (personal profile). Reject /jobs/, /pulse/, /learning/, /help/.
-  const liCompanyRegex = /https?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/company\/[a-zA-Z0-9\-_%.]{1,100}/gi;
-  const liInRegex = /https?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/in\/[a-zA-Z0-9\-_%.]{1,100}/gi;
-  const liRejectRegex = /linkedin\.com\/(jobs|pulse|learning|help|feed|posts|events|notifications|messaging)/i;
-  const cleanLinkedIn = (u) => u.replace(/[?#].*$/, '').replace(/\/+$/, '');
   // Booking platforms
   const bookingPlatforms = [
     { name: 'OpenTable',  re: /opentable\.com/i }, { name: 'Resy', re: /resy\.com/i },
@@ -231,21 +224,11 @@ async function enrichLead(websiteUrl, businessName) {
         igCandidates.push({ handle, score });
       }
 
-      // LinkedIn — prefer /company/ URLs
-      (html.match(liCompanyRegex) || []).forEach(u => {
-        const clean = cleanLinkedIn(u);
-        if (!liRejectRegex.test(clean)) linkedinsCompany.add(clean);
-      });
-      (html.match(liInRegex) || []).forEach(u => {
-        const clean = cleanLinkedIn(u);
-        if (!liRejectRegex.test(clean)) linkedinsIn.add(clean);
-      });
-
-      // Booking platforms (only on the business's own site — ignore on aggregators obviously, but we already returned above)
+      // Booking platforms (only on the business's own site)
       bookingPlatforms.forEach(bp => { if (bp.re.test(html)) bookings.add(bp.name); });
 
       // Early exit once we have good coverage
-      if (emails.size > 0 && (linkedinsCompany.size > 0 || linkedinsIn.size > 0) && igCandidates.length > 0) break;
+      if (emails.size > 0 && igCandidates.length > 0) break;
     } catch {
       continue;
     }
@@ -261,14 +244,10 @@ async function enrichLead(websiteUrl, businessName) {
   // Only accept if score is positive (filters out weakly-linked random handles)
   const instagram = bestIg && bestIg.score > 0 ? bestIg.handle : '';
 
-  // Pick best LinkedIn: /company/ URL preferred, then /in/
-  const linkedin = [...linkedinsCompany][0] || [...linkedinsIn][0] || '';
-
   return {
     email:     [...emails][0] || '',
     phone:     [...phones][0] || '',
     instagram,
-    linkedin,
     booking:   [...bookings].join(', '),
     isAggregator: false,
   };
@@ -380,7 +359,6 @@ app.post('/search', async (req, res) => {
         website: item.website || '',
         email: '',
         instagram: ig,
-        linkedin: '',
         booking: '',
         hours: hours,
         priceTier: priceTier,
@@ -432,7 +410,6 @@ app.post('/search', async (req, res) => {
           if (enriched.phone && !filteredResults[idx].phone) filteredResults[idx].phone = enriched.phone;
           // Only overwrite IG if scraping returned a handle. For aggregator sites, enrichLead only returns IG if the website field IS instagram.com/handle directly.
           if (enriched.instagram && !filteredResults[idx].instagram) filteredResults[idx].instagram = enriched.instagram;
-          if (enriched.linkedin) filteredResults[idx].linkedin = enriched.linkedin;
           if (enriched.booking) filteredResults[idx].booking = enriched.booking;
         });
         console.log(`[enrich] Batch ${Math.floor(i / BATCH_SIZE) + 1} done (${Math.min(i + BATCH_SIZE, filteredResults.length)}/${filteredResults.length})`);
@@ -483,15 +460,13 @@ app.post('/search', async (req, res) => {
       r.outreach = picked ? picked.tag : 'None';
 
       // Enrichment quality score (0–100) — weighted by field value
-      // email 25 · phone 20 · instagram 20 · website 15 · linkedin 10 · hours 5 · price 5
+      // email 25 · phone 25 · instagram 25 · website 15 · owner name 10 (when available)
       let score = 0;
       if (r.email) score += 25;
-      if (r.phone) score += 20;
-      if (r.instagram) score += 20;
+      if (r.phone) score += 25;
+      if (r.instagram) score += 25;
       if (r.website) score += 15;
-      if (r.linkedin) score += 10;
-      if (r.hours) score += 5;
-      if (r.priceTier) score += 5;
+      if (r.ownerName) score += 10; // placeholder for future owner-name extraction
       r.qualityScore = Math.min(score, 100);
     });
 
