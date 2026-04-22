@@ -69,6 +69,38 @@
     .credit-indicator { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; color: var(--muted); padding: 5px 10px; background: var(--section); border-radius: var(--radius-pill); }
     .credit-indicator .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--indigo); flex-shrink: 0; }
 
+    /* ——— Info tooltip (reusable) ——— */
+    .info-tip {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: transparent; border: 1px solid var(--muted); color: var(--muted);
+      font-size: 10px; font-weight: 600; line-height: 1;
+      cursor: help; padding: 0; margin-left: 6px;
+      vertical-align: middle; transition: all 0.15s;
+      position: relative; font-family: inherit;
+    }
+    .info-tip:hover, .info-tip:focus, .info-tip.open { background: var(--indigo); border-color: var(--indigo); color: white; outline: none; }
+    .info-tip .tip-content {
+      position: absolute; top: calc(100% + 8px); left: 50%;
+      transform: translateX(-50%); min-width: 260px; max-width: 320px;
+      background: var(--white); border: 1px solid var(--border); border-radius: 6px;
+      padding: 12px; font-size: 13px; line-height: 1.5; color: var(--near-black);
+      font-weight: 400; text-align: left; box-shadow: 0 4px 12px rgba(15, 15, 26, 0.08);
+      opacity: 0; pointer-events: none; transition: opacity 0.2s ease 0.15s;
+      z-index: 1000; white-space: normal; cursor: text;
+    }
+    .info-tip:hover .tip-content, .info-tip:focus .tip-content, .info-tip.open .tip-content { opacity: 1; pointer-events: auto; }
+    .info-tip .tip-content strong { font-weight: 600; color: var(--near-black); }
+    .info-tip .tip-content ul { margin: 6px 0; padding-left: 18px; }
+    .info-tip .tip-content li { margin: 3px 0; }
+    .info-tip .tip-content p { margin: 6px 0; }
+    .info-tip .tip-content p:first-child { margin-top: 0; }
+    .info-tip .tip-content p:last-child { margin-bottom: 0; }
+    .info-tip.up .tip-content { top: auto; bottom: calc(100% + 8px); }
+    /* Right-align the content if icon is near right edge of viewport */
+    .info-tip.tip-right .tip-content { left: auto; right: -8px; transform: none; }
+    .info-tip.tip-left .tip-content { left: -8px; right: auto; transform: none; }
+
     .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: var(--radius-pill); white-space: nowrap; letter-spacing: 0.02em; }
     .badge-seg-b { background: var(--lavender); color: var(--indigo); }
     .badge-seg-c { background: var(--red-soft); color: var(--red); }
@@ -255,7 +287,23 @@
               <input class="input" type="text" name="state" placeholder="e.g. UK" value="<%= query?.state || '' %>" required>
             </div>
             <div>
-              <label class="ui-label" style="display: block; margin-bottom: 6px;">Results</label>
+              <label class="ui-label" style="display: block; margin-bottom: 6px;">
+                Results
+                <button type="button" class="info-tip tip-right" aria-label="More info about the Results setting" tabindex="0">?
+                  <span class="tip-content" role="tooltip">
+                    <p><strong>Results</strong> sets the maximum number of raw businesses fetched from Google Maps.</p>
+                    <p>Google Maps returns results in pages of 20. Each page = <strong>1 SerpAPI credit</strong> from your monthly quota.</p>
+                    <ul>
+                      <li><strong>20</strong> · 1 credit · ~10 sec</li>
+                      <li><strong>50</strong> · 3 credits · ~25 sec</li>
+                      <li><strong>100</strong> · 5 credits · ~45 sec</li>
+                      <li><strong>250</strong> · 13 credits · ~90 sec</li>
+                      <li><strong>500</strong> · 25 credits · ~2–3 min</li>
+                    </ul>
+                    <p>Higher isn't always better — if the market is small, asking for 500 may still return only 40–50 unique businesses after dedupe. Start with 100 for exploration and scale up once you know the market is deep.</p>
+                  </span>
+                </button>
+              </label>
               <select class="select" name="maxResults">
                 <% [20,50,100,250,500].forEach(v => { %>
                   <option value="<%= v %>" <%= String(query?.maxResults || 100) == String(v) ? 'selected' : '' %>><%= v %></option>
@@ -594,10 +642,13 @@
       const none = allResults.filter(r => r.outreach === 'None').length;
       const pct = (n) => total ? Math.round((n / total) * 100) : 0;
       grid.innerHTML = `
-        <div class="stat-card">
-          <div class="stat-label">Total leads</div>
+        <div class="stat-card" style="position: relative;">
+          <div class="stat-label" style="display: flex; align-items: center;">
+            Total leads
+            <button type="button" class="info-tip" aria-label="More info about Total leads" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Total leads</strong> shows the number of unique businesses found for this search.</p><p><strong>Deduped from X</strong> means the scraper initially fetched X raw results from Google Maps, but after removing duplicates (same business appearing multiple times across search pages), you're left with the unique count shown above.</p><p>A high dedup ratio (e.g. 41 unique from 157 raw) usually means you've hit the market's natural ceiling for that keyword + location + filter combination — there simply aren't more unique businesses matching your criteria. Widen filters or try adjacent keywords to find more.</p></span></button>
+          </div>
           <div class="stat-value">${total}</div>
-          <div class="stat-sub">${totalScraped > total ? `deduped from ${totalScraped}` : 'after filters'}</div>
+          <div class="stat-sub">${totalScraped > total ? `deduped from ${totalScraped} raw results` : 'after filters'}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Segmentation</div>
@@ -1072,6 +1123,53 @@
 
     function render() { renderStats(); updateFilterCounts(); renderRows(); }
     render();
+
+    // ——— Info tooltips: tap (mobile), keyboard (Enter/Space toggles, Escape closes), viewport-flip ———
+    function wireInfoTips(root) {
+      const tips = (root || document).querySelectorAll('.info-tip');
+      tips.forEach(tip => {
+        if (tip.dataset.wired) return;
+        tip.dataset.wired = '1';
+        tip.addEventListener('click', e => {
+          e.stopPropagation();
+          // Close others
+          document.querySelectorAll('.info-tip.open').forEach(t => { if (t !== tip) t.classList.remove('open'); });
+          tip.classList.toggle('open');
+          positionTip(tip);
+        });
+        tip.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            tip.classList.toggle('open');
+            positionTip(tip);
+          } else if (e.key === 'Escape') {
+            tip.classList.remove('open');
+            tip.blur();
+          }
+        });
+        tip.addEventListener('mouseenter', () => positionTip(tip));
+        tip.addEventListener('focus', () => positionTip(tip));
+      });
+    }
+    function positionTip(tip) {
+      // Flip up if bottom would overflow
+      const content = tip.querySelector('.tip-content');
+      if (!content) return;
+      // Reset class state
+      tip.classList.remove('up');
+      requestAnimationFrame(() => {
+        const rect = content.getBoundingClientRect();
+        if (rect.bottom > window.innerHeight - 8) tip.classList.add('up');
+      });
+    }
+    // Close open tooltips when clicking outside
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.info-tip.open').forEach(t => t.classList.remove('open'));
+    });
+    // Wire existing tips + re-wire after any re-render (stats re-renders on refresh)
+    wireInfoTips();
+    const origRender = render;
+    render = function() { origRender(); wireInfoTips(); };
   </script>
 </body>
 </html>
