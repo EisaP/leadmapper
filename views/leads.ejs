@@ -19,10 +19,10 @@
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
     body { font-family: 'Inter', -apple-system, sans-serif; background: var(--surface); color: var(--text-primary); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
-    h1 { color: var(--text-primary); font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+    h1 { color: var(--text-primary); font-weight: 500; letter-spacing: -0.01em; margin: 0; }
     a { color: var(--red); text-decoration: none; }
     a:hover { color: var(--red-hover); }
-    .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 10px; display: block; }
+    .section-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 10px; display: block; }
     .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-soft); }
     .btn { font-family: inherit; font-size: 14px; font-weight: 500; padding: 10px 16px; border-radius: var(--radius-input); border: 1px solid var(--border); background: var(--white); color: var(--text-primary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s; }
     .btn:hover { background: var(--surface); border-color: var(--border-strong); }
@@ -31,16 +31,19 @@
     .sidebar { background: var(--white); border-right: 1px solid var(--border); width: 236px; flex-shrink: 0; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; }
     .brand-lockup { display: flex; align-items: center; gap: 8px; padding: 22px 20px 18px; border-bottom: 1px solid var(--border); }
     .logo-mark { color: var(--black); flex-shrink: 0; }
-    .logo-wordmark { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 18px; color: var(--black); letter-spacing: -0.01em; }
+    .logo-wordmark { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 18px; color: var(--black); letter-spacing: -0.01em; }
+    svg[stroke] { stroke-width: 1.5; }
     .sidebar-nav { padding: 12px 8px; flex: 1; }
-    .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 2px 0; border-radius: var(--radius-input); font-size: 14px; font-weight: 500; color: var(--text-secondary); text-decoration: none; position: relative; }
-    .sidebar-nav a:hover { background: var(--surface); color: var(--text-primary); }
-    .sidebar-nav a.active { background: var(--surface); color: var(--text-primary); }
-    .sidebar-nav a.active::before { content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; background: var(--red); border-radius: 2px; }
+    .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 2px 0; border-radius: var(--radius-input); font-size: 14px; font-weight: 400; color: var(--text-secondary); text-decoration: none; position: relative; }
+    .sidebar-nav a .nav-count { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--text-tertiary); }
+    .sidebar-nav a:hover { color: var(--text-primary); }
+    .sidebar-nav a.active { background: transparent; color: var(--text-primary); font-weight: 500; }
+    .sidebar-nav a.active::before { content: ''; position: absolute; left: -8px; top: 6px; bottom: 6px; width: 4px; background: var(--red); border-radius: 0 3px 3px 0; }
+    .sidebar-nav a.active .nav-count { color: var(--text-secondary); }
     .sidebar-nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
     .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
     .data-table { width: 100%; font-size: 14px; border-collapse: separate; border-spacing: 0; }
-    .data-table th { text-align: left; padding: 11px 14px; font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .data-table th { text-align: left; padding: 11px 14px; font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); background: var(--surface); }
     .data-table td { padding: 14px; border-bottom: 1px solid var(--border); color: var(--text-primary); vertical-align: middle; }
     .data-table tbody tr:hover { background: var(--surface); }
     .ico-box { width: 40px; height: 40px; border-radius: 8px; background: var(--surface); color: var(--black); display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); }
@@ -63,9 +66,9 @@
         <span class="logo-wordmark">LeadHunter</span>
       </div>
       <nav class="sidebar-nav">
-        <a href="/"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>Search</a>
-        <a href="/history"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>History</a>
-        <a href="/leads" class="active"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>Saved leads</a>
+        <a href="/"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>Search</a>
+        <a href="/history"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>History<% if (typeof historyCount !== 'undefined' && historyCount > 0) { %><span class="nav-count"><%= historyCount %></span><% } %></a>
+        <a href="/leads" class="active"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>Saved leads<% if (typeof savedLeadsCount !== 'undefined' && savedLeadsCount > 0) { %><span class="nav-count"><%= savedLeadsCount %></span><% } %></a>
       </nav>
       <div class="sidebar-footer">
         <div style="font-size: 11px; color: var(--text-tertiary);">Internal tool</div>
@@ -81,8 +84,8 @@
 
       <% if (leads.length === 0) { %>
         <div class="card" style="padding: 56px 24px; text-align: center;">
-          <div class="ico-box" style="margin: 0 auto 18px;"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg></div>
-          <h2 style="font-size: 18px; margin: 0 0 6px; color: var(--text-primary); font-weight: 600;">No saved leads yet</h2>
+          <div class="ico-box" style="margin: 0 auto 18px;"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg></div>
+          <h2 style="font-size: 18px; margin: 0 0 6px; color: var(--text-primary); font-weight: 500;">No saved leads yet</h2>
           <p style="color: var(--text-secondary); margin: 0 0 20px;">Star any lead in your search results to save them here.</p>
           <a href="/" class="btn btn-primary">Start searching</a>
         </div>
@@ -124,7 +127,7 @@
                 <td style="color: var(--text-tertiary); font-size: 13px;"><%= new Date(l.savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) %></td>
                 <td>
                   <button class="del-btn" onclick="removeLead('<%= l.key %>', this)" title="Remove from saved">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                   </button>
                 </td>
               </tr>

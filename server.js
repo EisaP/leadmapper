@@ -345,12 +345,20 @@ function getRecentSearches(n = 5) {
     .map(s => ({ key: s.key, keyword: s.keyword, city: s.city, state: s.state, resultCount: s.resultCount, date: s.date }));
 }
 
+// Helper: sidebar badge counts (shown next to History + Saved leads nav items)
+function getSidebarCounts() {
+  return {
+    historyCount: dbList('search:').length,
+    savedLeadsCount: dbList('lead:').length
+  };
+}
+
 // Search page (GET — empty form, optionally pre-populated from URL query for deep linking)
 app.get('/', (req, res) => {
   // If URL has search params, render them into the form without running a search
   const hasParams = Object.keys(req.query).length > 0;
   const query = hasParams ? req.query : null;
-  res.render('search', { results: null, totalScraped: 0, query, error: null, recentSearches: getRecentSearches() });
+  res.render('search', { results: null, totalScraped: 0, query, error: null, recentSearches: getRecentSearches(), ...getSidebarCounts() });
 });
 
 // GET /search — allows URL-shareable / refreshable searches by encoding params in the query string
@@ -371,7 +379,7 @@ async function handleSearch(src, res) {
       results: null, totalScraped: 0,
       query: null,
       error: 'Please fill in keyword, city, and country/state.',
-      recentSearches: getRecentSearches()
+      recentSearches: getRecentSearches(), ...getSidebarCounts()
     });
   }
   if (!SERPAPI_KEY) {
@@ -379,7 +387,7 @@ async function handleSearch(src, res) {
       results: null, totalScraped: 0,
       query: null,
       error: 'SERPAPI_KEY not set. Add it to your .env or Secrets.',
-      recentSearches: getRecentSearches()
+      recentSearches: getRecentSearches(), ...getSidebarCounts()
     });
   }
 
@@ -656,7 +664,7 @@ async function handleSearch(src, res) {
       totalScraped: mappedResults.length,
       query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useIgFallback, outreachPriority, targetSegment, searchString: keywords.join(', ') + ` in ${city}, ${state}` },
       error: null,
-      recentSearches: getRecentSearches()
+      recentSearches: getRecentSearches(), ...getSidebarCounts()
     });
 
   } catch (err) {
@@ -664,7 +672,7 @@ async function handleSearch(src, res) {
     let errorMsg = 'Search failed: ' + (err.message || 'Unknown error');
     if (err.message.includes('401')) errorMsg = 'Invalid SerpAPI key. Check your SERPAPI_KEY.';
     if (err.message.includes('429')) errorMsg = 'SerpAPI rate limit reached. Try again in a moment.';
-    res.render('search', { results: null, totalScraped: 0, query: null, error: errorMsg, recentSearches: getRecentSearches() });
+    res.render('search', { results: null, totalScraped: 0, query: null, error: errorMsg, recentSearches: getRecentSearches(), ...getSidebarCounts() });
   }
 }
 
@@ -673,7 +681,7 @@ app.get('/history', (req, res) => {
   const searches = dbList('search:')
     .map(s => ({ key: s.key, ...s.value }))
     .sort((a, b) => new Date(b.date) - new Date(a.date));
-  res.render('history', { searches });
+  res.render('history', { searches, ...getSidebarCounts() });
 });
 
 app.get('/history/:key', (req, res) => {
@@ -683,7 +691,8 @@ app.get('/history/:key', (req, res) => {
     results: data.results,
     totalScraped: data.totalScraped || data.results.length,
     query: { keyword: data.keyword, city: data.city, state: data.state, outreachPriority: data.outreachPriority || 'phone-first', searchString: data.query },
-    error: null
+    error: null,
+    recentSearches: getRecentSearches(), ...getSidebarCounts()
   });
 });
 
@@ -697,7 +706,7 @@ app.get('/leads', (req, res) => {
   const leads = dbList('lead:')
     .map(l => ({ key: l.key, ...l.value }))
     .sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
-  res.render('leads', { leads });
+  res.render('leads', { leads, ...getSidebarCounts() });
 });
 
 app.get('/leads/saved', (req, res) => {

@@ -50,22 +50,25 @@
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
     body { font-family: 'Inter', -apple-system, sans-serif; background: var(--section); color: var(--body); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
-    h1, h2, h3 { color: var(--near-black); margin: 0; font-weight: 700; letter-spacing: -0.01em; }
+    /* Only 400/500 weights allowed anywhere in the app */
+    h1, h2, h3 { color: var(--near-black); margin: 0; font-weight: 500; letter-spacing: -0.01em; }
     p { margin: 0; }
     a { color: var(--indigo); text-decoration: none; }
     a:hover { color: var(--indigo-hover); }
+    /* Global: icons default to stroke-width 1.5 (matches 400/500 text weight) */
+    svg[stroke] { stroke-width: 1.5; }
 
-    .ui-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-    .section-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); margin-bottom: 12px; display: block; }
-    .caption { font-size: 12px; color: var(--muted); line-height: 1.4; }
-    .helper-text { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+    .ui-label { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); }
+    .section-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 12px; display: block; }
+    .caption { font-size: 12px; color: var(--text-tertiary); line-height: 1.4; font-weight: 400; }
+    .helper-text { font-size: 12px; color: var(--text-tertiary); margin-top: 6px; line-height: 1.4; font-weight: 400; }
 
     .input, .select { font-family: inherit; font-size: 14px; padding: 10px 12px; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-input); color: var(--near-black); width: 100%; transition: border-color 0.15s, box-shadow 0.15s; }
     .input:focus, .select:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 3px rgba(225, 29, 46, 0.15); }
     .input::placeholder { color: #9897A6; }
     select.select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236B6B80'%3e%3cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 10px center; background-size: 14px; padding-right: 32px; cursor: pointer; }
 
-    .btn { font-family: inherit; font-size: 14px; font-weight: 500; padding: 10px 16px; border-radius: var(--radius-input); border: 1px solid var(--border); background: var(--white); color: var(--near-black); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.15s, border-color 0.15s, color 0.15s; }
+    .btn { font-family: inherit; font-size: 14px; font-weight: 400; padding: 10px 16px; border-radius: var(--radius-input); border: 1px solid var(--border); background: var(--white); color: var(--near-black); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.15s, border-color 0.15s, color 0.15s; }
     .btn:hover { background: var(--section); border-color: var(--border-strong); }
     .btn-primary { background: var(--red); border: 1px solid var(--red); color: var(--white); padding: 10px 22px; border-radius: var(--radius-input); font-weight: 500; font-size: 14px; box-shadow: none; }
     .btn-primary:hover { background: var(--red-hover); border-color: var(--red-hover); }
@@ -79,21 +82,25 @@
     .sidebar { background: var(--white); border-right: 1px solid var(--border); width: 236px; flex-shrink: 0; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; }
     .brand-lockup { display: flex; align-items: center; gap: 8px; padding: 22px 20px 18px; border-bottom: 1px solid var(--border); }
     .logo-mark { color: var(--black); flex-shrink: 0; }
-    .logo-wordmark { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 18px; color: var(--black); letter-spacing: -0.01em; }
+    .logo-wordmark { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 18px; color: var(--black); letter-spacing: -0.01em; }
     .sidebar-nav { padding: 12px 8px; flex: 1; }
-    .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 2px 0; border-radius: var(--radius-input); font-size: 14px; font-weight: 500; color: var(--text-secondary); text-decoration: none; position: relative; }
-    .sidebar-nav a:hover { background: var(--surface); color: var(--text-primary); }
-    .sidebar-nav a.active { background: var(--surface); color: var(--text-primary); }
-    .sidebar-nav a.active::before { content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; background: var(--red); border-radius: 2px; }
+    .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 2px 0; border-radius: var(--radius-input); font-size: 14px; font-weight: 400; color: var(--text-secondary); text-decoration: none; position: relative; }
+    .sidebar-nav a .nav-count { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--text-tertiary); }
+    .sidebar-nav a:hover { color: var(--text-primary); }
+    .sidebar-nav a.active { background: transparent; color: var(--text-primary); font-weight: 500; }
+    .sidebar-nav a.active::before { content: ''; position: absolute; left: -8px; top: 6px; bottom: 6px; width: 4px; background: var(--red); border-radius: 0 3px 3px 0; }
+    .sidebar-nav a.active .nav-count { color: var(--text-secondary); }
+    /* Hairline between primary nav and Recent Searches */
+    .sidebar-separator { height: 1px; background: var(--border); margin: 12px 8px; }
     /* Recent searches disclosure */
-    .sidebar-recent { margin-top: 18px; padding: 0 8px; }
-    .sidebar-recent summary { list-style: none; cursor: pointer; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-tertiary); padding: 4px 8px; user-select: none; }
+    .sidebar-recent { padding: 0 8px; }
+    .sidebar-recent summary { list-style: none; cursor: pointer; font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); padding: 4px 8px; user-select: none; }
     .sidebar-recent summary::-webkit-details-marker { display: none; }
-    .sidebar-recent a.recent-item { display: flex; flex-direction: column; gap: 2px; padding: 7px 10px; margin: 1px 0; border-radius: var(--radius-input); color: var(--text-secondary); font-size: 13px; font-weight: 500; text-decoration: none; }
-    .sidebar-recent a.recent-item:hover { background: var(--surface); color: var(--text-primary); }
-    .sidebar-recent .recent-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sidebar-recent .recent-meta { font-size: 11px; color: var(--text-tertiary); font-weight: 400; }
-    .sidebar-nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .sidebar-recent a.recent-item { display: block; padding: 6px 10px; margin: 1px 0; color: var(--text-secondary); font-size: 13px; font-weight: 400; text-decoration: none; line-height: 1.45; }
+    .sidebar-recent a.recent-item:hover { text-decoration: underline; text-underline-offset: 2px; color: var(--text-primary); background: transparent; }
+    .sidebar-recent .recent-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .sidebar-recent .recent-meta { display: block; font-size: 11px; color: var(--text-tertiary); font-weight: 400; margin-top: 1px; }
+    .sidebar-nav a svg { width: 18px; height: 18px; flex-shrink: 0; stroke-width: 1.5; }
     .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
     .credit-indicator { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; color: var(--muted); padding: 5px 10px; background: var(--section); border-radius: var(--radius-pill); }
     .credit-indicator .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--indigo); flex-shrink: 0; }
@@ -103,7 +110,7 @@
       display: inline-flex; align-items: center; justify-content: center;
       width: 14px; height: 14px; border-radius: 50%;
       background: transparent; border: 1px solid var(--muted); color: var(--muted);
-      font-size: 10px; font-weight: 600; line-height: 1;
+      font-size: 10px; font-weight: 500; line-height: 1;
       cursor: help; padding: 0; margin-left: 6px;
       vertical-align: middle; transition: all 0.15s;
       position: relative; font-family: inherit;
@@ -119,7 +126,7 @@
       z-index: 1000; white-space: normal; cursor: text;
     }
     .info-tip:hover .tip-content, .info-tip:focus .tip-content, .info-tip.open .tip-content { opacity: 1; pointer-events: auto; }
-    .info-tip .tip-content strong { font-weight: 600; color: var(--near-black); }
+    .info-tip .tip-content strong { font-weight: 500; color: var(--near-black); }
     .info-tip .tip-content ul { margin: 6px 0; padding-left: 18px; }
     .info-tip .tip-content li { margin: 3px 0; }
     .info-tip .tip-content p { margin: 6px 0; }
@@ -130,7 +137,7 @@
     .info-tip.tip-right .tip-content { left: auto; right: -8px; transform: none; }
     .info-tip.tip-left .tip-content { left: -8px; right: auto; transform: none; }
 
-    .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: var(--radius-pill); white-space: nowrap; letter-spacing: 0.02em; }
+    .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: var(--radius-pill); white-space: nowrap; letter-spacing: 0.02em; }
     /* Segment badges — black with red underline (B), red filled (C), gray outline (Other) */
     .badge-seg-b { background: var(--black); color: var(--white); border-bottom: 2px solid var(--red); border-radius: 4px 4px 0 0; }
     .badge-seg-c { background: var(--red); color: var(--white); }
@@ -142,17 +149,20 @@
     .badge-email { background: var(--red); color: var(--white); }
     .badge-none { background: var(--surface); color: var(--text-tertiary); border: 1px solid var(--border); }
 
-    .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; padding: 7px 14px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--white); color: var(--text-primary); cursor: pointer; transition: all 0.15s; }
-    .chip svg { color: var(--text-primary); flex-shrink: 0; }
-    .chip:hover { border-color: var(--indigo); color: var(--indigo); background: var(--lavender); }
-    .chip.active { background: var(--red); border-color: var(--red); color: var(--white); }
-    .chip.active svg { color: var(--white); }
+    /* Vertical preset chip — square-ish, 36px tall, 14px h-padding */
+    .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 400; height: 36px; padding: 0 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--white); color: var(--text-primary); cursor: pointer; transition: border-color 0.15s, color 0.15s; position: relative; }
+    .chip svg { color: var(--text-primary); flex-shrink: 0; stroke-width: 1.5; }
+    .chip:hover { border-color: var(--text-primary); }
+    /* Active selection: red text + white bg + 2px red bottom border (no red fill) */
+    .chip.active { background: var(--white); border-color: var(--border); color: var(--red); border-bottom: 2px solid var(--red); padding-bottom: 0; }
+    .chip.active svg { color: var(--red); }
 
-    .filter-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--white); color: var(--body); cursor: pointer; transition: all 0.15s; }
-    .filter-pill:hover { border-color: var(--border-strong); color: var(--near-black); }
-    .filter-pill.active { background: var(--near-black); border-color: var(--near-black); color: white; }
-    .filter-pill .count { background: rgba(0,0,0,0.06); color: inherit; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-    .filter-pill.active .count { background: rgba(255,255,255,0.2); }
+    .filter-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 400; padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--white); color: var(--body); cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+    .filter-pill:hover { border-color: var(--text-primary); color: var(--near-black); }
+    /* Active filter pill: red text + white bg + red border */
+    .filter-pill.active { background: var(--white); border-color: var(--red); color: var(--red); }
+    .filter-pill .count { background: rgba(0,0,0,0.05); color: inherit; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+    .filter-pill.active .count { background: rgba(225, 29, 46, 0.08); color: var(--red); }
 
     /* Legacy .channel-toggle removed — filters now live as checkboxes in Advanced */
     /* Channel checkboxes — use accent-color for red tint */
@@ -169,7 +179,7 @@
       display: inline-flex; align-items: center; justify-content: center;
       width: 18px; height: 18px; border-radius: 4px;
       background: var(--warn-soft); color: var(--warn);
-      font-size: 11px; font-weight: 700; cursor: help;
+      font-size: 11px; font-weight: 500; cursor: help;
       margin-left: 6px; vertical-align: middle; flex-shrink: 0;
     }
 
@@ -191,7 +201,7 @@
     .priority-hint .hint-ico { width: 28px; height: 28px; border-radius: 8px; background: rgba(86, 100, 239, 0.15); color: var(--indigo); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .priority-hint .hint-ico svg { width: 14px; height: 14px; }
     .priority-hint .hint-body { flex: 1; padding-top: 4px; line-height: 1.5; }
-    .priority-hint .hint-body strong { font-weight: 600; color: var(--indigo); }
+    .priority-hint .hint-body strong { font-weight: 500; color: var(--indigo); }
     .priority-hint .hint-close { background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; border-radius: 4px; transition: all 0.15s; position: absolute; top: 10px; right: 10px; }
     .priority-hint .hint-close:hover { background: rgba(0,0,0,0.05); color: var(--near-black); }
     .priority-hint.hidden { display: none; }
@@ -199,7 +209,7 @@
     /* ——— Data table ——— */
     .data-table { width: 100%; font-size: 14px; border-collapse: separate; border-spacing: 0; }
     .data-table thead { position: sticky; top: 0; background: var(--section); z-index: 5; }
-    .data-table th { text-align: left; padding: 11px 14px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); user-select: none; }
+    .data-table th { text-align: left; padding: 11px 14px; font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); user-select: none; }
     .data-table th.sortable { cursor: pointer; }
     .data-table th.sortable:hover { color: var(--near-black); }
     .data-table th.sortable.active { color: var(--indigo); }
@@ -245,7 +255,7 @@
     .empty-dash { color: var(--muted); font-size: 13px; }
 
     /* ——— Quality pill ——— */
-    .quality-pill { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 22px; border-radius: 11px; font-size: 12px; font-weight: 600; }
+    .quality-pill { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 22px; border-radius: 11px; font-size: 12px; font-weight: 500; }
     .quality-pill.high { background: var(--black); color: var(--white); }
     .quality-pill.mid { background: var(--amber-soft); color: var(--amber); }
     .quality-pill.low { background: var(--section); color: var(--muted); }
@@ -263,7 +273,7 @@
     /* ——— Columns menu ——— */
     .col-menu { position: absolute; top: calc(100% + 6px); right: 0; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-float); padding: 8px; min-width: 200px; z-index: 20; }
     .col-menu.hidden { display: none; }
-    .col-menu-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 6px 10px; }
+    .col-menu-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 6px 10px; }
     .col-menu label { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px; font-size: 13px; color: var(--near-black); cursor: pointer; transition: background 0.1s; }
     .col-menu label:hover { background: var(--section); }
     .col-menu input[type="checkbox"] { accent-color: var(--indigo); margin: 0; }
@@ -275,10 +285,10 @@
     .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 18px; display: flex; flex-direction: column; }
-    .stat-card .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); margin-bottom: 10px; }
+    .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 20px; display: flex; flex-direction: column; }
+    .stat-card .stat-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 12px; }
     .stat-card .stat-value { font-size: 32px; font-weight: 500; color: var(--text-primary); line-height: 1; letter-spacing: -0.02em; }
-    .stat-card .stat-sub { font-size: 12px; color: var(--text-secondary); margin-top: 6px; line-height: 1.4; }
+    .stat-card .stat-sub { font-size: 12px; color: var(--text-secondary); margin-top: 8px; line-height: 1.45; font-weight: 400; }
     .stat-microbar { display: flex; height: 4px; border-radius: 2px; overflow: hidden; background: var(--border); margin-top: 12px; }
     .stat-microbar > div { height: 100%; transition: width 0.3s ease; }
     /* Sticky summary bar — appears once user scrolls past the form */
@@ -290,9 +300,6 @@
     /* Stat cards ease in on new search */
     @keyframes cardFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
     .stat-card { animation: cardFadeIn 0.25s ease both; }
-    .stat-card .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-bottom: 10px; }
-    .stat-card .stat-value { font-size: 28px; font-weight: 700; color: var(--near-black); line-height: 1; letter-spacing: -0.02em; }
-    .stat-card .stat-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
     .mix-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--border); margin-top: 14px; }
     .mix-seg { height: 100%; transition: width 0.3s; }
     .mix-legend { display: flex; gap: 10px; margin-top: 10px; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
@@ -341,11 +348,12 @@
         <span class="logo-wordmark">LeadHunter</span>
       </div>
       <nav class="sidebar-nav">
-        <a href="/" class="active"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>Search</a>
-        <a href="/history"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>History</a>
-        <a href="/leads"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>Saved leads</a>
+        <a href="/" class="active"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>Search</a>
+        <a href="/history"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>History<% if (typeof historyCount !== 'undefined' && historyCount > 0) { %><span class="nav-count"><%= historyCount %></span><% } %></a>
+        <a href="/leads"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>Saved leads<% if (typeof savedLeadsCount !== 'undefined' && savedLeadsCount > 0) { %><span class="nav-count"><%= savedLeadsCount %></span><% } %></a>
 
         <% if (typeof recentSearches !== 'undefined' && recentSearches && recentSearches.length > 0) { %>
+          <div class="sidebar-separator"></div>
           <details class="sidebar-recent" open>
             <summary>Recent searches</summary>
             <% recentSearches.forEach(s => { %>
@@ -363,12 +371,12 @@
       </div>
     </aside>
 
-    <main style="flex: 1; padding: 36px 44px 80px; min-width: 0; max-width: 1800px;">
+    <main style="flex: 1; padding: 40px 44px 80px; min-width: 0; max-width: 1800px;">
       <!-- Sticky summary bar — only visible after scrolling past the form (shows current search + jump-back button) -->
       <% if (results && results.length > 0 && query) { %>
       <div class="sticky-summary" id="stickySummary" aria-hidden="true">
         <div style="display: flex; align-items: center; gap: 12px; max-width: 1800px; margin: 0 auto; padding: 10px 44px;">
-          <strong style="color: var(--text-primary); font-weight: 600;"><%= query.keyword %></strong>
+          <strong style="color: var(--text-primary); font-weight: 500;"><%= query.keyword %></strong>
           <span style="color: var(--text-tertiary);">in <%= query.city %>, <%= query.state %></span>
           <% if (query.ratingMin || query.ratingMax) { %><span style="color: var(--text-tertiary);"> · ★ <%= query.ratingMin || '0' %>–<%= query.ratingMax || '5' %></span><% } %>
           <% if (query.maxResults) { %><span style="color: var(--text-tertiary);"> · <%= query.maxResults %> results</span><% } %>
@@ -389,7 +397,7 @@
       <!-- Sentinel for the sticky bar: observe this element; when it leaves the viewport, the sticky bar becomes visible -->
       <div id="stickySentinel" style="height: 1px;"></div>
 
-      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 20px;">
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 32px;">
         <span class="ui-label" style="margin-right: 8px;">Vertical</span>
         <button type="button" class="chip" data-preset="cafes">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M6 2v2"/><path d="M17 8H3v9a4 4 0 0 0 4 4h7a4 4 0 0 0 4-4Z"/><path d="M16 8a4 4 0 1 1 0 8h-1"/></svg>
@@ -417,10 +425,10 @@
         </button>
       </div>
 
-      <form method="GET" action="/search" id="searchForm" class="card" style="padding: 28px; margin-bottom: 20px;">
-        <div style="margin-bottom: 20px;">
+      <form method="GET" action="/search" id="searchForm" style="padding: 0; margin-bottom: 48px;">
+        <div style="margin-bottom: 32px;">
           <span class="section-label">What to find</span>
-          <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 120px; gap: 14px;">
+          <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 120px; gap: 20px;">
             <div>
               <label class="ui-label" style="display: flex; align-items: center; margin-bottom: 6px;">
                 Keyword(s)
@@ -462,16 +470,16 @@
               </select>
             </div>
           </div>
-          <div style="margin-top: 12px;">
-            <label class="ui-label" style="display: block; margin-bottom: 6px;">Exclude <span style="color: var(--muted); font-weight: 500; text-transform: none; letter-spacing: 0;">— optional</span></label>
+          <div style="margin-top: 20px;">
+            <label class="ui-label" style="display: block; margin-bottom: 6px;">Exclude <span style="color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0;">— optional</span></label>
             <input class="input" type="text" name="excludeKeywords" placeholder="tanning, nail, waxing" value="<%= query?.excludeKeywords || '' %>">
             <div class="helper-text">Any result whose name or category contains one of these terms is filtered out.</div>
           </div>
         </div>
 
-        <div style="border-top: 1px solid var(--border); padding-top: 22px;">
+        <div style="border-top: 1px solid var(--border); padding-top: 32px; margin-bottom: 32px;">
           <span class="section-label">Refine search</span>
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; align-items: start;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; align-items: start;">
             <div>
               <label class="ui-label" style="display: flex; align-items: center; margin-bottom: 6px;">Rating range
                 <button type="button" class="info-tip" aria-label="More info about Rating range" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Rating range</strong> filters businesses by their Google Maps rating.</p><p>4.1–4.7 ★ is the sweet spot for <strong>Segment B</strong>: the business is well-rated but not saturated, so small rating improvements still move the needle.</p><p>Below 4.0 ★ is <strong>Segment C</strong> — reputation recovery territory.</p></span></button>
@@ -507,8 +515,8 @@
           </div>
         </div>
 
-        <details style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px;">
-          <summary style="color: var(--text-secondary); font-size: 12px; font-weight: 500;"><span class="chev">▸</span> Advanced</summary>
+        <details style="border-top: 1px solid var(--border); padding-top: 20px; margin-bottom: 32px;">
+          <summary style="color: var(--text-secondary); font-size: 13px; font-weight: 400;"><span class="chev">▸</span> Advanced</summary>
           <div style="margin-top: 14px;">
             <label class="ui-label" style="display: block; margin-bottom: 8px;">Show leads that have</label>
             <div style="display: flex; gap: 22px; flex-wrap: wrap;">
@@ -536,9 +544,9 @@
           </div>
         </details>
 
-        <div style="margin-top: 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+        <div style="border-top: 1px solid var(--border); padding-top: 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
           <button type="submit" class="btn btn-primary" id="searchBtn" style="min-width: 200px;">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <span id="searchBtnText">Find leads</span>
           </button>
           <span style="font-size: 12px; color: var(--muted);" id="searchHint">Contact enrichment (email, phone, Instagram) is on by default.</span>
@@ -546,9 +554,9 @@
       </form>
 
       <div class="priority-hint hidden" id="priorityHint">
-        <span class="hint-ico"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></span>
+        <span class="hint-ico"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></span>
         <div class="hint-body" id="hintBody"></div>
-        <button class="hint-close" onclick="dismissHint()" aria-label="Dismiss hint"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        <button class="hint-close" onclick="dismissHint()" aria-label="Dismiss hint"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
       </div>
 
       <% if (error) { %>
@@ -556,9 +564,9 @@
       <% } %>
 
       <% if (results && results.length > 0) { %>
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px;" id="statsGrid"></div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px;" id="statsGrid"></div>
 
-        <div class="card" style="padding: 16px 18px; margin-bottom: 12px;">
+        <div style="padding: 0 0 16px; margin-bottom: 16px; border-top: 1px solid var(--border); padding-top: 20px;">
           <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;">
             <span class="ui-label" style="margin-right: 4px;">Segment</span>
             <button class="filter-pill active" data-filter="segment" data-value="all" type="button">All <span class="count" id="cntSegAll">0</span></button>
@@ -571,7 +579,7 @@
             <input class="input" id="textFilter" placeholder="Filter by name..." style="width: 220px; padding: 7px 12px; font-size: 13px;">
             <div style="position: relative;">
               <button type="button" class="btn" id="columnsBtn" style="font-size: 13px; padding: 7px 12px;">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 Columns
               </button>
               <div class="col-menu hidden" id="columnsMenu">
@@ -596,7 +604,7 @@
 
         <div style="display: flex; align-items: center; justify-content: space-between; margin: 0 4px 10px;">
           <div style="color: var(--body); font-size: 13px;">
-            Showing <span style="color: var(--near-black); font-weight: 600;" id="visibleCount"><%= results.length %></span>
+            Showing <span style="color: var(--near-black); font-weight: 500;" id="visibleCount"><%= results.length %></span>
             <% if (totalScraped > results.length) { %><span style="color: var(--muted);"> · deduped from <%= totalScraped %> scraped</span><% } %>
             <% if (query?.searchString) { %><span style="color: var(--muted);"> · "<%= query.searchString %>"</span><% } %>
           </div>
@@ -630,8 +638,8 @@
         </div>
       <% } else if (results && results.length === 0) { %>
         <div class="card" style="padding: 48px 24px; text-align: center;">
-          <div class="ico-box" style="margin: 0 auto 16px;"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></div>
-          <h2 style="font-size: 18px; margin-bottom: 6px; font-weight: 600;">No businesses matched your search.</h2>
+          <div class="ico-box" style="margin: 0 auto 16px;"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></div>
+          <h2 style="font-size: 18px; margin-bottom: 6px; font-weight: 500;">No businesses matched your search.</h2>
           <p style="color: var(--text-secondary); margin: 0 0 18px;">Widen your filters or try broader keywords.</p>
           <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;">
             <button type="button" class="btn btn-primary" onclick="widenFilters()">Widen filters</button>
@@ -645,7 +653,7 @@
         </div>
       <% } else if (!error) { %>
         <div class="card" style="padding: 56px 24px; text-align: center;">
-          <div class="ico-box" style="margin: 0 auto 18px;"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
+          <div class="ico-box" style="margin: 0 auto 18px;"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
           <h2 style="font-size: 20px; margin-bottom: 8px;">Pick a vertical to start</h2>
           <p style="color: var(--body); margin-bottom: 22px;">Or try one of these:</p>
           <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
@@ -663,8 +671,8 @@
   <div class="bulk-bar" id="bulkBar">
     <span class="bulk-count"><span id="bulkCountNum">0</span> selected</span>
     <div class="bulk-divider"></div>
-    <button type="button" class="bulk-btn" id="bulkCopyEmails"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>Copy emails</button>
-    <button type="button" class="bulk-btn" id="bulkCopyPhones"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>Copy phones</button>
+    <button type="button" class="bulk-btn" id="bulkCopyEmails"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>Copy emails</button>
+    <button type="button" class="bulk-btn" id="bulkCopyPhones"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>Copy phones</button>
     <button type="button" class="bulk-btn" id="bulkCopyIG"><svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>Copy Instagram</button>
     <button type="button" class="bulk-btn" id="bulkSave">⭐ Save all</button>
     <button type="button" class="bulk-btn" id="bulkExportCSV">Export CSV</button>
@@ -935,10 +943,10 @@
       return `<div class="quality-pill ${cls}" title="Quality score ${s}/100">${s}</div>`;
     }
 
-    const ICO_COPY = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>`;
+    const ICO_COPY = `<svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>`;
     const ICO_IG = `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>`;
-    const ICO_PHONE = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>`;
-    const ICO_EMAIL = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`;
+    const ICO_PHONE = `<svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>`;
+    const ICO_EMAIL = `<svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`;
 
     function contactCellIG(r) {
       if (!r.instagram) return '<span class="empty-dash">—</span>';
@@ -1008,7 +1016,7 @@
           <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" data-idx="${origIdx}" ${isSelected ? 'checked' : ''}></td>
           <td onclick="event.stopPropagation(); toggleSave(${origIdx})">
             <button class="star-btn ${isSaved ? 'saved' : ''}" title="${isSaved ? 'Unsave' : 'Save lead'}">
-              <svg width="18" height="18" fill="${isSaved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+              <svg width="18" height="18" fill="${isSaved ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
             </button>
           </td>
           <td>
@@ -1027,9 +1035,9 @@
           <td>${contactCellEmail(r)}</td>
           <td class="col-booking col-hidden"><span style="font-size: 12px; color: var(--body);">${r.booking ? escapeHTML(r.booking) : '<span class="empty-dash">—</span>'}</span></td>
           <td class="col-hours col-hidden"><span style="font-size: 12px; color: var(--body);">${r.hours ? escapeHTML(r.hours) : '<span class="empty-dash">—</span>'}</span></td>
-          <td class="col-price col-hidden"><span style="font-weight: 600; color: var(--near-black);">${r.priceTier ? escapeHTML(r.priceTier) : '<span class="empty-dash">—</span>'}</span></td>
+          <td class="col-price col-hidden"><span style="font-weight: 500; color: var(--near-black);">${r.priceTier ? escapeHTML(r.priceTier) : '<span class="empty-dash">—</span>'}</span></td>
           <td style="text-align: center;">${qualityPill(r.qualityScore)}</td>
-          <td>${r.url ? `<a href="${escapeAttr(r.url)}" target="_blank" onclick="event.stopPropagation()" style="display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 5px; color: var(--muted);" title="Open in Google Maps"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg></a>` : ''}</td>
+          <td>${r.url ? `<a href="${escapeAttr(r.url)}" target="_blank" onclick="event.stopPropagation()" style="display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 5px; color: var(--muted);" title="Open in Google Maps"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg></a>` : ''}</td>
         `;
         tr.addEventListener('click', () => toggleExpand(origIdx));
         body.appendChild(tr);
