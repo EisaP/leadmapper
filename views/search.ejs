@@ -3,27 +3,49 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LeadMapper — Starise</title>
+  <title>LeadHunter</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --indigo: #5664EF; --indigo-hover: #4450DB; --purple: #9D57F5;
-      --brand-gradient: linear-gradient(135deg, #5664EF 0%, #9D57F5 100%);
-      --near-black: #0F0F1A; --body: #4A4A4A; --muted: #6B6B80;
-      --border: #E8E8F0; --border-strong: #D4D4E0;
-      --lavender: #F3EEFF; --section: #F9FAFD; --white: #FFFFFF;
-      --radius-card: 16px; --radius-icon: 12px; --radius-input: 8px; --radius-pill: 9999px;
-      --shadow-soft: 0 1px 2px rgba(15, 15, 26, 0.04);
-      --shadow-cta: 0 4px 12px rgba(86, 100, 239, 0.2);
-      --shadow-float: 0 12px 32px rgba(15, 15, 26, 0.18);
-      --pink: #DB2777; --pink-soft: #FDF2F8;
-      --sky: #0284C7; --sky-soft: #F0F9FF;
-      --teal: #0D9488; --teal-soft: #F0FDFA;
-      --warn: #D97706; --warn-soft: #FEF3C7;
-      --amber: #D97706; --amber-soft: #FEF3C7;
-      --red: #DC2626; --red-soft: #FEF2F2;
+      /* Core — red / black / white only */
+      --red: #E11D2E;         /* Primary action red */
+      --red-hover: #B8161E;   /* Primary action red hover */
+      --red-active: #8B1015;  /* Primary action red pressed */
+      --red-soft: #FEE2E2;    /* Red tint for backgrounds */
+      --black: #0A0A0A;
+      --white: #FFFFFF;
+      --surface: #FAFAFA;
+      --border: #EAEAEA;
+      --border-strong: #D4D4D4;
+      --text-primary: #0A0A0A;
+      --text-secondary: #6B6B6B;
+      --text-tertiary: #9A9A9A;
+      /* Legacy tokens kept for minimal-diff compatibility; all mapped to the new palette */
+      --near-black: var(--text-primary);
+      --body: var(--text-primary);
+      --muted: var(--text-secondary);
+      --section: var(--surface);
+      --indigo: var(--red);            /* Any lingering "indigo" accent becomes red */
+      --indigo-hover: var(--red-hover);
+      --lavender: var(--surface);      /* Soft backgrounds become neutral */
+      --pink: var(--black);            /* Instagram badge background = black */
+      --pink-soft: var(--black);
+      --sky: var(--text-primary);      /* Phone badge text */
+      --sky-soft: var(--white);        /* Phone badge background */
+      --teal: var(--white);            /* Email badge text */
+      --teal-soft: var(--red);         /* Email badge background */
+      /* Semantic — use sparingly */
+      --success: #0F7A3E;              /* Used only for "copied" toasts */
+      --warn: #B45309;                 /* Warning banners */
+      --warn-soft: #FEF3C7;
+      --amber: #B45309;
+      /* Sizing / motion */
+      --radius-card: 8px; --radius-icon: 8px; --radius-input: 6px; --radius-pill: 9999px;
+      --shadow-soft: 0 1px 2px rgba(10, 10, 10, 0.04);
+      --shadow-cta: 0 2px 6px rgba(225, 29, 46, 0.18);
+      --shadow-float: 0 12px 32px rgba(10, 10, 10, 0.12);
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
@@ -34,37 +56,35 @@
     a:hover { color: var(--indigo-hover); }
 
     .ui-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-    .section-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--indigo); margin-bottom: 12px; display: block; }
+    .section-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); margin-bottom: 12px; display: block; }
     .caption { font-size: 12px; color: var(--muted); line-height: 1.4; }
     .helper-text { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
 
     .input, .select { font-family: inherit; font-size: 14px; padding: 10px 12px; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-input); color: var(--near-black); width: 100%; transition: border-color 0.15s, box-shadow 0.15s; }
-    .input:focus, .select:focus { outline: none; border-color: var(--indigo); box-shadow: 0 0 0 3px rgba(86, 100, 239, 0.15); }
+    .input:focus, .select:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 3px rgba(225, 29, 46, 0.15); }
     .input::placeholder { color: #9897A6; }
     select.select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236B6B80'%3e%3cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 10px center; background-size: 14px; padding-right: 32px; cursor: pointer; }
 
     .btn { font-family: inherit; font-size: 14px; font-weight: 500; padding: 10px 16px; border-radius: var(--radius-input); border: 1px solid var(--border); background: var(--white); color: var(--near-black); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.15s, border-color 0.15s, color 0.15s; }
     .btn:hover { background: var(--section); border-color: var(--border-strong); }
-    .btn-primary { background: var(--brand-gradient); border: none; color: white; padding: 12px 28px; border-radius: var(--radius-pill); box-shadow: var(--shadow-cta); font-weight: 600; }
-    .btn-primary:hover { background: var(--brand-gradient); opacity: 0.95; box-shadow: 0 6px 18px rgba(86, 100, 239, 0.28); }
-    .btn-primary:disabled { opacity: 0.65; cursor: not-allowed; box-shadow: none; }
+    .btn-primary { background: var(--red); border: 1px solid var(--red); color: var(--white); padding: 10px 22px; border-radius: var(--radius-input); font-weight: 500; font-size: 14px; box-shadow: none; }
+    .btn-primary:hover { background: var(--red-hover); border-color: var(--red-hover); }
+    .btn-primary:active { background: var(--red-active); border-color: var(--red-active); }
+    .btn-primary:disabled { opacity: 0.65; cursor: not-allowed; }
     .btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }
     .btn-ghost:hover { background: var(--section); color: var(--near-black); }
 
     .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-soft); }
 
     .sidebar { background: var(--white); border-right: 1px solid var(--border); width: 236px; flex-shrink: 0; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; }
-    .brand-lockup { display: flex; align-items: center; gap: 10px; padding: 22px 20px 18px; border-bottom: 1px solid var(--border); }
-    .logo-starise { display: inline-flex; align-items: flex-start; color: var(--indigo); }
-    .logo-word { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 15px; letter-spacing: 0.22em; text-transform: lowercase; line-height: 1; padding-top: 5px; }
-    .logo-sparkle { width: 11px; height: 11px; margin-left: 0; margin-top: -3px; flex-shrink: 0; }
-    .brand-lockup .divider { color: var(--border-strong); font-size: 14px; margin: 0 2px; padding-top: 4px; }
-    .brand-lockup .product { font-size: 13px; font-weight: 500; color: var(--near-black); letter-spacing: -0.01em; padding-top: 4px; }
+    .brand-lockup { display: flex; align-items: center; gap: 8px; padding: 22px 20px 18px; border-bottom: 1px solid var(--border); }
+    .logo-mark { color: var(--black); flex-shrink: 0; }
+    .logo-wordmark { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 18px; color: var(--black); letter-spacing: -0.01em; }
     .sidebar-nav { padding: 12px 8px; flex: 1; }
-    .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 2px 0; border-radius: var(--radius-input); font-size: 14px; font-weight: 500; color: var(--body); text-decoration: none; position: relative; }
-    .sidebar-nav a:hover { background: var(--section); color: var(--near-black); }
-    .sidebar-nav a.active { background: var(--lavender); color: var(--indigo); }
-    .sidebar-nav a.active::before { content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; background: var(--indigo); border-radius: 2px; }
+    .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 2px 0; border-radius: var(--radius-input); font-size: 14px; font-weight: 500; color: var(--text-secondary); text-decoration: none; position: relative; }
+    .sidebar-nav a:hover { background: var(--surface); color: var(--text-primary); }
+    .sidebar-nav a.active { background: var(--surface); color: var(--text-primary); }
+    .sidebar-nav a.active::before { content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; background: var(--red); border-radius: 2px; }
     .sidebar-nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
     .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
     .credit-indicator { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; color: var(--muted); padding: 5px 10px; background: var(--section); border-radius: var(--radius-pill); }
@@ -103,17 +123,22 @@
     .info-tip.tip-left .tip-content { left: -8px; right: auto; transform: none; }
 
     .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: var(--radius-pill); white-space: nowrap; letter-spacing: 0.02em; }
-    .badge-seg-b { background: var(--lavender); color: var(--indigo); }
-    .badge-seg-c { background: var(--red-soft); color: var(--red); }
-    .badge-seg-other { background: var(--section); color: var(--muted); }
-    .badge-ig { background: var(--pink-soft); color: var(--pink); }
-    .badge-call { background: var(--sky-soft); color: var(--sky); }
-    .badge-email { background: var(--teal-soft); color: var(--teal); }
-    .badge-none { background: var(--section); color: var(--muted); }
+    /* Segment badges — black with red underline (B), red filled (C), gray outline (Other) */
+    .badge-seg-b { background: var(--black); color: var(--white); border-bottom: 2px solid var(--red); border-radius: 4px 4px 0 0; }
+    .badge-seg-c { background: var(--red); color: var(--white); }
+    .badge-seg-other { background: var(--white); color: var(--text-secondary); border: 1px solid var(--border-strong); }
+    /* Contact/outreach badges — Instagram black, Call outlined, Email red */
+    .badge-ig { background: var(--black); color: var(--white); position: relative; padding-right: 14px; }
+    .badge-ig::after { content: ''; position: absolute; top: 50%; right: 6px; width: 4px; height: 4px; border-radius: 50%; background: var(--red); transform: translateY(-50%); }
+    .badge-call { background: var(--white); color: var(--text-primary); border: 1px solid var(--text-primary); }
+    .badge-email { background: var(--red); color: var(--white); }
+    .badge-none { background: var(--surface); color: var(--text-tertiary); border: 1px solid var(--border); }
 
-    .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; padding: 7px 14px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--white); color: var(--body); cursor: pointer; transition: all 0.15s; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; padding: 7px 14px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--white); color: var(--text-primary); cursor: pointer; transition: all 0.15s; }
+    .chip svg { color: var(--text-primary); flex-shrink: 0; }
     .chip:hover { border-color: var(--indigo); color: var(--indigo); background: var(--lavender); }
-    .chip.active { background: var(--brand-gradient); border-color: transparent; color: white; box-shadow: var(--shadow-cta); }
+    .chip.active { background: var(--red); border-color: var(--red); color: var(--white); }
+    .chip.active svg { color: var(--white); }
 
     .filter-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--white); color: var(--body); cursor: pointer; transition: all 0.15s; }
     .filter-pill:hover { border-color: var(--border-strong); color: var(--near-black); }
@@ -121,15 +146,9 @@
     .filter-pill .count { background: rgba(0,0,0,0.06); color: inherit; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; }
     .filter-pill.active .count { background: rgba(255,255,255,0.2); }
 
-    .channel-toggle { display: inline-flex; align-items: center; gap: 8px; font-family: inherit; font-size: 14px; font-weight: 500; padding: 8px 14px; border-radius: var(--radius-pill); border: 1px solid var(--border); background: var(--white); color: var(--muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
-    .channel-toggle:hover { color: var(--near-black); border-color: var(--border-strong); }
-    .channel-toggle svg { width: 16px; height: 16px; flex-shrink: 0; }
-    .channel-toggle .count { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 10px; background: rgba(0,0,0,0.06); color: inherit; }
-    .channel-toggle.active { color: white; border-color: transparent; }
-    .channel-toggle.active .count { background: rgba(255,255,255,0.22); }
-    .channel-toggle[data-channel="email"].active { background: var(--teal); }
-    .channel-toggle[data-channel="phone"].active { background: var(--sky); }
-    .channel-toggle[data-channel="instagram"].active { background: var(--pink); }
+    /* Legacy .channel-toggle removed — filters now live as checkboxes in Advanced */
+    /* Channel checkboxes — use accent-color for red tint */
+    .channel-check { accent-color: var(--red); width: 15px; height: 15px; cursor: pointer; }
 
     /* Aggregator warning badge inline in row */
     .aggregator-warn {
@@ -182,9 +201,10 @@
     .contact-cell .ico-link { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0; text-decoration: none; transition: transform 0.12s; }
     .contact-cell .ico-link svg { width: 14px; height: 14px; }
     .contact-cell .ico-link:hover { transform: scale(1.15); }
-    .contact-cell .ico-link.ico-ig { color: var(--pink); background: var(--pink-soft); }
-    .contact-cell .ico-link.ico-phone { color: var(--sky); background: var(--sky-soft); }
-    .contact-cell .ico-link.ico-email { color: var(--teal); background: var(--teal-soft); }
+    /* Contact icons — Instagram black, Phone outlined-black, Email red */
+    .contact-cell .ico-link.ico-ig { color: var(--white); background: var(--black); }
+    .contact-cell .ico-link.ico-phone { color: var(--text-primary); background: var(--white); border: 1px solid var(--text-primary); }
+    .contact-cell .ico-link.ico-email { color: var(--white); background: var(--red); }
     /* Small amber dot after IG handle when resolved via Google fallback — indicates "please verify" */
     .ig-fallback-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); margin-left: 4px; vertical-align: middle; cursor: help; }
     .contact-cell .value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--near-black); text-decoration: none; font-size: 13px; font-weight: 500; }
@@ -198,7 +218,7 @@
 
     /* ——— Quality pill ——— */
     .quality-pill { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 22px; border-radius: 11px; font-size: 12px; font-weight: 600; }
-    .quality-pill.high { background: var(--teal-soft); color: var(--teal); }
+    .quality-pill.high { background: var(--black); color: var(--white); }
     .quality-pill.mid { background: var(--amber-soft); color: var(--amber); }
     .quality-pill.low { background: var(--section); color: var(--muted); }
 
@@ -249,9 +269,15 @@
   <div style="display: flex; min-height: 100vh;">
     <aside class="sidebar">
       <div class="brand-lockup">
-        <span class="logo-starise" aria-label="Starise"><span class="logo-word">starise</span><svg class="logo-sparkle" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0 L13.5 10.5 L24 12 L13.5 13.5 L12 24 L10.5 13.5 L0 12 L10.5 10.5 Z"/></svg></span>
-        <span class="divider">·</span>
-        <span class="product">LeadMapper</span>
+        <svg class="logo-mark" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="8"/>
+          <line x1="12" y1="1" y2="5" x2="12"/>
+          <line x1="12" y1="19" y2="23" x2="12"/>
+          <line x1="1" y1="12" y2="12" x2="5"/>
+          <line x1="19" y1="12" y2="12" x2="23"/>
+          <circle cx="12" cy="12" r="2" fill="currentColor"/>
+        </svg>
+        <span class="logo-wordmark">LeadHunter</span>
       </div>
       <nav class="sidebar-nav">
         <a href="/" class="active"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>Search</a>
@@ -260,7 +286,7 @@
       </nav>
       <div class="sidebar-footer">
         <div class="credit-indicator" title="SerpAPI usage this month"><span class="dot"></span>SerpAPI · <%= typeof serpUsage !== 'undefined' ? serpUsage : '—' %></div>
-        <div style="font-size: 11px; color: var(--muted); margin-top: 10px;">Internal tool · Starise</div>
+        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 10px;">Internal tool</div>
       </div>
     </aside>
 
@@ -273,12 +299,30 @@
 
       <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 20px;">
         <span class="ui-label" style="margin-right: 8px;">Vertical</span>
-        <button type="button" class="chip" data-preset="cafes">☕ Cafes</button>
-        <button type="button" class="chip" data-preset="restaurants">🍽 Restaurants</button>
-        <button type="button" class="chip" data-preset="salons">💇 Salons</button>
-        <button type="button" class="chip" data-preset="hotels">🏨 Hotels</button>
-        <button type="button" class="chip" data-preset="dental">🦷 Dental</button>
-        <button type="button" class="chip" data-preset="gyms">🏋️ Gyms</button>
+        <button type="button" class="chip" data-preset="cafes">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M6 2v2"/><path d="M17 8H3v9a4 4 0 0 0 4 4h7a4 4 0 0 0 4-4Z"/><path d="M16 8a4 4 0 1 1 0 8h-1"/></svg>
+          Cafes
+        </button>
+        <button type="button" class="chip" data-preset="restaurants">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+          Restaurants
+        </button>
+        <button type="button" class="chip" data-preset="salons">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>
+          Salons
+        </button>
+        <button type="button" class="chip" data-preset="hotels">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>
+          Hotels
+        </button>
+        <button type="button" class="chip" data-preset="dental">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+          Dental
+        </button>
+        <button type="button" class="chip" data-preset="gyms">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/></svg>
+          Gyms
+        </button>
       </div>
 
       <form method="POST" action="/search" id="searchForm" class="card" style="padding: 28px; margin-bottom: 20px;">
@@ -362,22 +406,37 @@
               </select>
               <div class="helper-text">
                 <strong style="color: var(--indigo);">Segment B:</strong> 4.1–4.7 ★ &amp; ≤ 300 reviews · under-exposed, easy upside.<br>
-                <strong style="color: var(--red);">Segment C:</strong> &lt; 4.1 ★ &amp; ≥ 80 reviews · reputation recovery target (Starise ICP).
+                <strong style="color: var(--red);">Segment C:</strong> &lt; 4.1 ★ &amp; ≥ 80 reviews · reputation recovery target.
               </div>
             </div>
           </div>
         </div>
 
         <details style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px;">
-          <summary style="color: var(--muted); font-size: 12px; font-weight: 500;"><span class="chev">▸</span> Advanced</summary>
-          <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px;">
+          <summary style="color: var(--text-secondary); font-size: 12px; font-weight: 500;"><span class="chev">▸</span> Advanced</summary>
+          <div style="margin-top: 14px;">
+            <label class="ui-label" style="display: block; margin-bottom: 8px;">Show leads that have</label>
+            <div style="display: flex; gap: 22px; flex-wrap: wrap;">
+              <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-primary); cursor: pointer;">
+                <input type="checkbox" class="channel-check" data-channel="email" checked> Email <span class="ch-count" id="cntEmail" style="color: var(--text-tertiary); font-size: 12px;">0</span>
+              </label>
+              <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-primary); cursor: pointer;">
+                <input type="checkbox" class="channel-check" data-channel="phone" checked> Contact number <span class="ch-count" id="cntPhone" style="color: var(--text-tertiary); font-size: 12px;">0</span>
+              </label>
+              <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-primary); cursor: pointer;">
+                <input type="checkbox" class="channel-check" data-channel="instagram" checked> Instagram <span class="ch-count" id="cntInstagram" style="color: var(--text-tertiary); font-size: 12px;">0</span>
+              </label>
+            </div>
+            <div class="helper-text">Show leads that have at least one of the selected contact methods.</div>
+          </div>
+          <div style="margin-top: 14px; display: flex; align-items: center; gap: 10px;">
             <input type="checkbox" name="skipEnrichment" id="skipEnrichment" <%= query?.skipEnrichment === 'on' ? 'checked' : '' %>>
-            <label for="skipEnrichment" style="font-size: 13px; color: var(--body);">Skip enrichment — faster, returns listings without email/phone/Instagram</label>
+            <label for="skipEnrichment" style="font-size: 13px; color: var(--text-primary);">Skip enrichment — faster, returns listings without email/phone/Instagram</label>
           </div>
           <div style="margin-top: 10px; display: flex; align-items: flex-start; gap: 10px;">
             <input type="checkbox" name="useIgFallback" id="useIgFallback" value="on" <%= (!query || query?.useIgFallback !== 'off') ? 'checked' : '' %> style="margin-top: 3px;">
             <label for="useIgFallback" style="font-size: 13px; color: var(--body); line-height: 1.5;">
-              <strong>Use Google fallback to find missing Instagram handles</strong> — for leads with aggregator-only websites (e.g. Talabat) or no website, search Google for <code style="font-size: 12px; background: var(--section); padding: 1px 4px; border-radius: 3px;">"business name" "city" instagram</code>. Uses 1 extra SerpAPI credit per lead that needs it, capped at 30 per run.
+              Use Google to find Instagram handles when the business website doesn't have one. Uses extra SerpAPI credits.
             </label>
           </div>
         </details>
@@ -406,20 +465,6 @@
 
         <div class="card" style="padding: 16px 18px; margin-bottom: 12px;">
           <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;">
-            <span class="ui-label" style="margin-right: 4px;">Show leads with</span>
-            <button class="channel-toggle active" data-channel="email" type="button">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-              Email <span class="count" id="cntEmail">0</span>
-            </button>
-            <button class="channel-toggle active" data-channel="phone" type="button">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-              Contact number <span class="count" id="cntPhone">0</span>
-            </button>
-            <button class="channel-toggle active" data-channel="instagram" type="button">
-              <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-              Instagram <span class="count" id="cntInstagram">0</span>
-            </button>
-            <span style="width: 1px; height: 24px; background: var(--border); margin: 0 8px;"></span>
             <span class="ui-label" style="margin-right: 4px;">Segment</span>
             <button class="filter-pill active" data-filter="segment" data-value="all" type="button">All <span class="count" id="cntSegAll">0</span></button>
             <button class="filter-pill" data-filter="segment" data-value="B" type="button">B <span class="count" id="cntSegB">0</span></button>
@@ -448,7 +493,6 @@
             <button type="button" class="btn btn-ghost" id="copyIG" style="font-size: 13px; padding: 7px 12px;">Instagram handles <span id="cntCopyIG" style="color: var(--muted);">(0)</span></button>
             <button type="button" class="btn btn-ghost" id="copyEmails" style="font-size: 13px; padding: 7px 12px;">Emails <span id="cntCopyEmail" style="color: var(--muted);">(0)</span></button>
             <button type="button" class="btn btn-ghost" id="copyPhones" style="font-size: 13px; padding: 7px 12px;">Phones <span id="cntCopyPhone" style="color: var(--muted);">(0)</span></button>
-            <button type="button" class="btn btn-ghost" id="exportColdDMs" style="font-size: 13px; padding: 7px 12px;">ColdDMs CSV</button>
             <div style="flex: 1;"></div>
             <button type="button" class="btn" id="exportJSON" style="font-size: 13px; padding: 7px 12px;">JSON</button>
             <button type="button" class="btn" id="exportCSV" style="font-size: 13px; padding: 7px 12px;">CSV</button>
@@ -683,16 +727,16 @@
         <div class="stat-card">
           <div class="stat-label">Outreach mix</div>
           <div class="mix-bar">
-            <div class="mix-seg" style="width: ${pct(ig)}%; background: var(--pink);"></div>
-            <div class="mix-seg" style="width: ${pct(call)}%; background: var(--sky);"></div>
-            <div class="mix-seg" style="width: ${pct(email)}%; background: var(--teal);"></div>
-            <div class="mix-seg" style="width: ${pct(none)}%; background: var(--border-strong);"></div>
+            <div class="mix-seg" style="width: ${pct(ig)}%; background: var(--black);"></div>
+            <div class="mix-seg" style="width: ${pct(call)}%; background: var(--red);"></div>
+            <div class="mix-seg" style="width: ${pct(email)}%; background: repeating-linear-gradient(45deg, var(--red-soft), var(--red-soft) 4px, var(--white) 4px, var(--white) 8px); border-top: 1px solid var(--red); border-bottom: 1px solid var(--red); box-sizing: border-box;"></div>
+            <div class="mix-seg" style="width: ${pct(none)}%; background: var(--border);"></div>
           </div>
           <div class="mix-legend">
-            <span><span class="dot" style="background: var(--pink);"></span>Instagram ${pct(ig)}%</span>
-            <span><span class="dot" style="background: var(--sky);"></span>Call ${pct(call)}%</span>
-            <span><span class="dot" style="background: var(--teal);"></span>Email ${pct(email)}%</span>
-            <span><span class="dot" style="background: var(--border-strong);"></span>None ${pct(none)}%</span>
+            <span><span class="dot" style="background: var(--black);"></span>Instagram ${pct(ig)}%</span>
+            <span><span class="dot" style="background: var(--red);"></span>Call ${pct(call)}%</span>
+            <span><span class="dot" style="background: var(--white); border: 1px solid var(--red);"></span>Email ${pct(email)}%</span>
+            <span><span class="dot" style="background: var(--border);"></span>None ${pct(none)}%</span>
           </div>
         </div>
         <div class="stat-card">
@@ -761,7 +805,7 @@
     const badgeSegment = c => c === 'B'
       ? '<span class="badge badge-seg-b" title="Segment B: good rating (4.1–4.7 ★) with ≤300 reviews. Under-exposed — easy upside from more reviews.">Segment B</span>'
       : c === 'C'
-      ? '<span class="badge badge-seg-c" title="Segment C: rating below 4.1 ★ with ≥80 reviews. Reputation recovery target — Starise\'s ICP.">Segment C</span>'
+      ? '<span class="badge badge-seg-c" title="Segment C: rating below 4.1 ★ with ≥80 reviews. Reputation recovery target.">Segment C</span>'
       : '<span class="badge badge-seg-other" title="Not a target segment — either rating too high, too few reviews, or between B and C thresholds.">Other</span>';
     const badgeOutreach = o => o === 'DM' ? '<span class="badge badge-ig">Instagram</span>' : o === 'Call' ? '<span class="badge badge-call">Call</span>' : o === 'Email' ? '<span class="badge badge-email">Email</span>' : '<span class="badge badge-none">None</span>';
     function qualityPill(score) {
@@ -914,7 +958,7 @@
               <div class="ui-label" style="margin-bottom: 8px;">Contact</div>
               ${r.phone ? `<div style="margin-bottom: 6px;"><span class="caption">Phone · </span><a href="tel:${escapeAttr(r.phone)}">${escapeHTML(r.phone)}</a></div>` : ''}
               ${r.email ? `<div style="margin-bottom: 6px;"><span class="caption">Email · </span><a href="mailto:${escapeAttr(r.email)}">${escapeHTML(r.email)}</a></div>` : ''}
-              ${r.instagram ? `<div style="margin-bottom: 6px;"><span class="caption">Instagram · </span><a href="${escapeAttr(igUrl(r.instagram))}" target="_blank" rel="noopener" style="color: var(--pink);">@${escapeHTML(igHandle(r.instagram))}</a></div>` : ''}
+              ${r.instagram ? `<div style="margin-bottom: 6px;"><span class="caption">Instagram · </span><a href="${escapeAttr(igUrl(r.instagram))}" target="_blank" rel="noopener" style="color: var(--black); font-weight: 500;">@${escapeHTML(igHandle(r.instagram))}</a></div>` : ''}
               ${r.isAggregator ? `<div style="margin-top: 10px; padding: 8px 10px; background: var(--warn-soft); border-radius: 6px; font-size: 12px; color: var(--warn);"><strong>⚠ Listed website is a third-party platform.</strong> Contact info may be incomplete — verify Instagram and phone before outreach.</div>` : ''}
               ${!r.phone && !r.email && !r.instagram ? `<div class="caption">No contact info found.</div>` : ''}
             </div>
@@ -963,11 +1007,10 @@
     }
     window.toggleSave = toggleSave;
 
-    // ——— Channel toggles ———
-    document.querySelectorAll('.channel-toggle').forEach(t => t.addEventListener('click', () => {
-      const ch = t.dataset.channel;
-      state.channels[ch] = !state.channels[ch];
-      t.classList.toggle('active', state.channels[ch]);
+    // ——— Channel checkboxes (in Advanced form section) ———
+    document.querySelectorAll('.channel-check').forEach(cb => cb.addEventListener('change', () => {
+      const ch = cb.dataset.channel;
+      state.channels[ch] = cb.checked;
       renderRows();
     }));
 
@@ -993,7 +1036,7 @@
       state.channels = { email: true, phone: true, instagram: true };
       state.filters = { segment: 'all', saved: false, text: '' };
       const tf = document.getElementById('textFilter'); if (tf) tf.value = '';
-      document.querySelectorAll('.channel-toggle').forEach(t => t.classList.add('active'));
+      document.querySelectorAll('.channel-check').forEach(cb => cb.checked = true);
       document.querySelectorAll('.filter-pill').forEach(p => {
         p.classList.toggle('active', p.dataset.value === 'all' && p.dataset.filter !== 'saved');
         if (p.dataset.filter === 'saved') p.classList.remove('active');
@@ -1081,7 +1124,7 @@
     document.getElementById('bulkExportCSV')?.addEventListener('click', () => {
       const sel = selectedLeads();
       if (!sel.length) return showToast('Nothing selected');
-      exportCSV(sel, `leadmapper-selected-${Date.now()}.csv`);
+      exportCSV(sel, `leadhunter-selected-${Date.now()}.csv`);
     });
     document.getElementById('bulkClear')?.addEventListener('click', () => {
       state.selected.clear();
@@ -1119,14 +1162,6 @@
       const rows = applyFilters();
       copyList(rows.filter(r => r.phone).map(r => r.phone), 'No phones in current filter', 'Phones copied');
     });
-    document.getElementById('exportColdDMs')?.addEventListener('click', () => {
-      const rows = applyFilters().filter(r => r.instagram);
-      if (!rows.length) { showToast('No Instagram handles in current filter'); return; }
-      const csv = 'instagram,business_name,notes\n' + rows.map(r => `${igHandle(r.instagram)},"${(r.title || '').replace(/"/g,'""')}","${(r.category || '').replace(/"/g,'""')}"`).join('\n');
-      downloadBlob(csv, 'text/csv', 'colddms-import.csv');
-      showToast(`Downloaded ColdDMs CSV (${rows.length})`);
-    });
-
     function exportCSV(rows, filename) {
       const headers = ['Name','Phone','Email','Instagram','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','Segment','Outreach','QualityScore','Google Maps URL'];
       const csvRows = rows.map(r => [
@@ -1134,7 +1169,7 @@
         r.website, r.category, r.address, r.rating, r.reviewCount, r.segment || '', r.outreach || '', r.qualityScore || '', r.url
       ].map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(','));
       const csv = [headers.join(','), ...csvRows].join('\n');
-      downloadBlob(csv, 'text/csv', filename || `leadmapper-${Date.now()}.csv`);
+      downloadBlob(csv, 'text/csv', filename || `leadhunter-${Date.now()}.csv`);
     }
     function downloadBlob(content, type, name) {
       const blob = new Blob([content], { type });
@@ -1152,7 +1187,7 @@
     document.getElementById('exportJSON')?.addEventListener('click', () => {
       const rows = applyFilters();
       if (!rows.length) return showToast('No rows to export');
-      downloadBlob(JSON.stringify(rows, null, 2), 'application/json', `leadmapper-${Date.now()}.json`);
+      downloadBlob(JSON.stringify(rows, null, 2), 'application/json', `leadhunter-${Date.now()}.json`);
       showToast(`Exported ${rows.length} rows as JSON`);
     });
 

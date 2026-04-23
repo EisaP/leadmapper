@@ -262,7 +262,7 @@ async function enrichLead(websiteUrl, businessName) {
       const timeout = setTimeout(() => controller.abort(), 5000);
       const resp = await fetch(pageUrl, {
         signal: controller.signal,
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LeadMapper/1.0)', 'Accept': 'text/html' },
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LeadHunter/1.0)', 'Accept': 'text/html' },
         redirect: 'follow',
       });
       clearTimeout(timeout);
@@ -722,5 +722,5 @@ app.post('/export', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`LeadMapper running on http://localhost:${PORT}`);
+  console.log(`LeadHunter running on http://localhost:${PORT}`);
 });

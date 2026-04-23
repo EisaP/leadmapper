@@ -3,69 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Saved leads — LeadMapper · Starise</title>
+  <title>Saved leads — LeadHunter</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --indigo: #5664EF; --indigo-hover: #4450DB; --purple: #9D57F5;
-      --brand-gradient: linear-gradient(135deg, #5664EF 0%, #9D57F5 100%);
-      --near-black: #0F0F1A; --body: #4A4A4A; --muted: #6B6B80;
-      --border: #E8E8F0; --border-strong: #D4D4E0;
-      --lavender: #F3EEFF; --section: #F9FAFD; --white: #FFFFFF;
-      --radius-card: 16px; --radius-input: 8px;
-      --shadow-soft: 0 1px 2px rgba(15, 15, 26, 0.04);
-      --shadow-cta: 0 4px 12px rgba(86, 100, 239, 0.2);
-      --red: #DC2626; --red-soft: #FEF2F2; --amber: #D97706;
-      --pink: #DB2777; --pink-soft: #FDF2F8;
-      --sky: #0284C7; --sky-soft: #F0F9FF;
-      --teal: #0D9488; --teal-soft: #F0FDFA;
+      --red: #E11D2E; --red-hover: #B8161E; --red-active: #8B1015;
+      --black: #0A0A0A; --white: #FFFFFF;
+      --surface: #FAFAFA; --border: #EAEAEA; --border-strong: #D4D4D4;
+      --text-primary: #0A0A0A; --text-secondary: #6B6B6B; --text-tertiary: #9A9A9A;
+      --radius-card: 8px; --radius-input: 6px;
+      --shadow-soft: 0 1px 2px rgba(10, 10, 10, 0.04);
+      --amber: #B45309;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
-    body { font-family: 'Inter', -apple-system, sans-serif; background: var(--section); color: var(--body); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
-    h1 { color: var(--near-black); font-weight: 700; letter-spacing: -0.01em; margin: 0; }
-    a { color: var(--indigo); text-decoration: none; }
-    a:hover { color: var(--indigo-hover); }
-    .section-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--indigo); margin-bottom: 12px; display: block; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: var(--surface); color: var(--text-primary); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    h1 { color: var(--text-primary); font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+    a { color: var(--red); text-decoration: none; }
+    a:hover { color: var(--red-hover); }
+    .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 10px; display: block; }
     .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-soft); }
-    .btn { font-family: inherit; font-size: 14px; font-weight: 500; padding: 10px 16px; border-radius: var(--radius-input); border: 1px solid var(--border); background: var(--white); color: var(--near-black); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s; }
-    .btn:hover { background: var(--section); border-color: var(--border-strong); }
-    .btn-primary { background: var(--brand-gradient); border: none; color: white; border-radius: 9999px; box-shadow: var(--shadow-cta); font-weight: 600; padding: 12px 24px; }
+    .btn { font-family: inherit; font-size: 14px; font-weight: 500; padding: 10px 16px; border-radius: var(--radius-input); border: 1px solid var(--border); background: var(--white); color: var(--text-primary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s; }
+    .btn:hover { background: var(--surface); border-color: var(--border-strong); }
+    .btn-primary { background: var(--red); border: 1px solid var(--red); color: var(--white); font-weight: 500; padding: 10px 18px; }
+    .btn-primary:hover { background: var(--red-hover); border-color: var(--red-hover); }
     .sidebar { background: var(--white); border-right: 1px solid var(--border); width: 236px; flex-shrink: 0; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; }
-    .brand-lockup { display: flex; align-items: center; gap: 10px; padding: 22px 20px 18px; border-bottom: 1px solid var(--border); }
-    .logo-starise { display: inline-flex; align-items: flex-start; color: var(--indigo); }
-    .logo-word { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 15px; letter-spacing: 0.22em; text-transform: lowercase; line-height: 1; padding-top: 5px; }
-    .logo-sparkle { width: 11px; height: 11px; margin-left: 0; margin-top: -3px; flex-shrink: 0; }
-    .brand-lockup .divider { color: var(--border-strong); font-size: 14px; margin: 0 2px; padding-top: 4px; }
-    .brand-lockup .product { font-size: 13px; font-weight: 500; color: var(--near-black); letter-spacing: -0.01em; padding-top: 4px; }
+    .brand-lockup { display: flex; align-items: center; gap: 8px; padding: 22px 20px 18px; border-bottom: 1px solid var(--border); }
+    .logo-mark { color: var(--black); flex-shrink: 0; }
+    .logo-wordmark { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 18px; color: var(--black); letter-spacing: -0.01em; }
     .sidebar-nav { padding: 12px 8px; flex: 1; }
-    .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 2px 0; border-radius: var(--radius-input); font-size: 14px; font-weight: 500; color: var(--body); text-decoration: none; position: relative; }
-    .sidebar-nav a:hover { background: var(--section); color: var(--near-black); }
-    .sidebar-nav a.active { background: var(--lavender); color: var(--indigo); }
-    .sidebar-nav a.active::before { content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; background: var(--indigo); border-radius: 2px; }
-    .sidebar-nav a svg { width: 18px; height: 18px; }
+    .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 2px 0; border-radius: var(--radius-input); font-size: 14px; font-weight: 500; color: var(--text-secondary); text-decoration: none; position: relative; }
+    .sidebar-nav a:hover { background: var(--surface); color: var(--text-primary); }
+    .sidebar-nav a.active { background: var(--surface); color: var(--text-primary); }
+    .sidebar-nav a.active::before { content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; background: var(--red); border-radius: 2px; }
+    .sidebar-nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
     .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
-    .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 9999px; }
-    .badge-dm { background: var(--pink-soft); color: var(--pink); }
-    .badge-call { background: var(--sky-soft); color: var(--sky); }
-    .badge-email { background: var(--teal-soft); color: var(--teal); }
     .data-table { width: 100%; font-size: 14px; border-collapse: separate; border-spacing: 0; }
-    .data-table th { text-align: left; padding: 11px 14px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); background: var(--section); }
-    .data-table td { padding: 14px; border-bottom: 1px solid var(--border); color: var(--near-black); vertical-align: middle; }
-    .data-table tbody tr:hover { background: var(--section); }
-    .ico-box { width: 40px; height: 40px; border-radius: 12px; background: var(--lavender); color: var(--indigo); display: inline-flex; align-items: center; justify-content: center; }
-    .del-btn { background: none; border: none; color: var(--muted); cursor: pointer; padding: 6px; border-radius: 6px; transition: all 0.15s; }
-    .del-btn:hover { background: var(--red-soft); color: var(--red); }
+    .data-table th { text-align: left; padding: 11px 14px; font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .data-table td { padding: 14px; border-bottom: 1px solid var(--border); color: var(--text-primary); vertical-align: middle; }
+    .data-table tbody tr:hover { background: var(--surface); }
+    .ico-box { width: 40px; height: 40px; border-radius: 8px; background: var(--surface); color: var(--black); display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); }
+    .del-btn { background: none; border: none; color: var(--text-tertiary); cursor: pointer; padding: 6px; border-radius: 4px; transition: all 0.15s; }
+    .del-btn:hover { background: var(--surface); color: var(--red); }
   </style>
 </head>
 <body>
   <div style="display: flex; min-height: 100vh;">
     <aside class="sidebar">
       <div class="brand-lockup">
-        <span class="logo-starise" aria-label="Starise"><span class="logo-word">starise</span><svg class="logo-sparkle" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0 L13.5 10.5 L24 12 L13.5 13.5 L12 24 L10.5 13.5 L0 12 L10.5 10.5 Z"/></svg></span>
-        <span class="divider">·</span>
-        <span class="product">LeadMapper</span>
+        <svg class="logo-mark" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="8"/>
+          <line x1="12" y1="1" y2="5" x2="12"/>
+          <line x1="12" y1="19" y2="23" x2="12"/>
+          <line x1="1" y1="12" y2="12" x2="5"/>
+          <line x1="19" y1="12" y2="12" x2="23"/>
+          <circle cx="12" cy="12" r="2" fill="currentColor"/>
+        </svg>
+        <span class="logo-wordmark">LeadHunter</span>
       </div>
       <nav class="sidebar-nav">
         <a href="/"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>Search</a>
@@ -73,22 +68,22 @@
         <a href="/leads" class="active"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>Saved leads</a>
       </nav>
       <div class="sidebar-footer">
-        <div style="font-size: 11px; color: var(--muted);">Internal tool · Starise</div>
+        <div style="font-size: 11px; color: var(--text-tertiary);">Internal tool</div>
       </div>
     </aside>
 
     <main style="flex: 1; padding: 36px 44px; min-width: 0; max-width: 1600px;">
       <div style="margin-bottom: 24px;">
         <span class="section-label">Prospecting</span>
-        <h1 style="font-size: 28px; margin-bottom: 6px;">Saved leads <span style="color: var(--muted); font-weight: 500;" id="leadCount">(<%= leads.length %>)</span></h1>
-        <p style="color: var(--body); font-size: 15px;">Your starred leads from across searches. Click a row to see full details.</p>
+        <h1 style="font-size: 28px; margin-bottom: 6px;">Saved leads <span style="color: var(--text-tertiary); font-weight: 400;" id="leadCount">(<%= leads.length %>)</span></h1>
+        <p style="color: var(--text-secondary); font-size: 15px; margin: 0;">Your starred leads from across searches. Click a row to see full details.</p>
       </div>
 
       <% if (leads.length === 0) { %>
         <div class="card" style="padding: 56px 24px; text-align: center;">
           <div class="ico-box" style="margin: 0 auto 18px;"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg></div>
-          <h2 style="font-size: 18px; margin: 0 0 6px; color: var(--near-black);">No saved leads yet</h2>
-          <p style="color: var(--body); margin: 0 0 20px;">Star a lead from any search result to add it here.</p>
+          <h2 style="font-size: 18px; margin: 0 0 6px; color: var(--text-primary); font-weight: 600;">No saved leads yet</h2>
+          <p style="color: var(--text-secondary); margin: 0 0 20px;">Star any lead in your search results to save them here.</p>
           <a href="/" class="btn btn-primary">Start searching</a>
         </div>
       <% } else { %>
@@ -111,14 +106,14 @@
               <tr data-key="<%= l.key %>">
                 <td>
                   <div style="font-weight: 500;"><%= l.title %></div>
-                  <% if (l.category) { %><div style="font-size: 12px; color: var(--muted); margin-top: 2px;"><%= l.category %></div><% } %>
+                  <% if (l.category) { %><div style="font-size: 12px; color: var(--text-tertiary); margin-top: 2px;"><%= l.category %></div><% } %>
                 </td>
-                <td style="color: var(--body);"><%= l.phone || '—' %></td>
+                <td style="color: var(--text-secondary);"><%= l.phone || '—' %></td>
                 <td>
-                  <% if (l.email) { %><a href="mailto:<%= l.email %>" style="font-size: 13px;"><%= l.email %></a><% } else { %><span style="color: var(--muted);">—</span><% } %>
+                  <% if (l.email) { %><a href="mailto:<%= l.email %>" style="font-size: 13px;"><%= l.email %></a><% } else { %><span style="color: var(--text-tertiary);">—</span><% } %>
                 </td>
                 <td>
-                  <% if (l.instagram) { %><a href="https://instagram.com/<%= l.instagram %>" target="_blank" style="color: var(--pink); font-size: 13px;">@<%= l.instagram %></a><% } else { %><span style="color: var(--muted);">—</span><% } %>
+                  <% if (l.instagram) { %><a href="https://instagram.com/<%= l.instagram %>" target="_blank" style="color: var(--black); font-size: 13px;">@<%= l.instagram %></a><% } else { %><span style="color: var(--text-tertiary);">—</span><% } %>
                 </td>
                 <td>
                   <% if (l.website) { %><a href="<%= l.website %>" target="_blank" style="font-size: 13px;"><%= l.website.replace(/https?:\/\/(www\.)?/, '').split('/')[0] %></a><% } else { %>—<% } %>
@@ -126,7 +121,7 @@
                 <td>
                   <% if (l.rating != null) { %><span style="color: var(--amber); font-weight: 500;">★ <%= l.rating %></span><% } else { %>—<% } %>
                 </td>
-                <td style="color: var(--muted); font-size: 13px;"><%= new Date(l.savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) %></td>
+                <td style="color: var(--text-tertiary); font-size: 13px;"><%= new Date(l.savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) %></td>
                 <td>
                   <button class="del-btn" onclick="removeLead('<%= l.key %>', this)" title="Remove from saved">
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
