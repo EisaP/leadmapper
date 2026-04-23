@@ -173,6 +173,20 @@
       margin-left: 6px; vertical-align: middle; flex-shrink: 0;
     }
 
+    /* ——— Dismissible intro banner ——— */
+    .intro-banner {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 14px; margin-bottom: 20px;
+      background: var(--white); border: 1px solid var(--border); border-left: 3px solid var(--red);
+      border-radius: 6px; font-size: 13px; color: var(--text-primary); line-height: 1.5;
+      position: relative;
+    }
+    .intro-banner-body { flex: 1; }
+    .intro-banner-body strong { font-weight: 500; color: var(--text-primary); }
+    .intro-banner-close { background: none; border: none; color: var(--text-tertiary); cursor: pointer; padding: 4px; border-radius: 4px; transition: color 0.15s, background 0.15s; display: inline-flex; align-items: center; justify-content: center; }
+    .intro-banner-close:hover { background: var(--surface); color: var(--text-primary); }
+    .intro-banner.hidden { display: none !important; }
+
     .priority-hint { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; margin-bottom: 20px; background: var(--lavender); border: 1px solid #E0D5FF; border-radius: var(--radius-card); font-size: 13px; color: var(--near-black); position: relative; }
     .priority-hint .hint-ico { width: 28px; height: 28px; border-radius: 8px; background: rgba(86, 100, 239, 0.15); color: var(--indigo); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .priority-hint .hint-ico svg { width: 14px; height: 14px; }
@@ -363,10 +377,14 @@
         </div>
       </div>
       <% } %>
-      <div style="margin-bottom: 28px;">
-        <span class="section-label">Prospecting</span>
-        <h1 style="font-size: 28px; margin-bottom: 6px;">Find leads</h1>
-        <p style="color: var(--text-secondary); font-size: 15px; margin: 0;">Scrape Google Maps across multiple keywords, enrich contact info, and segment by opportunity. Separate multiple keywords with commas to broaden coverage.</p>
+      <!-- Dismissible intro banner — shown once, persisted in localStorage -->
+      <div id="introBanner" class="intro-banner" style="display: none;">
+        <div class="intro-banner-body">
+          <strong>Welcome to LeadHunter.</strong> Scrape Google Maps across multiple keywords, enrich contact info, and segment by opportunity. Separate keywords with commas to broaden coverage.
+        </div>
+        <button type="button" class="intro-banner-close" onclick="dismissIntro()" aria-label="Dismiss intro">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
       </div>
       <!-- Sentinel for the sticky bar: observe this element; when it leaves the viewport, the sticky bar becomes visible -->
       <div id="stickySentinel" style="height: 1px;"></div>
@@ -404,7 +422,10 @@
           <span class="section-label">What to find</span>
           <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 120px; gap: 14px;">
             <div>
-              <label class="ui-label" style="display: block; margin-bottom: 6px;">Keyword(s)</label>
+              <label class="ui-label" style="display: flex; align-items: center; margin-bottom: 6px;">
+                Keyword(s)
+                <button type="button" class="info-tip" aria-label="More info about keywords" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Keywords</strong> are the Google Maps search terms you want to scrape.</p><p>Separate multiple keywords with <strong>commas</strong> to run several searches and dedupe the results — e.g. <em>cafes, coffee shops, espresso bars</em>.</p><p>LeadHunter then enriches each unique business with contact info and segments by opportunity.</p></span></button>
+              </label>
               <input class="input" type="text" name="keyword" id="keywordInput" placeholder="cafes, coffee shops, espresso bars" value="<%= query?.keyword || '' %>" required>
               <div class="helper-text">Comma-separate to run multiple searches and dedupe by Google Place ID.</div>
             </div>
@@ -721,6 +742,22 @@
     }
     window.dismissHint = () => { hintState.dismissed = true; document.getElementById('priorityHint').classList.add('hidden'); };
     document.getElementById('keywordInput')?.addEventListener('input', refreshPriorityHint);
+
+    // ——— Intro banner (one-time dismissible) ———
+    const INTRO_KEY = 'leadhunter:introDismissed';
+    (function showIntroIfFresh() {
+      try {
+        if (!localStorage.getItem(INTRO_KEY)) {
+          const el = document.getElementById('introBanner');
+          if (el) el.style.display = 'flex';
+        }
+      } catch {}
+    })();
+    window.dismissIntro = () => {
+      try { localStorage.setItem(INTRO_KEY, '1'); } catch {}
+      const el = document.getElementById('introBanner');
+      if (el) el.style.display = 'none';
+    };
 
     // ——— Persistence ———
     const LS_KEY = 'leadmapper:prefs';
