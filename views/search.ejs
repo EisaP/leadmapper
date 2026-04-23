@@ -85,6 +85,14 @@
     .sidebar-nav a:hover { background: var(--surface); color: var(--text-primary); }
     .sidebar-nav a.active { background: var(--surface); color: var(--text-primary); }
     .sidebar-nav a.active::before { content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; background: var(--red); border-radius: 2px; }
+    /* Recent searches disclosure */
+    .sidebar-recent { margin-top: 18px; padding: 0 8px; }
+    .sidebar-recent summary { list-style: none; cursor: pointer; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-tertiary); padding: 4px 8px; user-select: none; }
+    .sidebar-recent summary::-webkit-details-marker { display: none; }
+    .sidebar-recent a.recent-item { display: flex; flex-direction: column; gap: 2px; padding: 7px 10px; margin: 1px 0; border-radius: var(--radius-input); color: var(--text-secondary); font-size: 13px; font-weight: 500; text-decoration: none; }
+    .sidebar-recent a.recent-item:hover { background: var(--surface); color: var(--text-primary); }
+    .sidebar-recent .recent-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-recent .recent-meta { font-size: 11px; color: var(--text-tertiary); font-weight: 400; }
     .sidebar-nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
     .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
     .credit-indicator { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; color: var(--muted); padding: 5px 10px; background: var(--section); border-radius: var(--radius-pill); }
@@ -149,6 +157,12 @@
     /* Legacy .channel-toggle removed — filters now live as checkboxes in Advanced */
     /* Channel checkboxes — use accent-color for red tint */
     .channel-check { accent-color: var(--red); width: 15px; height: 15px; cursor: pointer; }
+    /* Copy action chips — first-class styling */
+    .copy-chip { font-family: inherit; font-size: 13px; font-weight: 500; padding: 6px 12px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--white); color: var(--text-primary); cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
+    .copy-chip:hover { border-color: var(--red); color: var(--red); background: var(--white); }
+    .copy-chip:active { background: var(--red-soft); }
+    .copy-chip-count { color: var(--text-tertiary); font-size: 12px; }
+    .copy-chip:hover .copy-chip-count { color: var(--red); }
 
     /* Aggregator warning badge inline in row */
     .aggregator-warn {
@@ -247,7 +261,21 @@
     .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 20px; }
+    .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 18px; display: flex; flex-direction: column; }
+    .stat-card .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); margin-bottom: 10px; }
+    .stat-card .stat-value { font-size: 32px; font-weight: 500; color: var(--text-primary); line-height: 1; letter-spacing: -0.02em; }
+    .stat-card .stat-sub { font-size: 12px; color: var(--text-secondary); margin-top: 6px; line-height: 1.4; }
+    .stat-microbar { display: flex; height: 4px; border-radius: 2px; overflow: hidden; background: var(--border); margin-top: 12px; }
+    .stat-microbar > div { height: 100%; transition: width 0.3s ease; }
+    /* Sticky summary bar — appears once user scrolls past the form */
+    .sticky-summary { position: fixed; top: 0; left: 236px; right: 0; background: var(--white); border-bottom: 1px solid var(--border); box-shadow: 0 1px 2px rgba(10,10,10,0.04); z-index: 40; font-size: 13px; opacity: 0; transform: translateY(-100%); transition: opacity 0.18s, transform 0.18s; pointer-events: none; }
+    .sticky-summary.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    /* Subtle stagger-in for result rows — filter changes feel alive, not janky */
+    @keyframes rowFadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
+    .data-table tbody tr { animation: rowFadeIn 0.18s ease both; }
+    /* Stat cards ease in on new search */
+    @keyframes cardFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .stat-card { animation: cardFadeIn 0.25s ease both; }
     .stat-card .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-bottom: 10px; }
     .stat-card .stat-value { font-size: 28px; font-weight: 700; color: var(--near-black); line-height: 1; letter-spacing: -0.02em; }
     .stat-card .stat-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
@@ -263,6 +291,25 @@
     details > summary::-webkit-details-marker { display: none; }
     details[open] > summary .chev { transform: rotate(90deg); }
     .chev { display: inline-block; transition: transform 0.15s; }
+
+    /* ——— Mobile (≤768px) ——— */
+    @media (max-width: 768px) {
+      .sidebar { display: none !important; }
+      .sticky-summary { left: 0 !important; }
+      main { padding: 20px 16px 80px !important; }
+      /* Stat cards: stack 2x2 */
+      #statsGrid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+      /* Form field grids: collapse to single column */
+      #searchForm > div > div { grid-template-columns: 1fr !important; gap: 12px !important; }
+      /* Results table: allow horizontal scroll rather than shrinking text */
+      .data-table-wrap { overflow-x: auto; }
+      .data-table { min-width: 900px; }
+      /* Filter bar wraps already via flex-wrap — just reduce gaps */
+      .filter-pill, .copy-chip { font-size: 12px; padding: 5px 10px; }
+    }
+    @media (max-width: 480px) {
+      #statsGrid { grid-template-columns: 1fr !important; }
+    }
   </style>
 </head>
 <body>
@@ -283,6 +330,18 @@
         <a href="/" class="active"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>Search</a>
         <a href="/history"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>History</a>
         <a href="/leads"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>Saved leads</a>
+
+        <% if (typeof recentSearches !== 'undefined' && recentSearches && recentSearches.length > 0) { %>
+          <details class="sidebar-recent" open>
+            <summary>Recent searches</summary>
+            <% recentSearches.forEach(s => { %>
+              <a class="recent-item" href="/history/<%= s.key %>" title="<%= s.keyword %> in <%= s.city %>, <%= s.state %> · <%= s.resultCount %> results">
+                <span class="recent-title"><%= s.keyword %></span>
+                <span class="recent-meta"><%= s.city %> · <%= s.resultCount %></span>
+              </a>
+            <% }) %>
+          </details>
+        <% } %>
       </nav>
       <div class="sidebar-footer">
         <div class="credit-indicator" title="SerpAPI usage this month"><span class="dot"></span>SerpAPI · <%= typeof serpUsage !== 'undefined' ? serpUsage : '—' %></div>
@@ -291,11 +350,26 @@
     </aside>
 
     <main style="flex: 1; padding: 36px 44px 80px; min-width: 0; max-width: 1800px;">
+      <!-- Sticky summary bar — only visible after scrolling past the form (shows current search + jump-back button) -->
+      <% if (results && results.length > 0 && query) { %>
+      <div class="sticky-summary" id="stickySummary" aria-hidden="true">
+        <div style="display: flex; align-items: center; gap: 12px; max-width: 1800px; margin: 0 auto; padding: 10px 44px;">
+          <strong style="color: var(--text-primary); font-weight: 600;"><%= query.keyword %></strong>
+          <span style="color: var(--text-tertiary);">in <%= query.city %>, <%= query.state %></span>
+          <% if (query.ratingMin || query.ratingMax) { %><span style="color: var(--text-tertiary);"> · ★ <%= query.ratingMin || '0' %>–<%= query.ratingMax || '5' %></span><% } %>
+          <% if (query.maxResults) { %><span style="color: var(--text-tertiary);"> · <%= query.maxResults %> results</span><% } %>
+          <div style="flex: 1;"></div>
+          <button type="button" class="btn" style="font-size: 13px; padding: 6px 12px;" onclick="document.getElementById('searchForm').scrollIntoView({behavior:'smooth', block:'start'});">Edit search</button>
+        </div>
+      </div>
+      <% } %>
       <div style="margin-bottom: 28px;">
         <span class="section-label">Prospecting</span>
         <h1 style="font-size: 28px; margin-bottom: 6px;">Find leads</h1>
-        <p style="color: var(--body); font-size: 15px;">Scrape Google Maps across multiple keywords, enrich contact info, and segment by opportunity. Separate multiple keywords with commas to broaden coverage.</p>
+        <p style="color: var(--text-secondary); font-size: 15px; margin: 0;">Scrape Google Maps across multiple keywords, enrich contact info, and segment by opportunity. Separate multiple keywords with commas to broaden coverage.</p>
       </div>
+      <!-- Sentinel for the sticky bar: observe this element; when it leaves the viewport, the sticky bar becomes visible -->
+      <div id="stickySentinel" style="height: 1px;"></div>
 
       <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 20px;">
         <span class="ui-label" style="margin-right: 8px;">Vertical</span>
@@ -325,7 +399,7 @@
         </button>
       </div>
 
-      <form method="POST" action="/search" id="searchForm" class="card" style="padding: 28px; margin-bottom: 20px;">
+      <form method="GET" action="/search" id="searchForm" class="card" style="padding: 28px; margin-bottom: 20px;">
         <div style="margin-bottom: 20px;">
           <span class="section-label">What to find</span>
           <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 120px; gap: 14px;">
@@ -375,39 +449,39 @@
         </div>
 
         <div style="border-top: 1px solid var(--border); padding-top: 22px;">
-          <span class="section-label">Filters</span>
+          <span class="section-label">Refine search</span>
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; align-items: start;">
             <div>
-              <label class="ui-label" style="display: block; margin-bottom: 6px;">Rating range</label>
+              <label class="ui-label" style="display: flex; align-items: center; margin-bottom: 6px;">Rating range
+                <button type="button" class="info-tip" aria-label="More info about Rating range" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Rating range</strong> filters businesses by their Google Maps rating.</p><p>4.1–4.7 ★ is the sweet spot for <strong>Segment B</strong>: the business is well-rated but not saturated, so small rating improvements still move the needle.</p><p>Below 4.0 ★ is <strong>Segment C</strong> — reputation recovery territory.</p></span></button>
+              </label>
               <div style="display: flex; gap: 6px; align-items: center;">
                 <input class="input" type="number" name="ratingMin" step="0.1" min="0" max="5" placeholder="Min" value="<%= query?.ratingMin || '' %>" style="text-align: center;">
-                <span style="color: var(--muted);">–</span>
+                <span style="color: var(--text-tertiary);">–</span>
                 <input class="input" type="number" name="ratingMax" step="0.1" min="0" max="5" placeholder="Max" value="<%= query?.ratingMax || '' %>" style="text-align: center;">
               </div>
-              <div class="helper-text">4.1–4.7 is the sweet spot for Segment B.</div>
             </div>
             <div>
-              <label class="ui-label" style="display: block; margin-bottom: 6px;">Max reviews</label>
+              <label class="ui-label" style="display: flex; align-items: center; margin-bottom: 6px;">Max reviews
+                <button type="button" class="info-tip" aria-label="More info about Max reviews" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Max reviews</strong> caps how much review volume a business can have.</p><p>Lower ceiling means fewer already-exposed businesses — more opportunity to move the needle with new reviews.</p></span></button>
+              </label>
               <select class="select" name="maxReviews">
                 <option value="">Any</option>
                 <% [100,200,300,500,1000].forEach(v => { %>
                   <option value="<%= v %>" <%= String(query?.maxReviews) === String(v) ? 'selected' : '' %>>Under <%= v %></option>
                 <% }) %>
               </select>
-              <div class="helper-text">Lower = fewer already-exposed businesses.</div>
             </div>
             <div>
-              <label class="ui-label" style="display: block; margin-bottom: 6px;">Target segment</label>
+              <label class="ui-label" style="display: flex; align-items: center; margin-bottom: 6px;">Target segment
+                <button type="button" class="info-tip" aria-label="More info about Target segment" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Segment B</strong> — 4.1–4.7 ★ &amp; ≤ 300 reviews. Under-exposed, easy upside from more reviews.</p><p><strong>Segment C</strong> — below 4.1 ★ &amp; ≥ 80 reviews. Reputation recovery target.</p><p>Selecting a specific segment pre-filters results server-side so you only see matches.</p></span></button>
+              </label>
               <select class="select" name="targetSegment">
                 <option value="all" <%= (!query?.targetSegment || query?.targetSegment === 'all') ? 'selected' : '' %>>All candidates</option>
                 <option value="B" <%= query?.targetSegment === 'B' ? 'selected' : '' %>>Segment B — good rating, under-reviewed</option>
                 <option value="C" <%= query?.targetSegment === 'C' ? 'selected' : '' %>>Segment C — low rating, needs help</option>
                 <option value="BC" <%= query?.targetSegment === 'BC' ? 'selected' : '' %>>Both B and C</option>
               </select>
-              <div class="helper-text">
-                <strong style="color: var(--indigo);">Segment B:</strong> 4.1–4.7 ★ &amp; ≤ 300 reviews · under-exposed, easy upside.<br>
-                <strong style="color: var(--red);">Segment C:</strong> &lt; 4.1 ★ &amp; ≥ 80 reviews · reputation recovery target.
-              </div>
             </div>
           </div>
         </div>
@@ -490,9 +564,9 @@
           </div>
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--border);">
             <span class="ui-label" style="margin-right: 4px;">Copy filtered</span>
-            <button type="button" class="btn btn-ghost" id="copyIG" style="font-size: 13px; padding: 7px 12px;">Instagram handles <span id="cntCopyIG" style="color: var(--muted);">(0)</span></button>
-            <button type="button" class="btn btn-ghost" id="copyEmails" style="font-size: 13px; padding: 7px 12px;">Emails <span id="cntCopyEmail" style="color: var(--muted);">(0)</span></button>
-            <button type="button" class="btn btn-ghost" id="copyPhones" style="font-size: 13px; padding: 7px 12px;">Phones <span id="cntCopyPhone" style="color: var(--muted);">(0)</span></button>
+            <button type="button" class="copy-chip" id="copyIG">Instagram handles <span id="cntCopyIG" class="copy-chip-count">(0)</span></button>
+            <button type="button" class="copy-chip" id="copyEmails">Emails <span id="cntCopyEmail" class="copy-chip-count">(0)</span></button>
+            <button type="button" class="copy-chip" id="copyPhones">Phones <span id="cntCopyPhone" class="copy-chip-count">(0)</span></button>
             <div style="flex: 1;"></div>
             <button type="button" class="btn" id="exportJSON" style="font-size: 13px; padding: 7px 12px;">JSON</button>
             <button type="button" class="btn" id="exportCSV" style="font-size: 13px; padding: 7px 12px;">CSV</button>
@@ -536,8 +610,17 @@
       <% } else if (results && results.length === 0) { %>
         <div class="card" style="padding: 48px 24px; text-align: center;">
           <div class="ico-box" style="margin: 0 auto 16px;"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></div>
-          <h2 style="font-size: 18px; margin-bottom: 6px;">No results match your filters</h2>
-          <p style="color: var(--body);">Try widening the rating range, adding more comma-separated keywords, or removing exclude terms.</p>
+          <h2 style="font-size: 18px; margin-bottom: 6px; font-weight: 600;">No businesses matched your search.</h2>
+          <p style="color: var(--text-secondary); margin: 0 0 18px;">Widen your filters or try broader keywords.</p>
+          <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;">
+            <button type="button" class="btn btn-primary" onclick="widenFilters()">Widen filters</button>
+            <button type="button" class="btn" onclick="resetFilters()">Reset filters</button>
+          </div>
+          <ul style="list-style: none; padding: 0; margin: 0; color: var(--text-tertiary); font-size: 13px; display: flex; flex-direction: column; gap: 4px; align-items: center;">
+            <li>• Try a wider rating range</li>
+            <li>• Increase the max reviews limit</li>
+            <li>• Try a broader or adjacent keyword</li>
+          </ul>
         </div>
       <% } else if (!error) { %>
         <div class="card" style="padding: 56px 24px; text-align: center;">
@@ -708,32 +791,32 @@
       const email = allResults.filter(r => r.outreach === 'Email').length;
       const none = allResults.filter(r => r.outreach === 'None').length;
       const pct = (n) => total ? Math.round((n / total) * 100) : 0;
+      // Every card has: LABEL · big number · sub-line · optional micro-bar (4px)
+      const segTotal = segB + segC;
+      const bPct = segTotal ? (segB / segTotal) * 100 : 0;
+      const cPct = segTotal ? (segC / segTotal) * 100 : 0;
       grid.innerHTML = `
-        <div class="stat-card" style="position: relative;">
+        <div class="stat-card">
           <div class="stat-label" style="display: flex; align-items: center;">
             Total leads
-            <button type="button" class="info-tip" aria-label="More info about Total leads" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Total leads</strong> shows the number of unique businesses found for this search.</p><p><strong>Deduped from X</strong> means the scraper initially fetched X raw results from Google Maps, but after removing duplicates (same business appearing multiple times across search pages), you're left with the unique count shown above.</p><p>A high dedup ratio (e.g. 41 unique from 157 raw) usually means you've hit the market's natural ceiling for that keyword + location + filter combination — there simply aren't more unique businesses matching your criteria. Widen filters or try adjacent keywords to find more.</p></span></button>
+            <button type="button" class="info-tip" aria-label="More info about Total leads" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Total leads</strong> is the number of unique businesses that matched your search after filters.</p><p>Google Maps returned <strong>${totalScraped} raw results</strong> across your keyword(s); after removing duplicates and applying filters, <strong>${total}</strong> remain.</p><p>A high raw-to-final ratio means you've hit the market's natural ceiling for this combination — widen filters or try adjacent keywords to find more.</p></span></button>
           </div>
           <div class="stat-value">${total}</div>
-          <div class="stat-sub">${totalScraped > total ? `deduped from ${totalScraped} raw results` : 'after filters'}</div>
+          <div class="stat-sub">businesses matched your filters</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Segmentation</div>
-          <div style="display: flex; gap: 20px; align-items: baseline;">
-            <div title="Segment B: good rating (4.1–4.7 ★) with ≤300 reviews. Under-exposed — easy upside."><div class="stat-value" style="color: var(--indigo);">${segB}</div><div class="stat-sub">Segment B · good, under-reviewed</div></div>
-            <div title="Segment C: rating below 4.1 ★ with ≥80 reviews. Reputation recovery target."><div class="stat-value" style="color: var(--red);">${segC}</div><div class="stat-sub">Segment C · low rating</div></div>
-          </div>
+          <div class="stat-label">Segmented</div>
+          <div class="stat-value">${segTotal}</div>
+          <div class="stat-sub">${segB} in Segment B · ${segC} in Segment C</div>
+          <div class="stat-microbar" title="Segment B (black) vs Segment C (red)"><div style="width: ${bPct}%; background: var(--black);"></div><div style="width: ${cPct}%; background: var(--red);"></div></div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Outreach mix</div>
-          <div class="mix-bar">
-            <div class="mix-seg" style="width: ${pct(ig)}%; background: var(--black);"></div>
-            <div class="mix-seg" style="width: ${pct(call)}%; background: var(--red);"></div>
-            <div class="mix-seg" style="width: ${pct(email)}%; background: repeating-linear-gradient(45deg, var(--red-soft), var(--red-soft) 4px, var(--white) 4px, var(--white) 8px); border-top: 1px solid var(--red); border-bottom: 1px solid var(--red); box-sizing: border-box;"></div>
-            <div class="mix-seg" style="width: ${pct(none)}%; background: var(--border);"></div>
-          </div>
-          <div class="mix-legend">
-            <span><span class="dot" style="background: var(--black);"></span>Instagram ${pct(ig)}%</span>
+          <div class="stat-value">${enriched}</div>
+          <div class="stat-sub">leads with contact info · ${enrichRate}% enriched</div>
+          <div class="stat-microbar"><div style="width: ${pct(ig)}%; background: var(--black);"></div><div style="width: ${pct(call)}%; background: var(--red);"></div><div style="width: ${pct(email)}%; background: repeating-linear-gradient(45deg, var(--red-soft), var(--red-soft) 3px, var(--white) 3px, var(--white) 6px); border-top: 1px solid var(--red); border-bottom: 1px solid var(--red); box-sizing: border-box;"></div><div style="width: ${pct(none)}%; background: var(--border);"></div></div>
+          <div class="mix-legend" style="margin-top: 8px;">
+            <span><span class="dot" style="background: var(--black);"></span>IG ${pct(ig)}%</span>
             <span><span class="dot" style="background: var(--red);"></span>Call ${pct(call)}%</span>
             <span><span class="dot" style="background: var(--white); border: 1px solid var(--red);"></span>Email ${pct(email)}%</span>
             <span><span class="dot" style="background: var(--border);"></span>None ${pct(none)}%</span>
@@ -742,7 +825,8 @@
         <div class="stat-card">
           <div class="stat-label">Avg quality</div>
           <div class="stat-value">${avgQuality}</div>
-          <div class="stat-sub">${enrichRate}% enrichment rate · ${enriched}/${total}${igFromFallback > 0 ? ` · <span title="Of ${igFromSite + igFromMaps + igFromFallback} Instagram handles: ${igFromSite} from website, ${igFromMaps} from Maps, ${igFromFallback} from Google fallback (please verify these).">${igFromFallback} IG via Google fallback</span>` : ''}</div>
+          <div class="stat-sub">${enrichRate}% enrichment rate${igFromFallback > 0 ? ` · <span title="Of ${igFromSite + igFromMaps + igFromFallback} Instagram handles: ${igFromSite} from website, ${igFromMaps} from Maps, ${igFromFallback} from Google fallback (please verify these).">${igFromFallback} IG via Google fallback</span>` : ''}</div>
+          <div class="stat-microbar"><div style="width: ${Math.min(avgQuality, 100)}%; background: var(--red);"></div></div>
         </div>
       `;
     }
@@ -1043,6 +1127,23 @@
       });
       renderRows();
     };
+    // Empty-state CTA handlers
+    window.widenFilters = () => {
+      // Scroll to the form and focus the rating range
+      document.getElementById('searchForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => document.querySelector('[name="ratingMin"]')?.focus(), 400);
+    };
+    window.resetFilters = () => {
+      const f = document.getElementById('searchForm');
+      if (!f) return;
+      // Clear all filter-like fields, keep keyword/city/state so it re-runs the same search with wider params
+      f.querySelector('[name=ratingMin]').value = '';
+      f.querySelector('[name=ratingMax]').value = '';
+      f.querySelector('[name=maxReviews]').value = '';
+      f.querySelector('[name=targetSegment]').value = 'all';
+      f.querySelector('[name=excludeKeywords]').value = '';
+      f.submit();
+    };
 
     // ——— Sorting ———
     document.querySelectorAll('th.sortable').forEach(th => th.addEventListener('click', () => {
@@ -1193,6 +1294,17 @@
 
     function render() { renderStats(); updateFilterCounts(); renderRows(); }
     render();
+
+    // Sticky summary bar — fire when the sentinel (just below the heading) leaves the viewport
+    (function wireStickySummary() {
+      const bar = document.getElementById('stickySummary');
+      const sentinel = document.getElementById('stickySentinel');
+      if (!bar || !sentinel || !('IntersectionObserver' in window)) return;
+      const io = new IntersectionObserver(entries => {
+        for (const e of entries) bar.classList.toggle('visible', !e.isIntersecting);
+      }, { threshold: 0 });
+      io.observe(sentinel);
+    })();
 
     // ——— Info tooltips: tap (mobile), keyboard (Enter/Space toggles, Escape closes), viewport-flip ———
     function wireInfoTips(root) {

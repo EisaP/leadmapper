@@ -336,14 +336,31 @@ async function enrichLead(websiteUrl, businessName) {
 
 // --- ROUTES ---
 
-// Search page
+// Helper: pull the last N searches for the recent-searches sidebar
+function getRecentSearches(n = 5) {
+  return dbList('search:')
+    .map(s => ({ key: s.key, ...s.value }))
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, n)
+    .map(s => ({ key: s.key, keyword: s.keyword, city: s.city, state: s.state, resultCount: s.resultCount, date: s.date }));
+}
+
+// Search page (GET — empty form, optionally pre-populated from URL query for deep linking)
 app.get('/', (req, res) => {
-  res.render('search', { results: null, totalScraped: 0, query: null, error: null });
+  // If URL has search params, render them into the form without running a search
+  const hasParams = Object.keys(req.query).length > 0;
+  const query = hasParams ? req.query : null;
+  res.render('search', { results: null, totalScraped: 0, query, error: null, recentSearches: getRecentSearches() });
 });
 
-// Perform search
-app.post('/search', async (req, res) => {
-  const { keyword, excludeKeywords, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, targetSegment, useIgFallback } = req.body;
+// GET /search — allows URL-shareable / refreshable searches by encoding params in the query string
+app.get('/search', async (req, res) => handleSearch(req.query, res));
+
+// POST /search — form submit
+app.post('/search', async (req, res) => handleSearch(req.body, res));
+
+async function handleSearch(src, res) {
+  const { keyword, excludeKeywords, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, targetSegment, useIgFallback } = src;
   // Enrichment is always-on by default; user can opt out via "Skip enrichment" advanced toggle.
   const enrich = skipEnrichment === 'on' ? false : true;
   // IG Google fallback is opt-in on by default (undefined → true); user disables via `useIgFallback === 'off'`.
@@ -353,14 +370,16 @@ app.post('/search', async (req, res) => {
     return res.render('search', {
       results: null, totalScraped: 0,
       query: null,
-      error: 'Please fill in keyword, city, and country/state.'
+      error: 'Please fill in keyword, city, and country/state.',
+      recentSearches: getRecentSearches()
     });
   }
   if (!SERPAPI_KEY) {
     return res.render('search', {
       results: null, totalScraped: 0,
       query: null,
-      error: 'SERPAPI_KEY not set. Add it to your .env or Secrets.'
+      error: 'SERPAPI_KEY not set. Add it to your .env or Secrets.',
+      recentSearches: getRecentSearches()
     });
   }
 
@@ -636,7 +655,8 @@ app.post('/search', async (req, res) => {
       results: segmentFiltered,
       totalScraped: mappedResults.length,
       query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useIgFallback, outreachPriority, targetSegment, searchString: keywords.join(', ') + ` in ${city}, ${state}` },
-      error: null
+      error: null,
+      recentSearches: getRecentSearches()
     });
 
   } catch (err) {
@@ -644,9 +664,9 @@ app.post('/search', async (req, res) => {
     let errorMsg = 'Search failed: ' + (err.message || 'Unknown error');
     if (err.message.includes('401')) errorMsg = 'Invalid SerpAPI key. Check your SERPAPI_KEY.';
     if (err.message.includes('429')) errorMsg = 'SerpAPI rate limit reached. Try again in a moment.';
-    res.render('search', { results: null, totalScraped: 0, query: null, error: errorMsg });
+    res.render('search', { results: null, totalScraped: 0, query: null, error: errorMsg, recentSearches: getRecentSearches() });
   }
-});
+}
 
 // --- History ---
 app.get('/history', (req, res) => {
