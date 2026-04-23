@@ -205,9 +205,67 @@ function handleMatchesBusiness(handle, businessName) {
   return false;
 }
 
+// --- Email role classification (heuristic, no paid API) ---
+// Maps the local part (before @) to a role + priority score.
+// Priority 100 = named person, 90 = owner/founder, 80 = manager, 70 = marketing,
+// 50 = generic business, 40 = transactional, 20 = customer service, 10 = low-value.
+const EMAIL_ROLE_RULES = [
+  // REJECT entirely — never store these
+  { role: 'REJECT', priority: -1, patterns: ['noreply', 'no-reply', 'donotreply', 'do-not-reply', 'mailer-daemon', 'postmaster', 'root', 'abuse', 'mailer'] },
+  // Low-value
+  { role: 'low-value', priority: 10, patterns: ['returns', 'complaints', 'refunds', 'billing', 'accounts', 'accounting', 'legal', 'privacy', 'gdpr', 'dpo', 'webmaster', 'admin', 'hr', 'jobs', 'careers', 'recruitment', 'recruiting', 'vacancies', 'compliance'] },
+  // Customer service
+  { role: 'customer-service', priority: 20, patterns: ['support', 'help', 'customerservice', 'customer-service', 'customercare', 'customer-care', 'service', 'helpdesk'] },
+  // Transactional
+  { role: 'transactional', priority: 40, patterns: ['bookings', 'booking', 'reservations', 'reservation', 'reserve', 'orders', 'order', 'sales', 'shop', 'store', 'delivery', 'takeaway', 'events'] },
+  // Marketing / partnerships (priority 70)
+  { role: 'marketing', priority: 70, patterns: ['marketing', 'partnerships', 'partners', 'partner', 'brands', 'brand', 'collabs', 'collab', 'collaboration', 'collaborations', 'pr', 'press', 'media'] },
+  // Manager (priority 80)
+  { role: 'manager', priority: 80, patterns: ['manager', 'managing', 'head', 'lead', 'operations', 'ops'] },
+  // Owner / founder / decision-maker (priority 90)
+  { role: 'owner', priority: 90, patterns: ['owner', 'founder', 'ceo', 'director', 'gm', 'principal', 'proprietor', 'mdoffice', 'md'] },
+  // General business (priority 50)
+  { role: 'general', priority: 50, patterns: ['info', 'hello', 'hi', 'contact', 'enquiries', 'enquiry', 'inquiries', 'inquiry', 'general', 'mail', 'email'] },
+];
+// Domains to REJECT entirely regardless of local part
+const REJECTED_EMAIL_DOMAINS = new Set([
+  'mail.com', 'example.com', 'domain.com', 'test.com', 'localhost', 'email.com', 'yoursite.com', 'yourdomain.com', 'placeholder.com', 'mailinator.com',
+  'sentry.io', 'wixpress.com', 'shopify.com', 'squarespace.com', 'mailchimp.com', 'hubspot.com'
+]);
+// Free email providers — accepted but flagged as "unverified domain" when found on a business site
+const FREE_EMAIL_PROVIDERS = new Set([
+  'gmail.com', 'yahoo.com', 'yahoo.co.uk', 'hotmail.com', 'hotmail.co.uk', 'outlook.com', 'live.com', 'aol.com', 'icloud.com', 'me.com', 'mac.com', 'protonmail.com', 'proton.me', 'yandex.com', 'zoho.com'
+]);
+
+function classifyEmail(email, siteDomain) {
+  const lower = String(email).toLowerCase().trim();
+  const at = lower.lastIndexOf('@');
+  if (at < 1) return null;
+  const local = lower.slice(0, at);
+  const domain = lower.slice(at + 1);
+  if (!domain || REJECTED_EMAIL_DOMAINS.has(domain)) return null;
+  // Check role rules in order (REJECT / low / CS / transactional / marketing / manager / owner / general)
+  for (const rule of EMAIL_ROLE_RULES) {
+    for (const pat of rule.patterns) {
+      // Match if local starts with pattern followed by end-of-local, dot, dash, underscore, or number
+      const re = new RegExp(`^${pat}([._-]|\\d|$)`);
+      if (re.test(local)) {
+        if (rule.role === 'REJECT') return null;
+        return { email: lower, local, domain, role: rule.role, priority: rule.priority, unverifiedDomain: !!(siteDomain && FREE_EMAIL_PROVIDERS.has(domain)) };
+      }
+    }
+  }
+  // Named-person pattern: letters only, optional single dot (firstname.lastname), both 2+ chars
+  if (/^[a-z]+(\.[a-z]+)?$/.test(local) && local.length >= 2) {
+    return { email: lower, local, domain, role: 'named', priority: 100, unverifiedDomain: !!(siteDomain && FREE_EMAIL_PROVIDERS.has(domain)) };
+  }
+  // Doesn't match any rule — treat as generic low-medium signal (priority 30)
+  return { email: lower, local, domain, role: 'other', priority: 30, unverifiedDomain: !!(siteDomain && FREE_EMAIL_PROVIDERS.has(domain)) };
+}
+
 // --- Email / Phone / Instagram / Booking platform enrichment ---
 async function enrichLead(websiteUrl, businessName) {
-  const empty = { email: '', phone: '', instagram: '', booking: '', isAggregator: false };
+  const empty = { email: '', emails: [], phone: '', instagram: '', booking: '', isAggregator: false };
   if (!websiteUrl) return empty;
 
   // If the website field is an aggregator/directory, DO NOT scrape it — it'll return the platform's contacts, not the business's.
@@ -226,9 +284,12 @@ async function enrichLead(websiteUrl, businessName) {
   const bookings = new Set();
   const igCandidates = []; // {handle, score}
 
+  // Extract the site's own domain so we can flag free-provider emails as "unverified"
+  let siteDomain = '';
+  try { siteDomain = new URL(websiteUrl).hostname.replace(/^www\./, '').toLowerCase(); } catch {}
+
   const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
   const ignoreEmails = /\.(png|jpg|jpeg|gif|svg|css|js|ico|webp|woff)$/i;
-  const junkDomains = /(@example\.com|@domain\.com|@test\.com|@localhost|@email\.com|@yoursite\.com|@yourdomain\.com|@.*sentry\.io|@wixpress\.com|@mailinator\.com|@placeholder\.com|noreply@|no-reply@|donotreply@)/i;
   const igRegex = /(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/gi;
   const igIgnore = new Set(['p', 'reel', 'reels', 'stories', 'explore', 'accounts', 'about', 'developer', 'legal', 'terms', 'privacy', 'directory', 'static', 'share']);
   // Booking platforms
@@ -271,9 +332,10 @@ async function enrichLead(websiteUrl, businessName) {
       if (!contentType.includes('text/html')) continue;
       const html = await resp.text();
 
-      // Emails
+      // Emails — collect ALL valid matches for downstream role classification
       (html.match(emailRegex) || []).forEach(e => {
-        if (!ignoreEmails.test(e) && !junkDomains.test(e)) emails.add(e.toLowerCase());
+        if (ignoreEmails.test(e)) return;
+        emails.add(e.toLowerCase());
       });
 
       // Phones from tel: links
@@ -325,8 +387,26 @@ async function enrichLead(websiteUrl, businessName) {
   // Only accept if score is positive (filters out weakly-linked random handles)
   const instagram = bestIg && bestIg.score > 0 ? bestIg.handle : '';
 
+  // Classify each extracted email into a role + priority; drop REJECT / invalid domains
+  const classifiedEmails = [];
+  for (const e of emails) {
+    const cls = classifyEmail(e, siteDomain);
+    if (cls) classifiedEmails.push(cls);
+  }
+  // Dedupe by email
+  const emailByAddr = new Map();
+  for (const c of classifiedEmails) {
+    if (!emailByAddr.has(c.email)) emailByAddr.set(c.email, c);
+  }
+  // Sort by priority desc — best (named / owner) first
+  const sortedEmails = [...emailByAddr.values()].sort((a, b) => b.priority - a.priority);
+  const primaryEmail = sortedEmails[0] || null;
+
   return {
-    email:     [...emails][0] || '',
+    email:     primaryEmail ? primaryEmail.email : '',
+    emailRole: primaryEmail ? primaryEmail.role : '',
+    emailPriority: primaryEmail ? primaryEmail.priority : 0,
+    emails:    sortedEmails,  // full classified list — used in expanded row
     phone:     [...phones][0] || '',
     instagram,
     booking:   [...bookings].join(', '),
@@ -468,6 +548,9 @@ async function handleSearch(src, res) {
         phone: item.phone || '',
         website: item.website || '',
         email: '',
+        emailRole: '',
+        emailPriority: 0,
+        emails: [],
         instagram: ig,
         // Source of the Instagram handle: 'maps' (extracted from Google Maps "website" field that was an IG URL),
         // 'website' (scraped from business's own site), 'google_fallback' (resolved via Google search), or null.
@@ -520,6 +603,9 @@ async function handleSearch(src, res) {
           // Propagate aggregator flag (either mapped-time detection or enrichLead's determination)
           if (enriched.isAggregator) filteredResults[idx].isAggregator = true;
           if (enriched.email) filteredResults[idx].email = enriched.email;
+          if (enriched.emailRole) filteredResults[idx].emailRole = enriched.emailRole;
+          if (enriched.emailPriority != null) filteredResults[idx].emailPriority = enriched.emailPriority;
+          if (enriched.emails && enriched.emails.length) filteredResults[idx].emails = enriched.emails;
           if (enriched.phone && !filteredResults[idx].phone) filteredResults[idx].phone = enriched.phone;
           // Only overwrite IG if scraping returned a handle. For aggregator sites, enrichLead only returns IG if the website field IS instagram.com/handle directly.
           if (enriched.instagram && !filteredResults[idx].instagram) {
@@ -625,14 +711,26 @@ async function handleSearch(src, res) {
       const picked = channels.find(c => c.val);
       r.outreach = picked ? picked.tag : 'None';
 
-      // Enrichment quality score (0–100) — weighted by field value
-      // email 25 · phone 25 · instagram 25 · website 15 · owner name 10 (when available)
+      // Enrichment quality score (0–100) — tiered by email role quality
+      //   named person (100): +25
+      //   owner/manager/marketing (70+): +20
+      //   general business (50): +15
+      //   transactional (40): +10
+      //   customer service / low-value (≤20): +5
+      //   no email: 0
+      // Other channels: phone +25, instagram +25, website +15, ownerName +10
       let score = 0;
-      if (r.email) score += 25;
+      const ep = r.emailPriority || 0;
+      if (ep >= 100) score += 25;
+      else if (ep >= 70) score += 20;
+      else if (ep >= 50) score += 15;
+      else if (ep >= 40) score += 10;
+      else if (ep >= 10) score += 5;
+      else if (r.email) score += 15; // has email, unknown priority (legacy path) — treat as general
       if (r.phone) score += 25;
       if (r.instagram) score += 25;
       if (r.website) score += 15;
-      if (r.ownerName) score += 10; // placeholder for future owner-name extraction
+      if (r.ownerName) score += 10;
       r.qualityScore = Math.min(score, 100);
     });
 

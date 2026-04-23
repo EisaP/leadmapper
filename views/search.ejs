@@ -149,6 +149,21 @@
     .badge-email { background: var(--red); color: var(--white); }
     .badge-none { background: var(--surface); color: var(--text-tertiary); border: 1px solid var(--border); }
 
+    /* ——— Email role badges (inline next to an email) ——— */
+    .email-role-badge { display: inline-flex; align-items: center; font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 3px; margin-left: 6px; letter-spacing: 0.02em; text-transform: uppercase; vertical-align: middle; white-space: nowrap; cursor: help; }
+    .email-role-badge.role-named, .email-role-badge.role-owner, .email-role-badge.role-manager { background: var(--white); color: var(--text-secondary); border: 1px solid var(--border); }
+    .email-role-badge.role-marketing, .email-role-badge.role-general, .email-role-badge.role-transactional, .email-role-badge.role-other { background: var(--surface); color: var(--text-tertiary); }
+    .email-role-badge.role-low-value, .email-role-badge.role-customer-service { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-soft); }
+    /* Expanded-row email list */
+    .email-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+    .email-list-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .email-list-row .el-addr { color: var(--text-primary); font-weight: 400; }
+    .email-list-row .el-addr:hover { text-decoration: underline; }
+    .email-list-row .el-pri { font-size: 11px; color: var(--text-tertiary); margin-left: auto; }
+    .email-list-row .copy-btn { background: transparent; border: none; color: var(--text-tertiary); cursor: pointer; padding: 3px 5px; border-radius: 4px; }
+    .email-list-row .copy-btn:hover { background: var(--surface); color: var(--text-primary); }
+    .email-list-row .unverified { font-size: 11px; color: var(--warn); }
+
     /* Vertical preset chip — square-ish, 36px tall, 14px h-padding */
     .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 400; height: 36px; padding: 0 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--white); color: var(--text-primary); cursor: pointer; transition: border-color 0.15s, color 0.15s; position: relative; }
     .chip svg { color: var(--text-primary); flex-shrink: 0; stroke-width: 1.5; }
@@ -575,6 +590,7 @@
             <button class="filter-pill" data-filter="segment" data-value="-" type="button">Other <span class="count" id="cntSegOther">0</span></button>
             <span style="width: 1px; height: 24px; background: var(--border); margin: 0 8px;"></span>
             <button class="filter-pill" data-filter="saved" data-value="true" type="button">⭐ Saved only</button>
+            <button class="filter-pill" data-filter="decisionMaker" data-value="true" type="button" title="Show only leads with a priority-70+ email (named person, owner, manager, or marketing/partnerships)">Decision-maker emails <span class="count" id="cntDecisionMaker">0</span></button>
             <div style="flex: 1;"></div>
             <input class="input" id="textFilter" placeholder="Filter by name..." style="width: 220px; padding: 7px 12px; font-size: 13px;">
             <div style="position: relative;">
@@ -624,7 +640,11 @@
                   <th class="sortable col-outreach col-hidden" data-sort="outreach" style="width: 100px;">Outreach <span class="sort-indicator">↕</span></th>
                   <th class="sortable" data-sort="instagram" style="width: 160px;">Instagram <span class="sort-indicator">↕</span></th>
                   <th class="sortable" data-sort="phone" style="width: 160px;">Phone <span class="sort-indicator">↕</span></th>
-                  <th class="sortable" data-sort="email" style="width: 220px;">Email <span class="sort-indicator">↕</span></th>
+                  <th class="sortable" data-sort="email" style="width: 260px;">
+                    Email
+                    <button type="button" class="info-tip" aria-label="How emails are scored" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p>Emails are scored by likely role.</p><p><strong>Generic</strong> emails (info@, hello@) reach a shared inbox — ideal for a well-written cold email.</p><p><strong>Named</strong> or <strong>owner-level</strong> emails (sarah@, owner@) are rare on SMB websites but highest intent when found.</p><p>Priority: named 100 · owner 90 · manager 80 · marketing 70 · general 50 · transactional 40 · support 20 · low-value 10.</p></span></button>
+                    <span class="sort-indicator">↕</span>
+                  </th>
                   <th class="col-booking col-hidden" style="width: 140px;">Booking</th>
                   <th class="col-hours col-hidden" style="width: 120px;">Hours</th>
                   <th class="col-price col-hidden" style="width: 70px;">Price</th>
@@ -687,11 +707,35 @@
     let savedLeads = {};
     const state = {
       channels: { email: true, phone: true, instagram: true },
-      filters: { segment: 'all', saved: false, text: '' },
+      filters: { segment: 'all', saved: false, decisionMaker: false, text: '' },
       sort: { key: null, dir: 'asc' },
       expanded: new Set(),
       selected: new Set()
     };
+
+    // ——— Email role helpers ———
+    const ROLE_LABELS = {
+      named: 'Named',
+      owner: 'Owner',
+      manager: 'Manager',
+      marketing: 'Marketing',
+      general: 'Generic',
+      transactional: 'Transactional',
+      'customer-service': 'Support',
+      'low-value': 'Low-value',
+      other: 'Other'
+    };
+    function roleBadgeHTML(role, priority, unverified) {
+      if (!role) return '';
+      const label = ROLE_LABELS[role] || role;
+      const title = priority >= 70
+        ? `Priority ${priority} — ${label} (likely reaches a decision maker)`
+        : priority >= 40
+        ? `Priority ${priority} — ${label} (shared / role inbox)`
+        : `Priority ${priority} — ${label}. Primary email may not reach a decision maker. Click to see alternatives.`;
+      const unvFlag = unverified ? ' · unverified domain' : '';
+      return `<span class="email-role-badge role-${role}" title="${label}${unvFlag} — ${title}">${label}</span>`;
+    }
 
     // ——— Presets ———
     const PRESETS = {
@@ -885,6 +929,8 @@
       document.getElementById('cntSegB').textContent = allResults.filter(r => r.segmentCode === 'B').length;
       document.getElementById('cntSegC').textContent = allResults.filter(r => r.segmentCode === 'C').length;
       document.getElementById('cntSegOther').textContent = allResults.filter(r => r.segmentCode === '-').length;
+      const dmEl = document.getElementById('cntDecisionMaker');
+      if (dmEl) dmEl.textContent = allResults.filter(isDecisionMakerLead).length;
     }
 
     function passesChannels(r) {
@@ -896,13 +942,19 @@
       return false;
     }
 
+    function isDecisionMakerLead(r) {
+      if ((r.emailPriority || 0) >= 70) return true;
+      if (r.emails && r.emails.some(e => (e.priority || 0) >= 70)) return true;
+      return false;
+    }
     function applyFilters() {
-      const { segment, saved, text } = state.filters;
+      const { segment, saved, decisionMaker, text } = state.filters;
       const q = text.trim().toLowerCase();
       let rows = allResults.filter(r => {
         if (!passesChannels(r)) return false;
         if (segment !== 'all' && r.segmentCode !== segment) return false;
         if (saved && !savedLeads[r.title]) return false;
+        if (decisionMaker && !isDecisionMakerLead(r)) return false;
         if (q && !r.title.toLowerCase().includes(q)) return false;
         return true;
       });
@@ -980,9 +1032,15 @@
     function contactCellEmail(r) {
       if (!r.email) return '<span class="empty-dash">—</span>';
       const e = r.email;
+      const role = r.emailRole || '';
+      const priority = r.emailPriority || 0;
+      const primary = (r.emails && r.emails[0]) || null;
+      const unverified = primary && primary.unverifiedDomain;
+      const roleBadge = role ? roleBadgeHTML(role, priority, unverified) : '';
       return `<div class="contact-cell">
         <a href="mailto:${escapeAttr(e)}" onclick="event.stopPropagation()" class="ico-link ico-email" title="Compose email">${ICO_EMAIL}</a>
-        <a href="mailto:${escapeAttr(e)}" onclick="event.stopPropagation()" class="value" title="${escapeAttr(e)}">${escapeHTML(e)}</a>
+        <a href="mailto:${escapeAttr(e)}" onclick="event.stopPropagation()" class="value" title="${escapeAttr(e)}${unverified ? ' (unverified domain)' : ''}">${escapeHTML(e)}</a>
+        ${roleBadge}
         <button type="button" class="copy-btn" onclick="event.stopPropagation(); copyValue(this, '${escapeAttr(e)}')" title="Copy email">${ICO_COPY}</button>
       </div>`;
     }
@@ -1077,6 +1135,23 @@
       });
     }
 
+    function renderEmailList(r) {
+      const list = (r.emails && r.emails.length) ? r.emails : (r.email ? [{ email: r.email, role: r.emailRole || 'other', priority: r.emailPriority || 0 }] : []);
+      if (!list.length) return '';
+      const header = `<div class="caption" style="margin: 10px 0 6px;">Emails (${list.length}) · sorted by priority</div>`;
+      const rows = list.map(e => {
+        const badge = roleBadgeHTML(e.role, e.priority, e.unverifiedDomain);
+        return `<div class="email-list-row">
+          <a href="mailto:${escapeAttr(e.email)}" class="el-addr" onclick="event.stopPropagation()">${escapeHTML(e.email)}</a>
+          ${badge}
+          ${e.unverifiedDomain ? '<span class="unverified" title="Free-provider address on a business with its own domain — verify before outreach.">unverified</span>' : ''}
+          <span class="el-pri">${e.priority}</span>
+          <button type="button" class="copy-btn" onclick="event.stopPropagation(); copyValue(this, '${escapeAttr(e.email)}')" title="Copy email">${ICO_COPY}</button>
+        </div>`;
+      }).join('');
+      return header + `<div class="email-list">${rows}</div>`;
+    }
+
     function buildDetailRow(r) {
       const tr = document.createElement('tr');
       tr.className = 'detail-row';
@@ -1086,8 +1161,8 @@
             <div>
               <div class="ui-label" style="margin-bottom: 8px;">Contact</div>
               ${r.phone ? `<div style="margin-bottom: 6px;"><span class="caption">Phone · </span><a href="tel:${escapeAttr(r.phone)}">${escapeHTML(r.phone)}</a></div>` : ''}
-              ${r.email ? `<div style="margin-bottom: 6px;"><span class="caption">Email · </span><a href="mailto:${escapeAttr(r.email)}">${escapeHTML(r.email)}</a></div>` : ''}
               ${r.instagram ? `<div style="margin-bottom: 6px;"><span class="caption">Instagram · </span><a href="${escapeAttr(igUrl(r.instagram))}" target="_blank" rel="noopener" style="color: var(--black); font-weight: 500;">@${escapeHTML(igHandle(r.instagram))}</a></div>` : ''}
+              ${renderEmailList(r)}
               ${r.isAggregator ? `<div style="margin-top: 10px; padding: 8px 10px; background: var(--warn-soft); border-radius: 6px; font-size: 12px; color: var(--warn);"><strong>⚠ Listed website is a third-party platform.</strong> Contact info may be incomplete — verify Instagram and phone before outreach.</div>` : ''}
               ${!r.phone && !r.email && !r.instagram ? `<div class="caption">No contact info found.</div>` : ''}
             </div>
@@ -1146,9 +1221,9 @@
     // ——— Filter pills ———
     document.querySelectorAll('.filter-pill').forEach(p => p.addEventListener('click', () => {
       const f = p.dataset.filter, v = p.dataset.value;
-      if (f === 'saved') {
-        state.filters.saved = !state.filters.saved;
-        p.classList.toggle('active', state.filters.saved);
+      if (f === 'saved' || f === 'decisionMaker') {
+        state.filters[f] = !state.filters[f];
+        p.classList.toggle('active', state.filters[f]);
       } else {
         state.filters[f] = v;
         document.querySelectorAll(`[data-filter="${f}"]`).forEach(x => x.classList.remove('active'));
@@ -1163,12 +1238,12 @@
     });
     window.clearAllFilters = () => {
       state.channels = { email: true, phone: true, instagram: true };
-      state.filters = { segment: 'all', saved: false, text: '' };
+      state.filters = { segment: 'all', saved: false, decisionMaker: false, text: '' };
       const tf = document.getElementById('textFilter'); if (tf) tf.value = '';
       document.querySelectorAll('.channel-check').forEach(cb => cb.checked = true);
       document.querySelectorAll('.filter-pill').forEach(p => {
-        p.classList.toggle('active', p.dataset.value === 'all' && p.dataset.filter !== 'saved');
-        if (p.dataset.filter === 'saved') p.classList.remove('active');
+        const isToggle = p.dataset.filter === 'saved' || p.dataset.filter === 'decisionMaker';
+        p.classList.toggle('active', !isToggle && p.dataset.value === 'all');
       });
       renderRows();
     };
