@@ -550,46 +550,30 @@ async function handleSearch(src, res) {
         r.segmentCode = '-';
       }
 
-      // Follower-aware IG reachability band.
-      // < 5k  = owner is almost always behind the DMs            → boost IG
-      // 5–15k = mixed — sometimes owner, sometimes managed       → normal
-      // > 15k = usually agency/VA-managed                        → demote IG
-      // unknown → no label, treat as normal
-      const f = r.instagram_followers;
-      let igBand = null;
-      if (r.instagram) {
-        if (f == null) igBand = null;
-        else if (f < 5000) igBand = 'Owner-direct';
-        else if (f <= 15000) igBand = 'Mixed-likely';
-        else igBand = 'Agency-likely';
-      }
-      r.igBand = igBand;
-
-      // Contact method — priority-aware, with follower-aware IG demotion/boost.
-      // For > 15k followers we move IG to the back of the queue (agency-managed);
-      // the user's chosen priority for Call/Email still applies between those two.
+      // Contact method — first available channel in the user-selected priority order.
+      // Follower count does not influence routing; that's up to the user to decide.
       const priority = outreachPriority || 'phone-first';
-      const igDemoted = igBand === 'Agency-likely';
-      const igBoosted = igBand === 'Owner-direct';
-      const ch = {
-        dm:    { val: r.instagram, tag: 'DM' },
-        call:  { val: r.phone,     tag: 'Call' },
-        email: { val: r.email,     tag: 'Email' },
-      };
-      let order;
-      if (priority === 'dm-first') order = ['dm', 'call', 'email'];
-      else if (priority === 'email-first') order = ['email', 'call', 'dm'];
-      else order = ['call', 'email', 'dm']; // phone-first (default)
-      if (igDemoted) {
-        // Move dm to the end regardless of user priority
-        order = order.filter(k => k !== 'dm').concat('dm');
-      } else if (igBoosted && priority !== 'dm-first') {
-        // Owner-direct IG + user wanted call/email-first: keep user priority,
-        // but ensure dm isn't dead-last — promote to second slot for visibility.
-        order = order.filter(k => k !== 'dm');
-        order.splice(1, 0, 'dm');
+      let channels;
+      if (priority === 'dm-first') {
+        channels = [
+          { val: r.instagram, tag: 'DM' },
+          { val: r.phone, tag: 'Call' },
+          { val: r.email, tag: 'Email' },
+        ];
+      } else if (priority === 'email-first') {
+        channels = [
+          { val: r.email, tag: 'Email' },
+          { val: r.phone, tag: 'Call' },
+          { val: r.instagram, tag: 'DM' },
+        ];
+      } else {
+        channels = [
+          { val: r.phone, tag: 'Call' },
+          { val: r.email, tag: 'Email' },
+          { val: r.instagram, tag: 'DM' },
+        ];
       }
-      const picked = order.map(k => ch[k]).find(c => c.val);
+      const picked = channels.find(c => c.val);
       r.outreach = picked ? picked.tag : 'None';
 
       // Enrichment quality score (0–100) — blends role priority AND source confidence
