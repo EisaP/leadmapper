@@ -610,6 +610,16 @@
             <span style="width: 1px; height: 24px; background: var(--border); margin: 0 8px;"></span>
             <button class="filter-pill" data-filter="saved" data-value="true" type="button">⭐ Saved only</button>
             <button class="filter-pill" data-filter="decisionMaker" data-value="true" type="button" title="Show only leads with a priority-70+ email (named person, owner, manager, or marketing/partnerships)">Decision-maker emails <span class="count" id="cntDecisionMaker">0</span></button>
+            <span style="width: 1px; height: 24px; background: var(--border); margin: 0 8px;"></span>
+            <span class="ui-label" style="margin-right: 4px;">IG followers</span>
+            <button class="filter-pill active" data-filter="followerBand" data-value="any" type="button">Any</button>
+            <button class="filter-pill" data-filter="followerBand" data-value="u1k" type="button" title="Under 1,000 followers">&lt; 1K</button>
+            <button class="filter-pill" data-filter="followerBand" data-value="1k-5k" type="button" title="1K–5K (sweet spot — owner-direct)">1K–5K</button>
+            <button class="filter-pill" data-filter="followerBand" data-value="5k-15k" type="button" title="5K–15K (mixed)">5K–15K</button>
+            <button class="filter-pill" data-filter="followerBand" data-value="15kplus" type="button" title="Over 15K (agency-likely)">15K+</button>
+            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); cursor: pointer; margin-left: 6px;" title="Unknown = Google didn't surface a follower count in the snippet or panel">
+              <input type="checkbox" id="hideUnknownFollowers" style="accent-color: var(--red); width: 14px; height: 14px;"> Hide unknown
+            </label>
             <div style="flex: 1;"></div>
             <input class="input" id="textFilter" placeholder="Filter by name..." style="width: 220px; padding: 7px 12px; font-size: 13px;">
             <div style="position: relative;">
@@ -727,7 +737,7 @@
     let savedLeads = {};
     const state = {
       channels: { email: true, phone: true, instagram: true },
-      filters: { segment: 'all', saved: false, decisionMaker: false, text: '' },
+      filters: { segment: 'all', saved: false, decisionMaker: false, followerBand: 'any', hideUnknownFollowers: false, text: '' },
       sort: { key: null, dir: 'asc' },
       expanded: new Set(),
       selected: new Set()
@@ -970,14 +980,25 @@
       if (r.emails && r.emails.some(e => (e.priority || 0) >= 70)) return true;
       return false;
     }
+    function passesFollowerBand(r, band, hideUnknown) {
+      const f = r.instagram_followers;
+      if (f == null) return !hideUnknown;
+      if (band === 'any') return true;
+      if (band === 'u1k')    return f < 1000;
+      if (band === '1k-5k')  return f >= 1000 && f < 5000;
+      if (band === '5k-15k') return f >= 5000 && f <= 15000;
+      if (band === '15kplus') return f > 15000;
+      return true;
+    }
     function applyFilters() {
-      const { segment, saved, decisionMaker, text } = state.filters;
+      const { segment, saved, decisionMaker, followerBand, hideUnknownFollowers, text } = state.filters;
       const q = text.trim().toLowerCase();
       let rows = allResults.filter(r => {
         if (!passesChannels(r)) return false;
         if (segment !== 'all' && r.segmentCode !== segment) return false;
         if (saved && !savedLeads[r.title]) return false;
         if (decisionMaker && !isDecisionMakerLead(r)) return false;
+        if (!passesFollowerBand(r, followerBand, hideUnknownFollowers)) return false;
         if (q && !r.title.toLowerCase().includes(q)) return false;
         return true;
       });
@@ -1296,12 +1317,17 @@
         state.filters[f] = !state.filters[f];
         p.classList.toggle('active', state.filters[f]);
       } else {
+        // single-select groups (segment, followerBand, ...)
         state.filters[f] = v;
         document.querySelectorAll(`[data-filter="${f}"]`).forEach(x => x.classList.remove('active'));
         p.classList.add('active');
       }
       renderRows();
     }));
+    document.getElementById('hideUnknownFollowers')?.addEventListener('change', (e) => {
+      state.filters.hideUnknownFollowers = e.target.checked;
+      renderRows();
+    });
     let textTimer = null;
     document.getElementById('textFilter')?.addEventListener('input', (e) => {
       clearTimeout(textTimer);
@@ -1309,12 +1335,15 @@
     });
     window.clearAllFilters = () => {
       state.channels = { email: true, phone: true, instagram: true };
-      state.filters = { segment: 'all', saved: false, decisionMaker: false, text: '' };
+      state.filters = { segment: 'all', saved: false, decisionMaker: false, followerBand: 'any', hideUnknownFollowers: false, text: '' };
       const tf = document.getElementById('textFilter'); if (tf) tf.value = '';
+      const hu = document.getElementById('hideUnknownFollowers'); if (hu) hu.checked = false;
       document.querySelectorAll('.channel-check').forEach(cb => cb.checked = true);
       document.querySelectorAll('.filter-pill').forEach(p => {
         const isToggle = p.dataset.filter === 'saved' || p.dataset.filter === 'decisionMaker';
-        p.classList.toggle('active', !isToggle && p.dataset.value === 'all');
+        if (isToggle) { p.classList.remove('active'); return; }
+        // Default selected = value 'all' (segment) or 'any' (followerBand)
+        p.classList.toggle('active', p.dataset.value === 'all' || p.dataset.value === 'any');
       });
       renderRows();
     };
