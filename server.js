@@ -4,9 +4,18 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
+// Enrichment module — layered waterfall (Layer 2 scrape → Layer 3 pattern guess → Layer 4/5 stubs).
+const { enrichLead } = require('./enrichment/orchestrator');
+const { isAggregatorDomain, JUNK_IG_HANDLES, handleMatchesBusiness, normForMatch } = require('./enrichment/utils/domain-utils');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const SERPAPI_KEY = process.env.SERPAPI_KEY || '';
+// Phase D placeholders — reserved for paid APIs.
+// process.env.PROSPEO_API_KEY, process.env.MILLIONVERIFIER_API_KEY
+// Layer 3 SMTP verification uses this "from" address in the handshake.
+// Not a real inbox — override via env if you want the outbound banner to match your own domain.
+// process.env.LEADHUNTER_VERIFY_FROM
 
 // --- Local file-backed database ---
 const DATA_DIR = path.join(__dirname, 'data');
@@ -149,270 +158,9 @@ async function googleFallbackInstagram(businessName, city) {
   return candidates[0].handle;
 }
 
-// --- Aggregator / directory blocklist ---
-// When a business's Google Maps "website" field points to one of these domains, we DO NOT scrape it.
-// These sites expose their own platform contacts, not the business's, and scraping them yields junk.
-const AGGREGATOR_DOMAINS = [
-  // Food delivery
-  'talabat.com', 'deliveroo.com', 'deliveroo.co.uk', 'ubereats.com', 'justeat.com', 'just-eat.com', 'just-eat.co.uk',
-  'doordash.com', 'grubhub.com', 'zomato.com', 'swiggy.com', 'snackpass.co', 'mrd.com', 'menulog.com.au',
-  // Reservations / booking
-  'opentable.com', 'opentable.co.uk', 'resy.com', 'thefork.com', 'thefork.co.uk', 'exploretock.com', 'tock.com',
-  'sevenrooms.com', 'fresha.com', 'booksy.com', 'treatwell.com', 'treatwell.co.uk', 'mindbodyonline.com',
-  'squareup.com', 'book.squareup.com', 'calendly.com', 'setmore.com', 'acuityscheduling.com',
-  // Directories / review sites
-  'yelp.com', 'yelp.co.uk', 'tripadvisor.com', 'tripadvisor.co.uk', 'tripadvisor.co.in',
-  // Link-in-bio tools
-  'linktree.com', 'linktr.ee', 'beacons.ai', 'bio.site', 'taplink.at', 'flowpage.com', 'allmylinks.com',
-  // Social + misc (never treat a social link as the business site for scraping)
-  'facebook.com', 'fb.me', 'instagram.com', 'instagr.am', 'wa.me', 'api.whatsapp.com', 'tiktok.com',
-  'google.com', 'maps.google.com', 'goo.gl', 'bit.ly', 'tinyurl.com'
-];
-function isAggregatorDomain(url) {
-  if (!url) return false;
-  try {
-    const hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
-    return AGGREGATOR_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
-  } catch { return false; }
-}
+// Aggregator blocklist + fuzzy name matching + junk IG handles now live in ./enrichment/utils/domain-utils.js
+// (imported above). Keep this file focused on routing and the SerpAPI Maps flow.
 
-// Known junk / platform Instagram handles — never attribute these to a business lead
-const JUNK_IG_HANDLES = new Set([
-  // Aggregator brands
-  'talabat', 'talabatqatar', 'talabatksa', 'talabatuae', 'talabategypt', 'talabatbahrain', 'talabatkuwait', 'talabatoman',
-  'deliveroo', 'deliveroo_uk', 'deliveroo_ae', 'deliveroo_fr', 'deliveroo_it', 'deliveroo_es', 'deliveroo_hk',
-  'ubereats', 'ubereatsapp', 'uber', 'doordash', 'grubhub', 'justeat', 'justeatuk', 'menulog',
-  'opentable', 'resy', 'fresha', 'booksy', 'treatwell', 'mindbody',
-  'yelp', 'tripadvisor', 'zomato', 'swiggy', 'thefork', 'thefork_uk',
-  // Platforms / tools
-  'instagram', 'facebook', 'linkedin', 'tiktok', 'youtube', 'twitter', 'whatsapp',
-  'shopify', 'shopifypartners', 'wix', 'wixmyway', 'squarespace', 'godaddy', 'mailchimp', 'wordpress',
-  'linktree', 'beaconsai', 'biosite', 'stripe'
-]);
-
-// Normalize strings for fuzzy comparison (lowercase, strip non-alphanum)
-function normForMatch(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
-function handleMatchesBusiness(handle, businessName) {
-  const h = normForMatch(handle);
-  const b = normForMatch(businessName);
-  if (!h || !b || h.length < 3) return false;
-  if (b.includes(h) && h.length >= 4) return true;
-  if (h.includes(b) && b.length >= 4) return true;
-  // First significant word of business
-  const words = (businessName || '').toLowerCase().match(/[a-z0-9]+/g) || [];
-  const firstMeaningful = words.find(w => w.length >= 4 && !['cafe','coffee','restaurant','salon','bar','hair','shop','the','and'].includes(w));
-  if (firstMeaningful && h.includes(firstMeaningful)) return true;
-  return false;
-}
-
-// --- Email role classification (heuristic, no paid API) ---
-// Maps the local part (before @) to a role + priority score.
-// Priority 100 = named person, 90 = owner/founder, 80 = manager, 70 = marketing,
-// 50 = generic business, 40 = transactional, 20 = customer service, 10 = low-value.
-const EMAIL_ROLE_RULES = [
-  // REJECT entirely — never store these
-  { role: 'REJECT', priority: -1, patterns: ['noreply', 'no-reply', 'donotreply', 'do-not-reply', 'mailer-daemon', 'postmaster', 'root', 'abuse', 'mailer'] },
-  // Low-value
-  { role: 'low-value', priority: 10, patterns: ['returns', 'complaints', 'refunds', 'billing', 'accounts', 'accounting', 'legal', 'privacy', 'gdpr', 'dpo', 'webmaster', 'admin', 'hr', 'jobs', 'careers', 'recruitment', 'recruiting', 'vacancies', 'compliance'] },
-  // Customer service
-  { role: 'customer-service', priority: 20, patterns: ['support', 'help', 'customerservice', 'customer-service', 'customercare', 'customer-care', 'service', 'helpdesk'] },
-  // Transactional
-  { role: 'transactional', priority: 40, patterns: ['bookings', 'booking', 'reservations', 'reservation', 'reserve', 'orders', 'order', 'sales', 'shop', 'store', 'delivery', 'takeaway', 'events'] },
-  // Marketing / partnerships (priority 70)
-  { role: 'marketing', priority: 70, patterns: ['marketing', 'partnerships', 'partners', 'partner', 'brands', 'brand', 'collabs', 'collab', 'collaboration', 'collaborations', 'pr', 'press', 'media'] },
-  // Manager (priority 80)
-  { role: 'manager', priority: 80, patterns: ['manager', 'managing', 'head', 'lead', 'operations', 'ops'] },
-  // Owner / founder / decision-maker (priority 90)
-  { role: 'owner', priority: 90, patterns: ['owner', 'founder', 'ceo', 'director', 'gm', 'principal', 'proprietor', 'mdoffice', 'md'] },
-  // General business (priority 50)
-  { role: 'general', priority: 50, patterns: ['info', 'hello', 'hi', 'contact', 'enquiries', 'enquiry', 'inquiries', 'inquiry', 'general', 'mail', 'email'] },
-];
-// Domains to REJECT entirely regardless of local part
-const REJECTED_EMAIL_DOMAINS = new Set([
-  'mail.com', 'example.com', 'domain.com', 'test.com', 'localhost', 'email.com', 'yoursite.com', 'yourdomain.com', 'placeholder.com', 'mailinator.com',
-  'sentry.io', 'wixpress.com', 'shopify.com', 'squarespace.com', 'mailchimp.com', 'hubspot.com'
-]);
-// Free email providers — accepted but flagged as "unverified domain" when found on a business site
-const FREE_EMAIL_PROVIDERS = new Set([
-  'gmail.com', 'yahoo.com', 'yahoo.co.uk', 'hotmail.com', 'hotmail.co.uk', 'outlook.com', 'live.com', 'aol.com', 'icloud.com', 'me.com', 'mac.com', 'protonmail.com', 'proton.me', 'yandex.com', 'zoho.com'
-]);
-
-function classifyEmail(email, siteDomain) {
-  const lower = String(email).toLowerCase().trim();
-  const at = lower.lastIndexOf('@');
-  if (at < 1) return null;
-  const local = lower.slice(0, at);
-  const domain = lower.slice(at + 1);
-  if (!domain || REJECTED_EMAIL_DOMAINS.has(domain)) return null;
-  // Check role rules in order (REJECT / low / CS / transactional / marketing / manager / owner / general)
-  for (const rule of EMAIL_ROLE_RULES) {
-    for (const pat of rule.patterns) {
-      // Match if local starts with pattern followed by end-of-local, dot, dash, underscore, or number
-      const re = new RegExp(`^${pat}([._-]|\\d|$)`);
-      if (re.test(local)) {
-        if (rule.role === 'REJECT') return null;
-        return { email: lower, local, domain, role: rule.role, priority: rule.priority, unverifiedDomain: !!(siteDomain && FREE_EMAIL_PROVIDERS.has(domain)) };
-      }
-    }
-  }
-  // Named-person pattern: letters only, optional single dot (firstname.lastname), both 2+ chars
-  if (/^[a-z]+(\.[a-z]+)?$/.test(local) && local.length >= 2) {
-    return { email: lower, local, domain, role: 'named', priority: 100, unverifiedDomain: !!(siteDomain && FREE_EMAIL_PROVIDERS.has(domain)) };
-  }
-  // Doesn't match any rule — treat as generic low-medium signal (priority 30)
-  return { email: lower, local, domain, role: 'other', priority: 30, unverifiedDomain: !!(siteDomain && FREE_EMAIL_PROVIDERS.has(domain)) };
-}
-
-// --- Email / Phone / Instagram / Booking platform enrichment ---
-async function enrichLead(websiteUrl, businessName) {
-  const empty = { email: '', emails: [], phone: '', instagram: '', booking: '', isAggregator: false };
-  if (!websiteUrl) return empty;
-
-  // If the website field is an aggregator/directory, DO NOT scrape it — it'll return the platform's contacts, not the business's.
-  if (isAggregatorDomain(websiteUrl)) {
-    // Still try to extract IG handle if the website URL IS literally an instagram.com/handle (reliable signal: business's own IG).
-    const igDirect = websiteUrl.match(/(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/i);
-    const directHandle = igDirect ? igDirect[1].toLowerCase() : '';
-    const igIgnore = new Set(['p', 'reel', 'reels', 'stories', 'explore', 'accounts', 'about', 'developer', 'legal', 'terms', 'privacy', 'directory', 'static', 'share']);
-    const goodDirect = directHandle && !igIgnore.has(directHandle) && !JUNK_IG_HANDLES.has(directHandle) ? directHandle : '';
-    return { ...empty, instagram: goodDirect, isAggregator: true };
-  }
-
-  // Legitimate business website — scrape with care
-  const emails = new Set();
-  const phones = new Set();
-  const bookings = new Set();
-  const igCandidates = []; // {handle, score}
-
-  // Extract the site's own domain so we can flag free-provider emails as "unverified"
-  let siteDomain = '';
-  try { siteDomain = new URL(websiteUrl).hostname.replace(/^www\./, '').toLowerCase(); } catch {}
-
-  const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
-  const ignoreEmails = /\.(png|jpg|jpeg|gif|svg|css|js|ico|webp|woff)$/i;
-  const igRegex = /(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/gi;
-  const igIgnore = new Set(['p', 'reel', 'reels', 'stories', 'explore', 'accounts', 'about', 'developer', 'legal', 'terms', 'privacy', 'directory', 'static', 'share']);
-  // Booking platforms
-  const bookingPlatforms = [
-    { name: 'OpenTable',  re: /opentable\.com/i }, { name: 'Resy', re: /resy\.com/i },
-    { name: 'Tock',       re: /exploretock\.com|(?<![a-z])tock\.com/i }, { name: 'SevenRooms', re: /sevenrooms\.com/i },
-    { name: 'Fresha',     re: /fresha\.com/i }, { name: 'Booksy', re: /booksy\.com/i },
-    { name: 'Treatwell',  re: /treatwell\./i }, { name: 'Mindbody', re: /mindbodyonline\.com/i },
-    { name: 'Square',     re: /squareup\.com\/appointments|book\.squareup\.com/i },
-    { name: 'Calendly',   re: /calendly\.com/i }, { name: 'Setmore', re: /setmore\.com/i },
-    { name: 'Acuity',     re: /acuityscheduling\.com/i },
-  ];
-
-  // Direct Instagram handle from website field (reliable)
-  const igDirect = websiteUrl.match(/(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/i);
-  if (igDirect) {
-    const h = igDirect[1].toLowerCase();
-    if (!igIgnore.has(h) && !JUNK_IG_HANDLES.has(h)) igCandidates.push({ handle: h, score: 1000 }); // direct wins
-  }
-
-  const pagesToTry = [
-    websiteUrl,
-    websiteUrl.replace(/\/$/, '') + '/contact',
-    websiteUrl.replace(/\/$/, '') + '/contact-us',
-    websiteUrl.replace(/\/$/, '') + '/about',
-  ];
-
-  for (const pageUrl of pagesToTry) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      const resp = await fetch(pageUrl, {
-        signal: controller.signal,
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LeadHunter/1.0)', 'Accept': 'text/html' },
-        redirect: 'follow',
-      });
-      clearTimeout(timeout);
-      if (!resp.ok) continue;
-      const contentType = resp.headers.get('content-type') || '';
-      if (!contentType.includes('text/html')) continue;
-      const html = await resp.text();
-
-      // Emails — collect ALL valid matches for downstream role classification
-      (html.match(emailRegex) || []).forEach(e => {
-        if (ignoreEmails.test(e)) return;
-        emails.add(e.toLowerCase());
-      });
-
-      // Phones from tel: links
-      (html.match(/href=["']tel:([^"']+)["']/gi) || []).forEach(t => {
-        const num = t.replace(/href=["']tel:/i, '').replace(/["']/g, '').trim();
-        if (num.length >= 7) phones.add(num);
-      });
-
-      // Instagram handles — collect candidates with context scoring
-      let igMatch;
-      while ((igMatch = igRegex.exec(html)) !== null) {
-        const handle = igMatch[1].toLowerCase();
-        if (igIgnore.has(handle) || JUNK_IG_HANDLES.has(handle)) continue;
-        // Context: 300 chars around the link
-        const start = Math.max(0, igMatch.index - 300);
-        const end = Math.min(html.length, igMatch.index + igMatch[0].length + 300);
-        const ctx = html.slice(start, end).toLowerCase();
-        let score = 0;
-        if (/<footer|footer[>"\s]|class=["'][^"']*footer/.test(ctx)) score += 15;
-        if (/social|follow us|our instagram|find us on|connect with us|follow me/.test(ctx)) score += 12;
-        // If link text near it mentions "instagram"
-        if (/>\s*instagram\s*</i.test(ctx)) score += 8;
-        // Later in document = more likely footer
-        if (igMatch.index > html.length * 0.6) score += 4;
-        // Fuzzy match against business name
-        if (handleMatchesBusiness(handle, businessName)) score += 40;
-        // Penalize very short / numeric-only handles
-        if (handle.length < 4) score -= 8;
-        igCandidates.push({ handle, score });
-      }
-
-      // Booking platforms (only on the business's own site)
-      bookingPlatforms.forEach(bp => { if (bp.re.test(html)) bookings.add(bp.name); });
-
-      // Early exit once we have good coverage
-      if (emails.size > 0 && igCandidates.length > 0) break;
-    } catch {
-      continue;
-    }
-  }
-
-  // Pick best Instagram handle: highest score, with dedupe
-  const byHandle = new Map();
-  for (const c of igCandidates) {
-    const prev = byHandle.get(c.handle);
-    if (!prev || c.score > prev.score) byHandle.set(c.handle, c);
-  }
-  const bestIg = [...byHandle.values()].sort((a, b) => b.score - a.score)[0];
-  // Only accept if score is positive (filters out weakly-linked random handles)
-  const instagram = bestIg && bestIg.score > 0 ? bestIg.handle : '';
-
-  // Classify each extracted email into a role + priority; drop REJECT / invalid domains
-  const classifiedEmails = [];
-  for (const e of emails) {
-    const cls = classifyEmail(e, siteDomain);
-    if (cls) classifiedEmails.push(cls);
-  }
-  // Dedupe by email
-  const emailByAddr = new Map();
-  for (const c of classifiedEmails) {
-    if (!emailByAddr.has(c.email)) emailByAddr.set(c.email, c);
-  }
-  // Sort by priority desc — best (named / owner) first
-  const sortedEmails = [...emailByAddr.values()].sort((a, b) => b.priority - a.priority);
-  const primaryEmail = sortedEmails[0] || null;
-
-  return {
-    email:     primaryEmail ? primaryEmail.email : '',
-    emailRole: primaryEmail ? primaryEmail.role : '',
-    emailPriority: primaryEmail ? primaryEmail.priority : 0,
-    emails:    sortedEmails,  // full classified list — used in expanded row
-    phone:     [...phones][0] || '',
-    instagram,
-    booking:   [...bookings].join(', '),
-    isAggregator: false,
-  };
-}
 
 // --- ROUTES ---
 
@@ -551,6 +299,8 @@ async function handleSearch(src, res) {
         emailRole: '',
         emailPriority: 0,
         emails: [],
+        email_source: null,
+        email_confidence: null,
         instagram: ig,
         // Source of the Instagram handle: 'maps' (extracted from Google Maps "website" field that was an IG URL),
         // 'website' (scraped from business's own site), 'google_fallback' (resolved via Google search), or null.
@@ -590,24 +340,26 @@ async function handleSearch(src, res) {
     console.log(`[search] After filtering: ${filteredResults.length}`);
 
     // Enrich contacts by default (disable only via skipEnrichment)
+    // Layer 3 (pattern-guess + SMTP verify) is opt-in via `useLayer3` query param — default ON.
+    const useLayer3 = String(src.useLayer3 || 'on') !== 'off';
     if (enrich) {
-      console.log(`[enrich] Enriching ${filteredResults.length} leads...`);
+      console.log(`[enrich] Enriching ${filteredResults.length} leads (Layer 3 ${useLayer3 ? 'ON' : 'OFF'})...`);
       const BATCH_SIZE = 5;
       for (let i = 0; i < filteredResults.length; i += BATCH_SIZE) {
         const batch = filteredResults.slice(i, i + BATCH_SIZE);
         const enrichments = await Promise.all(
-          batch.map(r => enrichLead(r.website, r.title))
+          batch.map(r => enrichLead(r.website, r.title, { useLayer3 }))
         );
         enrichments.forEach((enriched, j) => {
           const idx = i + j;
-          // Propagate aggregator flag (either mapped-time detection or enrichLead's determination)
           if (enriched.isAggregator) filteredResults[idx].isAggregator = true;
           if (enriched.email) filteredResults[idx].email = enriched.email;
           if (enriched.emailRole) filteredResults[idx].emailRole = enriched.emailRole;
           if (enriched.emailPriority != null) filteredResults[idx].emailPriority = enriched.emailPriority;
           if (enriched.emails && enriched.emails.length) filteredResults[idx].emails = enriched.emails;
+          if (enriched.email_source) filteredResults[idx].email_source = enriched.email_source;
+          if (enriched.email_confidence) filteredResults[idx].email_confidence = enriched.email_confidence;
           if (enriched.phone && !filteredResults[idx].phone) filteredResults[idx].phone = enriched.phone;
-          // Only overwrite IG if scraping returned a handle. For aggregator sites, enrichLead only returns IG if the website field IS instagram.com/handle directly.
           if (enriched.instagram && !filteredResults[idx].instagram) {
             filteredResults[idx].instagram = enriched.instagram;
             filteredResults[idx].instagramSource = 'website';
@@ -617,7 +369,9 @@ async function handleSearch(src, res) {
         console.log(`[enrich] Batch ${Math.floor(i / BATCH_SIZE) + 1} done (${Math.min(i + BATCH_SIZE, filteredResults.length)}/${filteredResults.length})`);
       }
       const emailCount = filteredResults.filter(r => r.email).length;
-      console.log(`[enrich] Found emails for ${emailCount}/${filteredResults.length} leads`);
+      const guessCount = filteredResults.filter(r => r.email_source === 'guessed').length;
+      const siteCount = filteredResults.filter(r => r.email_source === 'website').length;
+      console.log(`[enrich] Emails: ${emailCount}/${filteredResults.length} (site: ${siteCount}, guessed: ${guessCount})`);
     }
 
     // --- Instagram Google-search fallback phase ---
@@ -711,22 +465,27 @@ async function handleSearch(src, res) {
       const picked = channels.find(c => c.val);
       r.outreach = picked ? picked.tag : 'None';
 
-      // Enrichment quality score (0–100) — tiered by email role quality
-      //   named person (100): +25
-      //   owner/manager/marketing (70+): +20
-      //   general business (50): +15
-      //   transactional (40): +10
-      //   customer service / low-value (≤20): +5
-      //   no email: 0
-      // Other channels: phone +25, instagram +25, website +15, ownerName +10
-      let score = 0;
+      // Enrichment quality score (0–100) — blends role priority AND source confidence
+      //   Base by role priority: named 100 → +25, owner/mgr/mkt 70+ → +20, general 50 → +15,
+      //                          transactional 40 → +10, support/low-value ≤20 → +5
+      //   Confidence modifier: website-sourced OR guessed+high → full value
+      //                        guessed+medium (catch-all) → 60% of value
+      //                        low/unverifiable → 20% of value
+      //   Other channels: phone +25, instagram +25, website +15, ownerName +10
+      let emailPts = 0;
       const ep = r.emailPriority || 0;
-      if (ep >= 100) score += 25;
-      else if (ep >= 70) score += 20;
-      else if (ep >= 50) score += 15;
-      else if (ep >= 40) score += 10;
-      else if (ep >= 10) score += 5;
-      else if (r.email) score += 15; // has email, unknown priority (legacy path) — treat as general
+      if (ep >= 100) emailPts = 25;
+      else if (ep >= 70) emailPts = 20;
+      else if (ep >= 50) emailPts = 15;
+      else if (ep >= 40) emailPts = 10;
+      else if (ep >= 10) emailPts = 5;
+      else if (r.email) emailPts = 15;
+      const conf = r.email_confidence || (r.email_source === 'website' ? 'high' : null);
+      if (r.email) {
+        if (conf === 'medium') emailPts = Math.round(emailPts * 0.6);
+        else if (conf === 'low') emailPts = Math.round(emailPts * 0.2);
+      }
+      let score = emailPts;
       if (r.phone) score += 25;
       if (r.instagram) score += 25;
       if (r.website) score += 15;
