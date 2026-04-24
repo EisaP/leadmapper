@@ -99,11 +99,56 @@ async function serpApiGoogleSearch(query, num = 10) {
   }
 }
 
+// Parse "1.2K followers" / "234K followers" / "15,300 followers" / "1.2M" into an integer.
+// Returns null when nothing parseable is found.
+function parseFollowerCount(text) {
+  if (!text || typeof text !== 'string') return null;
+  // Match either "1.2K followers" style OR "15,300 followers" style
+  const re = /(\d+(?:\.\d+)?[KkMm]?|\d{1,3}(?:,\d{3})+|\d{1,7})\s+followers/i;
+  const m = text.match(re);
+  if (!m) return null;
+  const raw = m[1];
+  // Comma-separated integers: "15,300" → 15300
+  if (/,/.test(raw)) return parseInt(raw.replace(/,/g, ''), 10);
+  // Suffix notation: 1.2K, 234K, 1.2M
+  const suffixMatch = raw.match(/^(\d+(?:\.\d+)?)([KkMm])$/);
+  if (suffixMatch) {
+    const num = parseFloat(suffixMatch[1]);
+    const mult = /m/i.test(suffixMatch[2]) ? 1_000_000 : 1_000;
+    return Math.round(num * mult);
+  }
+  // Plain integer
+  return parseInt(raw, 10);
+}
+
+// Given a Google result object (organic_result / knowledge_graph / answer_box / rich_snippet),
+// search any string field for a "followers" match. First hit wins.
+function followerCountFromAnyText(value) {
+  if (!value) return null;
+  if (typeof value === 'string') return parseFollowerCount(value);
+  if (Array.isArray(value)) {
+    for (const v of value) {
+      const got = followerCountFromAnyText(v);
+      if (got != null) return got;
+    }
+    return null;
+  }
+  if (typeof value === 'object') {
+    for (const v of Object.values(value)) {
+      const got = followerCountFromAnyText(v);
+      if (got != null) return got;
+    }
+    return null;
+  }
+  return null;
+}
+
 // --- Google fallback Instagram discovery ---
 // Used when primary enrichment couldn't find an IG handle AND the business's listed website
 // was rejected (aggregator) or missing. Searches Google for "business" "city" instagram and validates candidates.
+// Returns { handle, followers } — `followers` may be null if Google didn't include a count in any snippet.
 async function googleFallbackInstagram(businessName, city) {
-  if (!businessName || !city) return null;
+  if (!businessName || !city) return { handle: null, followers: null };
   const query = `"${businessName}" "${city}" instagram`;
   console.log(`[ig-fallback] Query: ${query}`);
   let data;
@@ -111,7 +156,7 @@ async function googleFallbackInstagram(businessName, city) {
     data = await serpApiGoogleSearch(query, 10);
   } catch (e) {
     console.log(`[ig-fallback] SerpAPI error: ${e.message}`);
-    return null;
+    return { handle: null, followers: null };
   }
   // Collect IG URLs from organic_results + knowledge_graph + answer_box
   const urls = [];
@@ -142,20 +187,25 @@ async function googleFallbackInstagram(businessName, city) {
     if (JUNK_IG_HANDLES.has(h)) continue;
     if (h.length < 3) continue;
     if (!handleMatchesBusiness(h, businessName)) continue;
-    // Score: prefer exact substring match, longer handles, and appearing earlier (earlier in urls[] = earlier in Google)
     let score = 0;
     const nName = normForMatch(businessName);
     const nH = normForMatch(h);
     if (nH === nName) score += 100;
     if (nH.startsWith(nName) || nName.startsWith(nH)) score += 30;
     score += Math.min(h.length, 25);
-    score -= candidates.length; // rank-based prefer earlier results
+    score -= candidates.length;
     if (!candidates.find(c => c.handle === h)) candidates.push({ handle: h, score });
   }
-  if (!candidates.length) return null;
+
+  // Follower count: prefer the knowledge panel (most reliable), fall back to any snippet.
+  const followers = followerCountFromAnyText(data.knowledge_graph)
+    ?? followerCountFromAnyText(data.answer_box)
+    ?? followerCountFromAnyText(data.organic_results);
+
+  if (!candidates.length) return { handle: null, followers };
   candidates.sort((a, b) => b.score - a.score);
-  console.log(`[ig-fallback] Picked "${candidates[0].handle}" from ${candidates.length} valid candidate(s)`);
-  return candidates[0].handle;
+  console.log(`[ig-fallback] Picked "${candidates[0].handle}"${followers != null ? ` · ${followers.toLocaleString()} followers` : ''}`);
+  return { handle: candidates[0].handle, followers };
 }
 
 // Aggregator blocklist + fuzzy name matching + junk IG handles now live in ./enrichment/utils/domain-utils.js
@@ -305,6 +355,8 @@ async function handleSearch(src, res) {
         // Source of the Instagram handle: 'maps' (extracted from Google Maps "website" field that was an IG URL),
         // 'website' (scraped from business's own site), 'google_fallback' (resolved via Google search), or null.
         instagramSource: ig ? 'maps' : null,
+        // Follower count — populated by Google fallback when the snippet/knowledge-panel includes it.
+        instagram_followers: null,
         booking: '',
         hours: hours,
         priceTier: priceTier,
@@ -395,29 +447,31 @@ async function handleSearch(src, res) {
         for (let i = 0; i < fallbackQueue.length; i += CONCURRENCY) {
           const batch = fallbackQueue.slice(i, i + CONCURRENCY);
           const results = await Promise.all(batch.map(async lead => {
-            // Server-side cache by placeId
+            // Server-side cache by placeId (stores handle + follower count together)
             const cacheKey = lead.placeId ? `igcache:${lead.placeId}` : null;
             if (cacheKey) {
               const cached = dbGet(cacheKey);
               if (cached && cached.ts && (Date.now() - cached.ts) < CACHE_TTL_MS) {
-                return { lead, handle: cached.handle || null, fromCache: true };
+                return { lead, handle: cached.handle || null, followers: cached.followers ?? null, fromCache: true };
               }
             }
-            let handle = null;
+            let handle = null, followers = null;
             try {
-              handle = await googleFallbackInstagram(lead.title, lead.city);
+              const out = await googleFallbackInstagram(lead.title, lead.city);
+              handle = out.handle; followers = out.followers;
             } catch (e) {
               console.log(`[ig-fallback] Failed for "${lead.title}": ${e.message}`);
             }
-            if (cacheKey) dbSet(cacheKey, { handle: handle || '', ts: Date.now() });
-            return { lead, handle, fromCache: false };
+            if (cacheKey) dbSet(cacheKey, { handle: handle || '', followers, ts: Date.now() });
+            return { lead, handle, followers, fromCache: false };
           }));
-          results.forEach(({ lead, handle }) => {
+          results.forEach(({ lead, handle, followers }) => {
             if (handle) {
               lead.instagram = handle;
               lead.instagramSource = 'google_fallback';
               found++;
             }
+            if (followers != null) lead.instagram_followers = followers;
           });
         }
         console.log(`[ig-fallback] Resolved ${found}/${fallbackQueue.length} via Google fallback`);

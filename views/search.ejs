@@ -652,6 +652,7 @@
                   <th class="sortable" data-sort="segmentCode" style="width: 104px;">Segment <span class="sort-indicator">↕</span></th>
                   <th class="sortable col-outreach col-hidden" data-sort="outreach" style="width: 100px;">Outreach <span class="sort-indicator">↕</span></th>
                   <th class="sortable" data-sort="instagram" style="width: 160px;">Instagram <span class="sort-indicator">↕</span></th>
+                  <th class="sortable" data-sort="instagram_followers" style="width: 100px; text-align: right;">IG Followers <span class="sort-indicator">↕</span></th>
                   <th class="sortable" data-sort="phone" style="width: 160px;">Phone <span class="sort-indicator">↕</span></th>
                   <th class="sortable" data-sort="email" style="width: 260px;">
                     Email
@@ -991,6 +992,16 @@
     const escapeHTML = s => (s || '').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const escapeAttr = s => escapeHTML(s).replace(/"/g, '&quot;');
 
+    // Format Instagram follower counts: 234 → "234", 1200 → "1.2K", 234000 → "234K", 1_200_000 → "1.2M"
+    function formatFollowers(n) {
+      if (n == null || isNaN(n)) return '—';
+      const num = Number(n);
+      if (num < 1000) return String(num);
+      if (num < 10_000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+      if (num < 1_000_000) return Math.round(num / 1000) + 'K';
+      return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+    }
+
     function igUrl(handle) {
       if (!handle) return '';
       if (/^https?:\/\//i.test(handle)) return handle;
@@ -1123,6 +1134,7 @@
           <td>${badgeSegment(r.segmentCode)}</td>
           <td class="col-outreach col-hidden">${badgeOutreach(r.outreach)}</td>
           <td>${contactCellIG(r)}</td>
+          <td style="text-align: right; color: var(--text-secondary); font-size: 13px;" title="${r.instagram_followers != null ? r.instagram_followers.toLocaleString() + ' followers' : 'Follower count not available'}">${r.instagram_followers != null ? formatFollowers(r.instagram_followers) : '<span class="empty-dash">—</span>'}</td>
           <td>${contactCellPhone(r)}</td>
           <td>${contactCellEmail(r)}</td>
           <td class="col-booking col-hidden"><span style="font-size: 12px; color: var(--body);">${r.booking ? escapeHTML(r.booking) : '<span class="empty-dash">—</span>'}</span></td>
@@ -1418,12 +1430,13 @@
       copyList(rows.filter(r => r.phone).map(r => r.phone), 'No phones in current filter', 'Phones copied');
     });
     function exportCSV(rows, filename) {
-      const headers = ['Name','Phone','Email','EmailSource','EmailConfidence','EmailRole','Instagram','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','Segment','Outreach','QualityScore','Google Maps URL'];
+      const headers = ['Name','Phone','Email','EmailSource','EmailConfidence','EmailRole','Instagram','IGFollowers','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','Segment','Outreach','QualityScore','Google Maps URL'];
       const csvRows = rows.map(r => [
         r.title, r.phone, r.email, r.email_source || '', r.email_confidence || '', r.emailRole || '',
-        r.instagram || '', r.booking || '', r.hours || '', r.priceTier || '',
+        r.instagram || '', r.instagram_followers != null ? r.instagram_followers : '',
+        r.booking || '', r.hours || '', r.priceTier || '',
         r.website, r.category, r.address, r.rating, r.reviewCount, r.segment || '', r.outreach || '', r.qualityScore || '', r.url
-      ].map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(','));
+      ].map(v => `"${(v === null || v === undefined ? '' : v).toString().replace(/"/g, '""')}"`).join(','));
       const csv = [headers.join(','), ...csvRows].join('\n');
       downloadBlob(csv, 'text/csv', filename || `leadhunter-${Date.now()}.csv`);
     }
