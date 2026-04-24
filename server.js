@@ -519,7 +519,7 @@ async function handleSearch(src, res) {
     res.render('search', {
       results: segmentFiltered,
       totalScraped: mappedResults.length,
-      query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useIgFallback, outreachPriority, targetSegment, searchString: keywords.join(', ') + ` in ${city}, ${state}` },
+      query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useIgFallback, useLayer3: useLayer3 ? 'on' : 'off', outreachPriority, targetSegment, searchString: keywords.join(', ') + ` in ${city}, ${state}` },
       error: null,
       recentSearches: getRecentSearches(), ...getSidebarCounts()
     });

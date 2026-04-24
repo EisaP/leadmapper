@@ -154,6 +154,13 @@
     .email-role-badge.role-named, .email-role-badge.role-owner, .email-role-badge.role-manager { background: var(--white); color: var(--text-secondary); border: 1px solid var(--border); }
     .email-role-badge.role-marketing, .email-role-badge.role-general, .email-role-badge.role-transactional, .email-role-badge.role-other { background: var(--surface); color: var(--text-tertiary); }
     .email-role-badge.role-low-value, .email-role-badge.role-customer-service { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-soft); }
+    /* Source + confidence marks (Layer 3) */
+    .email-source-label { font-size: 11px; color: var(--text-tertiary); margin-left: 6px; white-space: nowrap; }
+    .email-source-label.src-guessed { color: var(--text-secondary); font-style: italic; }
+    .confidence-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: middle; flex-shrink: 0; cursor: help; }
+    .confidence-dot.high   { background: #0F7A3E; }   /* green */
+    .confidence-dot.medium { background: #B45309; }   /* amber */
+    .confidence-dot.low    { background: var(--red); } /* red */
     /* Expanded-row email list */
     .email-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
     .email-list-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
@@ -557,6 +564,12 @@
               Use Google to find Instagram handles when the business website doesn't have one. Uses extra SerpAPI credits.
             </label>
           </div>
+          <div style="margin-top: 10px; display: flex; align-items: flex-start; gap: 10px;">
+            <input type="checkbox" name="useLayer3" id="useLayer3" value="on" <%= (!query || query?.useLayer3 !== 'off') ? 'checked' : '' %> style="margin-top: 3px;">
+            <label for="useLayer3" style="font-size: 13px; color: var(--body); line-height: 1.5;">
+              <strong style="font-weight: 500;">Layer 3 — pattern-guess emails.</strong> When the website has no email, try common patterns (<code style="font-size: 12px;">info@</code>, <code style="font-size: 12px;">hello@</code>, <code style="font-size: 12px;">{business}@</code> …) and verify each via SMTP. Catch-all domains flagged as medium confidence. Lifts UK hit rate from ~45% to ~65-75%.
+            </label>
+          </div>
         </details>
 
         <div style="border-top: 1px solid var(--border); padding-top: 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
@@ -824,9 +837,11 @@
         set('ratingMin', prefs.ratingMin); set('ratingMax', prefs.ratingMax);
         set('maxReviews', prefs.maxReviews); set('maxResults', prefs.maxResults);
         set('targetSegment', prefs.targetSegment);
-        // Restore IG fallback checkbox (default ON if never set)
+        // Restore IG fallback + Layer 3 checkboxes (both default ON if never set)
         const igCb = document.getElementById('useIgFallback');
         if (igCb && prefs.useIgFallback === 'off') igCb.checked = false;
+        const l3Cb = document.getElementById('useLayer3');
+        if (l3Cb && prefs.useLayer3 === 'off') l3Cb.checked = false;
       }
       // Restore column visibility
       const cols = (prefs.columns || {});
@@ -847,7 +862,8 @@
         ratingMin: fd.get('ratingMin'), ratingMax: fd.get('ratingMax'),
         maxReviews: fd.get('maxReviews'), maxResults: fd.get('maxResults'),
         targetSegment: fd.get('targetSegment'),
-        useIgFallback: fd.get('useIgFallback') ? 'on' : 'off'
+        useIgFallback: fd.get('useIgFallback') ? 'on' : 'off',
+        useLayer3: fd.get('useLayer3') ? 'on' : 'off'
       });
       const btn = document.getElementById('searchBtn');
       btn.disabled = true;
@@ -1029,6 +1045,20 @@
         <button type="button" class="copy-btn" onclick="event.stopPropagation(); copyValue(this, '${escapeAttr(p)}')" title="Copy number">${ICO_COPY}</button>
       </div>`;
     }
+    function confidenceDot(source, confidence) {
+      if (!source) return '';
+      const cls = confidence || 'low';
+      const srcTxt = source === 'guessed' ? 'pattern-guessed' : 'scraped from the business website';
+      const confTxt = cls === 'high' ? 'High confidence — address verified.'
+        : cls === 'medium' ? 'Medium confidence — domain is a catch-all, so delivery not guaranteed.'
+        : 'Low confidence — could not be verified.';
+      return `<span class="confidence-dot ${cls}" title="Source: ${srcTxt}. ${confTxt}" aria-label="Confidence: ${cls}"></span>`;
+    }
+    function sourceLabel(source) {
+      if (!source) return '';
+      const cls = source === 'guessed' ? 'src-guessed' : 'src-website';
+      return `<span class="email-source-label ${cls}" title="${source === 'guessed' ? 'Pattern-guessed via Layer 3 (info@, hello@, etc.) and SMTP-verified.' : 'Scraped from the business website.'}">${source}</span>`;
+    }
     function contactCellEmail(r) {
       if (!r.email) return '<span class="empty-dash">—</span>';
       const e = r.email;
@@ -1037,9 +1067,13 @@
       const primary = (r.emails && r.emails[0]) || null;
       const unverified = primary && primary.unverifiedDomain;
       const roleBadge = role ? roleBadgeHTML(role, priority, unverified) : '';
+      const dot = confidenceDot(r.email_source, r.email_confidence);
+      const src = sourceLabel(r.email_source);
       return `<div class="contact-cell">
+        ${dot}
         <a href="mailto:${escapeAttr(e)}" onclick="event.stopPropagation()" class="ico-link ico-email" title="Compose email">${ICO_EMAIL}</a>
         <a href="mailto:${escapeAttr(e)}" onclick="event.stopPropagation()" class="value" title="${escapeAttr(e)}${unverified ? ' (unverified domain)' : ''}">${escapeHTML(e)}</a>
+        ${src}
         ${roleBadge}
         <button type="button" class="copy-btn" onclick="event.stopPropagation(); copyValue(this, '${escapeAttr(e)}')" title="Copy email">${ICO_COPY}</button>
       </div>`;
@@ -1384,9 +1418,10 @@
       copyList(rows.filter(r => r.phone).map(r => r.phone), 'No phones in current filter', 'Phones copied');
     });
     function exportCSV(rows, filename) {
-      const headers = ['Name','Phone','Email','Instagram','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','Segment','Outreach','QualityScore','Google Maps URL'];
+      const headers = ['Name','Phone','Email','EmailSource','EmailConfidence','EmailRole','Instagram','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','Segment','Outreach','QualityScore','Google Maps URL'];
       const csvRows = rows.map(r => [
-        r.title, r.phone, r.email, r.instagram || '', r.booking || '', r.hours || '', r.priceTier || '',
+        r.title, r.phone, r.email, r.email_source || '', r.email_confidence || '', r.emailRole || '',
+        r.instagram || '', r.booking || '', r.hours || '', r.priceTier || '',
         r.website, r.category, r.address, r.rating, r.reviewCount, r.segment || '', r.outreach || '', r.qualityScore || '', r.url
       ].map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(','));
       const csv = [headers.join(','), ...csvRows].join('\n');
