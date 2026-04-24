@@ -154,6 +154,12 @@
     .email-role-badge.role-named, .email-role-badge.role-owner, .email-role-badge.role-manager { background: var(--white); color: var(--text-secondary); border: 1px solid var(--border); }
     .email-role-badge.role-marketing, .email-role-badge.role-general, .email-role-badge.role-transactional, .email-role-badge.role-other { background: var(--surface); color: var(--text-tertiary); }
     .email-role-badge.role-low-value, .email-role-badge.role-customer-service { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-soft); }
+    /* IG follower reachability band (Owner-direct / Mixed / Agency-likely) */
+    .ig-band { display: inline-flex; align-items: center; font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 3px; margin-left: 6px; letter-spacing: 0.02em; text-transform: uppercase; white-space: nowrap; cursor: help; vertical-align: middle; }
+    .ig-band.band-owner  { background: var(--white); color: var(--text-primary); border: 1px solid var(--text-primary); }
+    .ig-band.band-mixed  { background: var(--surface); color: var(--text-secondary); border: 1px solid var(--border); }
+    .ig-band.band-agency { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-soft); }
+
     /* Source + confidence marks (Layer 3) */
     .email-source-label { font-size: 11px; color: var(--text-tertiary); margin-left: 6px; white-space: nowrap; }
     .email-source-label.src-guessed { color: var(--text-secondary); font-style: italic; }
@@ -1027,6 +1033,23 @@
     const ICO_PHONE = `<svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>`;
     const ICO_EMAIL = `<svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`;
 
+    function bandBadgeHTML(band, followers) {
+      if (!band) return '';
+      const count = followers != null ? followers.toLocaleString() + ' followers' : 'follower count unknown';
+      let cls = 'band-mixed', title = '';
+      if (band === 'Owner-direct') {
+        cls = 'band-owner';
+        title = `Owner-direct — ${count}. Under 5K followers usually means the owner runs the account themselves, so DMs reach them directly.`;
+      } else if (band === 'Mixed-likely') {
+        cls = 'band-mixed';
+        title = `Mixed-likely — ${count}. 5K–15K is the grey zone: may be owner or may be a VA.`;
+      } else if (band === 'Agency-likely') {
+        cls = 'band-agency';
+        title = `Agency-likely — ${count}. Over 15K is usually managed by an agency or social VA — prefer phone / email.`;
+      }
+      return `<span class="ig-band ${cls}" title="${escapeAttr(title)}">${band}</span>`;
+    }
+
     function contactCellIG(r) {
       if (!r.instagram) return '<span class="empty-dash">—</span>';
       const h = igHandle(r.instagram);
@@ -1041,9 +1064,11 @@
       const fallbackMark = isFallback
         ? `<span class="ig-fallback-dot" title="Resolved via Google fallback — please verify before outreach" aria-label="Resolved via Google fallback"></span>`
         : '';
+      const bandBadge = bandBadgeHTML(r.igBand, r.instagram_followers);
       return `<div class="contact-cell">
         <a href="${escapeAttr(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="ico-link ico-ig" title="${escapeAttr(icoTitle)}">${ICO_IG}</a>
         <a href="${escapeAttr(url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="value" title="${escapeAttr(valueTitle)}">@${escapeHTML(h)}${fallbackMark}</a>
+        ${bandBadge}
         <button type="button" class="copy-btn" onclick="event.stopPropagation(); copyValue(this, '${escapeAttr(h)}')" title="Copy handle">${ICO_COPY}</button>
       </div>`;
     }
