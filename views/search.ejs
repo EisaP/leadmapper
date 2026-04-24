@@ -260,12 +260,18 @@
     /* ——— Data table ——— */
     .data-table { width: 100%; font-size: 14px; border-collapse: separate; border-spacing: 0; }
     .data-table thead { position: sticky; top: 0; background: var(--section); z-index: 5; }
-    .data-table th { text-align: left; padding: 11px 14px; font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); user-select: none; }
+    /* Column headers — uniform 44px row, all labels on the same baseline, no wrap */
+    .data-table th { text-align: left; padding: 0 14px; height: 44px; vertical-align: middle; font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); user-select: none; white-space: nowrap; line-height: 1; }
     .data-table th.sortable { cursor: pointer; }
     .data-table th.sortable:hover { color: var(--near-black); }
-    .data-table th.sortable.active { color: var(--indigo); }
-    .data-table th .sort-indicator { opacity: 0.35; margin-left: 4px; font-size: 10px; }
-    .data-table th.active .sort-indicator { opacity: 1; }
+    .data-table th.sortable.active { color: var(--text-primary); font-weight: 500; }
+    /* Header inner wrapper lets us keep label + tooltip + sort indicator on one flex baseline */
+    .th-inner { display: inline-flex; align-items: center; gap: 4px; }
+    .th-inner .info-tip { margin-left: 2px; }
+    .sort-indicator { display: inline-flex; align-items: center; justify-content: center; width: 12px; height: 12px; color: var(--text-tertiary); transition: color 0.15s; }
+    .sort-indicator svg { width: 12px; height: 12px; stroke-width: 1.5; }
+    .data-table th.sortable:hover .sort-indicator { color: var(--text-secondary); }
+    .data-table th.sortable.active .sort-indicator { color: var(--text-primary); }
     .data-table td { padding: 12px 14px; font-size: 14px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--near-black); }
     .data-table tbody tr { cursor: pointer; transition: background 0.12s; }
     .data-table tbody tr:hover { background: var(--section); }
@@ -603,6 +609,12 @@
               <strong style="font-weight: 500;">Layer 3 — pattern-guess emails.</strong> When the website has no email, try common patterns (<code style="font-size: 12px;">info@</code>, <code style="font-size: 12px;">hello@</code>, <code style="font-size: 12px;">{business}@</code> …) and verify each via SMTP. Catch-all domains flagged as medium confidence. Lifts UK hit rate from ~45% to ~65-75%.
             </label>
           </div>
+          <div style="margin-top: 10px; display: flex; align-items: flex-start; gap: 10px;">
+            <input type="checkbox" name="extractFollowers" id="extractFollowers" value="on" <%= (!query || query?.extractFollowers !== 'off') ? 'checked' : '' %> style="margin-top: 3px;">
+            <label for="extractFollowers" style="font-size: 13px; color: var(--body); line-height: 1.5;">
+              <strong style="font-weight: 500;">Extract Instagram follower counts</strong> — looks up every IG handle via Google Search to pull follower count. Uses <strong>1 SerpAPI credit per IG lead</strong>. Results cached 7 days. Powers the follower filter and Owner/Agency-likely routing.
+            </label>
+          </div>
         </details>
 
         <div style="border-top: 1px solid var(--border); padding-top: 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
@@ -638,15 +650,24 @@
             <button class="filter-pill" data-filter="saved" data-value="true" type="button">⭐ Saved only</button>
             <button class="filter-pill" data-filter="decisionMaker" data-value="true" type="button" title="Show only leads with a priority-70+ email (named person, owner, manager, or marketing/partnerships)">Decision-maker emails <span class="count" id="cntDecisionMaker">0</span></button>
             <span style="width: 1px; height: 24px; background: var(--border); margin: 0 8px;"></span>
-            <span class="ui-label" style="margin-right: 4px;">IG followers</span>
-            <button class="filter-pill active" data-filter="followerBand" data-value="any" type="button">Any</button>
-            <button class="filter-pill" data-filter="followerBand" data-value="u1k" type="button" title="Under 1,000 followers">&lt; 1K</button>
-            <button class="filter-pill" data-filter="followerBand" data-value="1k-5k" type="button" title="1K–5K (sweet spot — owner-direct)">1K–5K</button>
-            <button class="filter-pill" data-filter="followerBand" data-value="5k-15k" type="button" title="5K–15K (mixed)">5K–15K</button>
-            <button class="filter-pill" data-filter="followerBand" data-value="15kplus" type="button" title="Over 15K (agency-likely)">15K+</button>
-            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); cursor: pointer; margin-left: 6px;" title="Unknown = Google didn't surface a follower count in the snippet or panel">
-              <input type="checkbox" id="hideUnknownFollowers" style="accent-color: var(--red); width: 14px; height: 14px;"> Hide unknown
-            </label>
+            <div id="followersFilterWrap" style="position: relative; display: inline-flex; align-items: center; gap: 6px;">
+              <span class="ui-label" style="margin-right: 4px;">Followers</span>
+              <select id="followerBandSelect" class="select" style="width: auto; padding: 6px 28px 6px 10px; font-size: 13px; height: auto; min-width: 170px;">
+                <option value="any">Any</option>
+                <option value="u1k">Under 1K · owner-direct</option>
+                <option value="1k-5k">1K–5K · sweet spot</option>
+                <option value="5k-15k">5K–15K · mixed</option>
+                <option value="15kplus">15K+ · agency-likely</option>
+                <option value="unknown">Unknown only</option>
+                <option value="custom">Custom range…</option>
+              </select>
+              <div id="followerCustomRange" style="display: none; align-items: center; gap: 6px; margin-left: 4px;">
+                <input type="number" id="followerCustomMin" min="0" placeholder="Min" style="width: 72px; padding: 6px 8px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px;">
+                <span style="color: var(--text-tertiary);">–</span>
+                <input type="number" id="followerCustomMax" min="0" placeholder="Max" style="width: 72px; padding: 6px 8px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px;">
+                <button type="button" class="btn" id="followerCustomApply" style="font-size: 12px; padding: 5px 10px;">Apply</button>
+              </div>
+            </div>
             <div style="flex: 1;"></div>
             <input class="input" id="textFilter" placeholder="Filter by name..." style="width: 220px; padding: 7px 12px; font-size: 13px;">
             <div style="position: relative;">
@@ -689,24 +710,55 @@
                 <tr>
                   <th style="width: 40px;"><input type="checkbox" id="selectAllCheck" class="row-check" title="Select all visible" aria-label="Select all visible"></th>
                   <th style="width: 40px;"></th>
-                  <th class="sortable" data-sort="title">Name <span class="sort-indicator">↕</span></th>
-                  <th class="sortable" data-sort="rating" style="width: 80px;">Rating <span class="sort-indicator">↕</span></th>
-                  <th class="sortable" data-sort="reviewCount" style="width: 80px; text-align: right;">Reviews <span class="sort-indicator">↕</span></th>
-                  <th class="sortable" data-sort="segmentCode" style="width: 104px;">Segment <span class="sort-indicator">↕</span></th>
-                  <th class="sortable col-outreach col-hidden" data-sort="outreach" style="width: 100px;">Outreach <span class="sort-indicator">↕</span></th>
-                  <th class="sortable" data-sort="instagram" style="width: 160px;">Instagram <span class="sort-indicator">↕</span></th>
-                  <th class="sortable" data-sort="instagram_followers" style="width: 100px; text-align: right;">IG Followers <span class="sort-indicator">↕</span></th>
-                  <th class="sortable" data-sort="phone" style="width: 160px;">Phone <span class="sort-indicator">↕</span></th>
-                  <th class="sortable" data-sort="email" style="width: 260px;">
-                    Email
-                    <button type="button" class="info-tip" aria-label="How emails are scored" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p>Emails are scored by likely role.</p><p><strong>Generic</strong> emails (info@, hello@) reach a shared inbox — ideal for a well-written cold email.</p><p><strong>Named</strong> or <strong>owner-level</strong> emails (sarah@, owner@) are rare on SMB websites but highest intent when found.</p><p>Priority: named 100 · owner 90 · manager 80 · marketing 70 · general 50 · transactional 40 · support 20 · low-value 10.</p></span></button>
-                    <span class="sort-indicator">↕</span>
+                  <th class="sortable" data-sort="title"><span class="th-inner">Name <span class="sort-indicator" aria-hidden="true"></span></span></th>
+                  <th class="sortable" data-sort="rating" style="width: 96px;">
+                    <span class="th-inner">Rating
+                      <button type="button" class="info-tip" aria-label="About the Rating column" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p><strong>Rating</strong> is the Google Maps star rating for this business, between 0 and 5.</p><p>We filter by rating range in the search form to target businesses at a specific quality tier.</p></span></button>
+                      <span class="sort-indicator" aria-hidden="true"></span>
+                    </span>
                   </th>
-                  <th class="col-booking col-hidden" style="width: 140px;">Booking</th>
-                  <th class="col-hours col-hidden" style="width: 120px;">Hours</th>
-                  <th class="col-price col-hidden" style="width: 70px;">Price</th>
-                  <th class="sortable" data-sort="qualityScore" style="width: 76px; text-align: center;">Quality <span class="sort-indicator">↕</span></th>
-                  <th style="width: 52px;">Maps</th>
+                  <th class="sortable" data-sort="reviewCount" style="width: 104px; text-align: right;">
+                    <span class="th-inner" style="justify-content: flex-end; float: right;">Reviews
+                      <button type="button" class="info-tip" aria-label="About the Reviews column" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p><strong>Reviews</strong> is the total number of Google reviews this business has received.</p><p>Used with rating to identify under-reviewed or over-reviewed businesses.</p></span></button>
+                      <span class="sort-indicator" aria-hidden="true"></span>
+                    </span>
+                  </th>
+                  <th class="sortable" data-sort="segmentCode" style="width: 128px;">
+                    <span class="th-inner">Segment
+                      <button type="button" class="info-tip" aria-label="About the Segment column" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p><strong>Segment</strong> classifies each lead based on rating and review patterns.</p><p>Default segments: <strong>B</strong> (high rating, low reviews) · <strong>C</strong> (low rating, high reviews). Customisable via <em>Manage segments</em> in the search form.</p></span></button>
+                      <span class="sort-indicator" aria-hidden="true"></span>
+                    </span>
+                  </th>
+                  <th class="sortable col-outreach col-hidden" data-sort="outreach" style="width: 110px;"><span class="th-inner">Outreach <span class="sort-indicator" aria-hidden="true"></span></span></th>
+                  <th class="sortable" data-sort="instagram" style="width: 180px;">
+                    <span class="th-inner">Instagram
+                      <button type="button" class="info-tip" aria-label="About the Instagram column" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p><strong>Instagram</strong> handle, extracted from the website or via Google search.</p><p>Click the icon to open the profile directly.</p></span></button>
+                      <span class="sort-indicator" aria-hidden="true"></span>
+                    </span>
+                  </th>
+                  <th class="sortable" data-sort="instagram_followers" style="width: 120px; text-align: right;">
+                    <span class="th-inner" style="justify-content: flex-end; float: right;">Followers
+                      <button type="button" class="info-tip tip-right" aria-label="About the Followers column" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p><strong>Followers</strong> shows the Instagram follower count.</p><p>Useful for routing outreach — under <strong>5K</strong> usually means the owner runs the account and DMs reach them directly. Over <strong>15K</strong> is typically agency/VA-managed — phone or email is a better first contact.</p></span></button>
+                      <span class="sort-indicator" aria-hidden="true"></span>
+                    </span>
+                  </th>
+                  <th class="sortable" data-sort="phone" style="width: 160px;"><span class="th-inner">Phone <span class="sort-indicator" aria-hidden="true"></span></span></th>
+                  <th class="sortable" data-sort="email" style="width: 280px;">
+                    <span class="th-inner">Email
+                      <button type="button" class="info-tip" aria-label="How emails are scored" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p>Emails are scored by likely role.</p><p><strong>Generic</strong> emails (info@, hello@) reach a shared inbox — ideal for a well-written cold email.</p><p><strong>Named</strong> or <strong>owner-level</strong> emails (sarah@, owner@) are rare on SMB websites but highest intent when found.</p><p>Priority: named 100 · owner 90 · manager 80 · marketing 70 · general 50 · transactional 40 · support 20 · low-value 10.</p></span></button>
+                      <span class="sort-indicator" aria-hidden="true"></span>
+                    </span>
+                  </th>
+                  <th class="col-booking col-hidden" style="width: 140px;"><span class="th-inner">Booking</span></th>
+                  <th class="col-hours col-hidden" style="width: 120px;"><span class="th-inner">Hours</span></th>
+                  <th class="col-price col-hidden" style="width: 70px;"><span class="th-inner">Price</span></th>
+                  <th class="sortable" data-sort="qualityScore" style="width: 96px; text-align: center;">
+                    <span class="th-inner" style="justify-content: center;">Quality
+                      <button type="button" class="info-tip tip-right" aria-label="About the Quality score" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p><strong>Quality Score</strong> (0–100) reflects how much contact data was extracted for this lead.</p><p>Higher scores mean more reachable and higher confidence. Typical breakdown:</p><ul><li>Email found (verified): +25</li><li>Phone number: +25</li><li>Instagram handle: +25</li><li>Website reachable: +15</li><li>Owner name extracted: +10</li></ul><p>Email points scale by source confidence — website-scraped or verified guesses score full value; catch-all guesses score 60%; unverifiable scores 20%.</p><p>Below <strong>40</strong> usually means one or two contact methods only. Above <strong>75</strong> = highly reachable across channels.</p></span></button>
+                      <span class="sort-indicator" aria-hidden="true"></span>
+                    </span>
+                  </th>
+                  <th style="width: 52px;"><span class="th-inner">Maps</span></th>
                 </tr>
               </thead>
               <tbody id="resultsBody"></tbody>
@@ -780,7 +832,7 @@
     let savedLeads = {};
     const state = {
       channels: { email: true, phone: true, instagram: true },
-      filters: { segment: 'all', saved: false, decisionMaker: false, followerBand: 'any', hideUnknownFollowers: false, text: '' },
+      filters: { segment: 'all', saved: false, decisionMaker: false, followerBand: 'any', followerCustomMin: null, followerCustomMax: null, text: '' },
       sort: { key: null, dir: 'asc' },
       expanded: new Set(),
       selected: new Set()
@@ -1054,6 +1106,8 @@
         if (igCb && prefs.useIgFallback === 'off') igCb.checked = false;
         const l3Cb = document.getElementById('useLayer3');
         if (l3Cb && prefs.useLayer3 === 'off') l3Cb.checked = false;
+        const efCb = document.getElementById('extractFollowers');
+        if (efCb && prefs.extractFollowers === 'off') efCb.checked = false;
       }
       // Restore column visibility
       const cols = (prefs.columns || {});
@@ -1075,7 +1129,8 @@
         maxReviews: fd.get('maxReviews'), maxResults: fd.get('maxResults'),
         targetSegment: fd.get('targetSegment'),
         useIgFallback: fd.get('useIgFallback') ? 'on' : 'off',
-        useLayer3: fd.get('useLayer3') ? 'on' : 'off'
+        useLayer3: fd.get('useLayer3') ? 'on' : 'off',
+        extractFollowers: fd.get('extractFollowers') ? 'on' : 'off'
       });
       const btn = document.getElementById('searchBtn');
       btn.disabled = true;
@@ -1187,25 +1242,31 @@
       if (r.emails && r.emails.some(e => (e.priority || 0) >= 70)) return true;
       return false;
     }
-    function passesFollowerBand(r, band, hideUnknown) {
+    function passesFollowerBand(r, band, min, max) {
       const f = r.instagram_followers;
-      if (f == null) return !hideUnknown;
       if (band === 'any') return true;
+      if (band === 'unknown') return f == null;
+      if (f == null) return false; // every specific band excludes unknown
       if (band === 'u1k')    return f < 1000;
       if (band === '1k-5k')  return f >= 1000 && f < 5000;
       if (band === '5k-15k') return f >= 5000 && f <= 15000;
       if (band === '15kplus') return f > 15000;
+      if (band === 'custom') {
+        if (min != null && f < min) return false;
+        if (max != null && f > max) return false;
+        return true;
+      }
       return true;
     }
     function applyFilters() {
-      const { segment, saved, decisionMaker, followerBand, hideUnknownFollowers, text } = state.filters;
+      const { segment, saved, decisionMaker, followerBand, followerCustomMin, followerCustomMax, text } = state.filters;
       const q = text.trim().toLowerCase();
       let rows = allResults.filter(r => {
         if (!passesChannels(r)) return false;
         if (segment !== 'all' && r.segmentCode !== segment) return false;
         if (saved && !savedLeads[r.title]) return false;
         if (decisionMaker && !isDecisionMakerLead(r)) return false;
-        if (!passesFollowerBand(r, followerBand, hideUnknownFollowers)) return false;
+        if (!passesFollowerBand(r, followerBand, followerCustomMin, followerCustomMax)) return false;
         if (q && !r.title.toLowerCase().includes(q)) return false;
         return true;
       });
@@ -1531,8 +1592,29 @@
       }
       renderRows();
     }));
-    document.getElementById('hideUnknownFollowers')?.addEventListener('change', (e) => {
-      state.filters.hideUnknownFollowers = e.target.checked;
+    // Follower-band dropdown (plus inline custom-range editor)
+    const followerSel = document.getElementById('followerBandSelect');
+    const followerCustom = document.getElementById('followerCustomRange');
+    followerSel?.addEventListener('change', (e) => {
+      const v = e.target.value;
+      state.filters.followerBand = v;
+      if (v === 'custom') {
+        followerCustom.style.display = 'inline-flex';
+      } else {
+        followerCustom.style.display = 'none';
+        state.filters.followerCustomMin = null;
+        state.filters.followerCustomMax = null;
+      }
+      renderRows();
+    });
+    document.getElementById('followerCustomApply')?.addEventListener('click', () => {
+      const minEl = document.getElementById('followerCustomMin');
+      const maxEl = document.getElementById('followerCustomMax');
+      const min = minEl.value === '' ? null : parseInt(minEl.value, 10);
+      const max = maxEl.value === '' ? null : parseInt(maxEl.value, 10);
+      state.filters.followerCustomMin = (min != null && !isNaN(min)) ? min : null;
+      state.filters.followerCustomMax = (max != null && !isNaN(max)) ? max : null;
+      state.filters.followerBand = 'custom';
       renderRows();
     });
     let textTimer = null;
@@ -1542,15 +1624,15 @@
     });
     window.clearAllFilters = () => {
       state.channels = { email: true, phone: true, instagram: true };
-      state.filters = { segment: 'all', saved: false, decisionMaker: false, followerBand: 'any', hideUnknownFollowers: false, text: '' };
+      state.filters = { segment: 'all', saved: false, decisionMaker: false, followerBand: 'any', followerCustomMin: null, followerCustomMax: null, text: '' };
       const tf = document.getElementById('textFilter'); if (tf) tf.value = '';
-      const hu = document.getElementById('hideUnknownFollowers'); if (hu) hu.checked = false;
+      const fs = document.getElementById('followerBandSelect'); if (fs) fs.value = 'any';
+      const fc = document.getElementById('followerCustomRange'); if (fc) fc.style.display = 'none';
       document.querySelectorAll('.channel-check').forEach(cb => cb.checked = true);
       document.querySelectorAll('.filter-pill').forEach(p => {
         const isToggle = p.dataset.filter === 'saved' || p.dataset.filter === 'decisionMaker';
         if (isToggle) { p.classList.remove('active'); return; }
-        // Default selected = value 'all' (segment) or 'any' (followerBand)
-        p.classList.toggle('active', p.dataset.value === 'all' || p.dataset.value === 'any');
+        p.classList.toggle('active', p.dataset.value === 'all');
       });
       renderRows();
     };
@@ -1573,18 +1655,36 @@
     };
 
     // ——— Sorting ———
-    document.querySelectorAll('th.sortable').forEach(th => th.addEventListener('click', () => {
-      const key = th.dataset.sort;
-      if (state.sort.key === key) state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
-      else { state.sort.key = key; state.sort.dir = 'asc'; }
+    // Sort indicators are drawn as Lucide chevron SVGs. Cycle: unsorted → desc → asc → unsorted.
+    const SORT_ICO_NONE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>';
+    const SORT_ICO_DESC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+    const SORT_ICO_ASC  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>';
+    function paintSortIndicators() {
       document.querySelectorAll('th.sortable').forEach(x => {
-        x.classList.toggle('active', x.dataset.sort === state.sort.key);
         const ind = x.querySelector('.sort-indicator');
-        if (x.dataset.sort === state.sort.key) ind.textContent = state.sort.dir === 'asc' ? '↑' : '↓';
-        else ind.textContent = '↕';
+        if (!ind) return;
+        const isActive = x.dataset.sort === state.sort.key;
+        x.classList.toggle('active', isActive);
+        if (!isActive) { ind.innerHTML = SORT_ICO_NONE; return; }
+        ind.innerHTML = state.sort.dir === 'asc' ? SORT_ICO_ASC : SORT_ICO_DESC;
       });
+    }
+    document.querySelectorAll('th.sortable').forEach(th => th.addEventListener('click', (e) => {
+      // Don't cycle sort if the click came from the info-tip button inside the header
+      if (e.target.closest('.info-tip')) return;
+      const key = th.dataset.sort;
+      if (state.sort.key === key) {
+        // cycle: desc → asc → unsorted (null key)
+        if (state.sort.dir === 'desc') state.sort.dir = 'asc';
+        else if (state.sort.dir === 'asc') { state.sort.key = null; state.sort.dir = 'asc'; }
+      } else {
+        state.sort.key = key; state.sort.dir = 'desc'; // first click = descending (highest/best first)
+      }
+      paintSortIndicators();
       renderRows();
     }));
+    // Initial paint — all headers show the neutral up+down chevron
+    paintSortIndicators();
 
     // ——— Select-all checkbox ———
     document.getElementById('selectAllCheck')?.addEventListener('change', (e) => {
@@ -1691,7 +1791,7 @@
       copyList(rows.filter(r => r.phone).map(r => r.phone), 'No phones in current filter', 'Phones copied');
     });
     function exportCSV(rows, filename) {
-      const headers = ['Name','Phone','Email','EmailSource','EmailConfidence','EmailRole','Instagram','IGFollowers','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','Segment','Outreach','QualityScore','Google Maps URL'];
+      const headers = ['Name','Phone','Email','EmailSource','EmailConfidence','EmailRole','Instagram','Followers','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','Segment','Outreach','QualityScore','Google Maps URL'];
       const csvRows = rows.map(r => [
         r.title, r.phone, r.email, r.email_source || '', r.email_confidence || '', r.emailRole || '',
         r.instagram || '', r.instagram_followers != null ? r.instagram_followers : '',

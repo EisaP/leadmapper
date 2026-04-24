@@ -143,6 +143,31 @@ function followerCountFromAnyText(value) {
   return null;
 }
 
+// --- Direct follower-count lookup for a known Instagram handle ---
+// Runs for every lead that HAS an IG handle but no follower count yet.
+// Uses SerpAPI Google Search — 1 credit per handle — cached server-side for 7 days.
+async function followersForHandle(handle, businessName) {
+  if (!handle) return null;
+  const cleanHandle = String(handle).replace(/^[@\/]+/, '');
+  if (!cleanHandle) return null;
+  // Query format: site-scoped search picks up the profile's knowledge panel / rich snippet reliably
+  const query = `site:instagram.com "${cleanHandle}" followers`;
+  let data;
+  try {
+    data = await serpApiGoogleSearch(query, 5);
+  } catch (e) {
+    console.log(`[followers] SerpAPI error for @${cleanHandle}: ${e.message}`);
+    return null;
+  }
+  const n = followerCountFromAnyText(data.knowledge_graph)
+    ?? followerCountFromAnyText(data.answer_box)
+    ?? followerCountFromAnyText(data.organic_results);
+  if (n != null) {
+    console.log(`[followers] @${cleanHandle}: ${n.toLocaleString()}`);
+  }
+  return n;
+}
+
 // --- Google fallback Instagram discovery ---
 // Used when primary enrichment couldn't find an IG handle AND the business's listed website
 // was rejected (aggregator) or missing. Searches Google for "business" "city" instagram and validates candidates.
@@ -478,6 +503,39 @@ async function handleSearch(src, res) {
       }
     }
 
+    // --- Dedicated follower-count lookup ---
+    // Covers every lead that has an IG handle but no follower count yet (typically leads whose
+    // handle came from the website scrape — the Google fallback only ran for aggregator/no-website cases).
+    // Controlled by `extractFollowers` toggle (default ON) — users can disable to save credits.
+    // Server-side cached per handle for 7 days so repeat searches don't pay twice.
+    const extractFollowers = String(src.extractFollowers || 'on') !== 'off';
+    if (enrich && extractFollowers) {
+      const followerQueue = filteredResults.filter(r => r.instagram && r.instagram_followers == null);
+      if (followerQueue.length > 0) {
+        console.log(`[followers] Fetching follower counts for ${followerQueue.length} IG handles (+${followerQueue.length} credits)`);
+        const FOLLOWER_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+        const CONCURRENCY = 3;
+        let populated = 0;
+        for (let i = 0; i < followerQueue.length; i += CONCURRENCY) {
+          const batch = followerQueue.slice(i, i + CONCURRENCY);
+          await Promise.all(batch.map(async lead => {
+            const handle = String(lead.instagram).replace(/^[@\/]+/, '').toLowerCase();
+            const cacheKey = `followers:${handle}`;
+            const cached = dbGet(cacheKey);
+            if (cached && cached.ts && (Date.now() - cached.ts) < FOLLOWER_CACHE_TTL) {
+              if (cached.n != null) { lead.instagram_followers = cached.n; populated++; }
+              return;
+            }
+            let n = null;
+            try { n = await followersForHandle(handle, lead.title); } catch {}
+            dbSet(cacheKey, { n, ts: Date.now() });
+            if (n != null) { lead.instagram_followers = n; populated++; }
+          }));
+        }
+        console.log(`[followers] Populated ${populated}/${followerQueue.length}`);
+      }
+    }
+
     // Tag segments and contact method
     filteredResults.forEach(r => {
       // Segment tagging
@@ -588,7 +646,7 @@ async function handleSearch(src, res) {
     res.render('search', {
       results: segmentFiltered,
       totalScraped: mappedResults.length,
-      query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useIgFallback, useLayer3: useLayer3 ? 'on' : 'off', outreachPriority, targetSegment, searchString: keywords.join(', ') + ` in ${city}, ${state}` },
+      query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useIgFallback, useLayer3: useLayer3 ? 'on' : 'off', extractFollowers: extractFollowers ? 'on' : 'off', outreachPriority, targetSegment, searchString: keywords.join(', ') + ` in ${city}, ${state}` },
       error: null,
       recentSearches: getRecentSearches(), ...getSidebarCounts()
     });
