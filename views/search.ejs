@@ -154,6 +154,29 @@
     .email-role-badge.role-named, .email-role-badge.role-owner, .email-role-badge.role-manager { background: var(--white); color: var(--text-secondary); border: 1px solid var(--border); }
     .email-role-badge.role-marketing, .email-role-badge.role-general, .email-role-badge.role-transactional, .email-role-badge.role-other { background: var(--surface); color: var(--text-tertiary); }
     .email-role-badge.role-low-value, .email-role-badge.role-customer-service { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-soft); }
+    /* ——— Segment editor modal ——— */
+    .seg-modal-backdrop { position: fixed; inset: 0; background: rgba(10,10,10,0.45); z-index: 200; display: none; align-items: flex-start; justify-content: center; padding: 64px 20px; overflow: auto; }
+    .seg-modal-backdrop.open { display: flex; }
+    .seg-modal { background: var(--white); border-radius: 10px; box-shadow: 0 20px 50px rgba(10,10,10,0.2); padding: 28px; max-width: 640px; width: 100%; }
+    .seg-modal h2 { font-size: 20px; font-weight: 500; margin: 0 0 6px; }
+    .seg-modal .seg-modal-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
+    .seg-card { border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px; position: relative; }
+    .seg-card.custom { border-left: 3px solid var(--red); }
+    .seg-card .seg-card-title { font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .seg-card .seg-defn { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; }
+    .seg-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .seg-grid label { display: block; font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+    .seg-grid input { font-family: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; width: 100%; }
+    .seg-grid input:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 3px rgba(225,29,46,0.12); }
+    .seg-name-row { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 12px; }
+    .seg-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+    .seg-add-btn { width: 100%; padding: 10px; background: var(--surface); border: 1px dashed var(--border-strong); border-radius: 8px; color: var(--text-secondary); font-family: inherit; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+    .seg-add-btn:hover { color: var(--red); border-color: var(--red); background: var(--white); }
+    .seg-modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .seg-definition-hint { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+    .seg-delete-btn { background: none; border: none; color: var(--text-tertiary); font-size: 12px; cursor: pointer; padding: 4px 6px; border-radius: 4px; margin-left: auto; }
+    .seg-delete-btn:hover { color: var(--red); background: var(--surface); }
+
     /* IG follower reachability band (Owner-direct / Mixed / Agency-likely) */
     .ig-band { display: inline-flex; align-items: center; font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 3px; margin-left: 6px; letter-spacing: 0.02em; text-transform: uppercase; white-space: nowrap; cursor: help; vertical-align: middle; }
     .ig-band.band-owner  { background: var(--white); color: var(--text-primary); border: 1px solid var(--text-primary); }
@@ -531,14 +554,18 @@
             </div>
             <div>
               <label class="ui-label" style="display: flex; align-items: center; margin-bottom: 6px;">Target segment
-                <button type="button" class="info-tip" aria-label="More info about Target segment" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Segment B</strong> — 4.1–4.7 ★ &amp; ≤ 300 reviews. Under-exposed, easy upside from more reviews.</p><p><strong>Segment C</strong> — below 4.1 ★ &amp; ≥ 80 reviews. Reputation recovery target.</p><p>Selecting a specific segment pre-filters results server-side so you only see matches.</p></span></button>
+                <button type="button" class="info-tip" aria-label="More info about Target segment" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Segment B</strong> — good rating, under-reviewed. Easy upside from more reviews.</p><p><strong>Segment C</strong> — low rating, needs help. Reputation recovery target.</p><p>Thresholds are editable — click <em>Manage segments</em> below the dropdown.</p></span></button>
               </label>
-              <select class="select" name="targetSegment">
+              <select class="select" name="targetSegment" id="targetSegmentSelect">
                 <option value="all" <%= (!query?.targetSegment || query?.targetSegment === 'all') ? 'selected' : '' %>>All candidates</option>
-                <option value="B" <%= query?.targetSegment === 'B' ? 'selected' : '' %>>Segment B — good rating, under-reviewed</option>
-                <option value="C" <%= query?.targetSegment === 'C' ? 'selected' : '' %>>Segment C — low rating, needs help</option>
+                <option value="B" <%= query?.targetSegment === 'B' ? 'selected' : '' %>>Segment B</option>
+                <option value="C" <%= query?.targetSegment === 'C' ? 'selected' : '' %>>Segment C</option>
                 <option value="BC" <%= query?.targetSegment === 'BC' ? 'selected' : '' %>>Both B and C</option>
               </select>
+              <div style="margin-top: 4px; display: flex; align-items: center; gap: 8px; font-size: 12px;">
+                <a href="#" onclick="event.preventDefault(); openSegmentModal();" style="color: var(--red); font-weight: 500;">Manage segments →</a>
+                <span id="activeSegDefn" style="color: var(--text-tertiary); font-size: 11px;"></span>
+              </div>
             </div>
           </div>
         </div>
@@ -732,6 +759,22 @@
 
   <div class="toast" id="toast"></div>
 
+  <!-- Segment management modal — edit B/C thresholds, add custom segments -->
+  <div class="seg-modal-backdrop" id="segModal" role="dialog" aria-labelledby="segModalTitle" aria-modal="true">
+    <div class="seg-modal">
+      <h2 id="segModalTitle">Manage segments</h2>
+      <div class="seg-modal-sub">Tune the B/C thresholds for your target market, or build your own segment. Saved locally in your browser — never leaves this device.</div>
+      <div id="segList"></div>
+      <button type="button" class="seg-add-btn" onclick="addCustomSegment()">+ Add custom segment</button>
+      <div class="seg-modal-footer">
+        <button type="button" class="btn" onclick="resetSegmentsToDefaults()">Reset to defaults</button>
+        <div style="flex: 1;"></div>
+        <button type="button" class="btn" onclick="closeSegmentModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveSegmentsFromModal()">Save</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const allResults = <%- JSON.stringify(results || []) %>;
     let savedLeads = {};
@@ -845,6 +888,158 @@
     const LS_KEY = 'leadmapper:prefs';
     const loadPrefs = () => { try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; } };
     const savePrefs = (p) => localStorage.setItem(LS_KEY, JSON.stringify({ ...loadPrefs(), ...p }));
+
+    // ——— Configurable segments ———
+    // Stored under `leadhunter_segments_v1`. Holds B/C defaults + any user-added custom segments.
+    // Each segment: { id, name, minRating, maxRating, minReviews, maxReviews, keyword }
+    const SEG_KEY = 'leadhunter_segments_v1';
+    const DEFAULT_SEGMENTS = {
+      B: { id: 'B', name: 'Segment B', minRating: 4.1, maxRating: 4.7, minReviews: 0,  maxReviews: 300, keyword: '' },
+      C: { id: 'C', name: 'Segment C', minRating: 0,   maxRating: 4.0, minReviews: 80, maxReviews: null, keyword: '' },
+      custom: []
+    };
+    function loadSegments() {
+      try {
+        const raw = localStorage.getItem(SEG_KEY);
+        if (!raw) return JSON.parse(JSON.stringify(DEFAULT_SEGMENTS));
+        const parsed = JSON.parse(raw);
+        // Hydrate missing pieces with defaults
+        return {
+          B: { ...DEFAULT_SEGMENTS.B, ...(parsed.B || {}) },
+          C: { ...DEFAULT_SEGMENTS.C, ...(parsed.C || {}) },
+          custom: Array.isArray(parsed.custom) ? parsed.custom : []
+        };
+      } catch { return JSON.parse(JSON.stringify(DEFAULT_SEGMENTS)); }
+    }
+    function saveSegments(segs) {
+      try { localStorage.setItem(SEG_KEY, JSON.stringify(segs)); } catch {}
+    }
+    function segmentMatches(lead, seg) {
+      if (!seg) return false;
+      const rating = lead.rating;
+      const reviews = lead.reviewCount == null ? 0 : lead.reviewCount;
+      if (seg.minRating != null && seg.minRating !== '' && (rating == null || rating < +seg.minRating)) return false;
+      if (seg.maxRating != null && seg.maxRating !== '' && (rating == null || rating > +seg.maxRating)) return false;
+      if (seg.minReviews != null && seg.minReviews !== '' && reviews < +seg.minReviews) return false;
+      if (seg.maxReviews != null && seg.maxReviews !== '' && reviews > +seg.maxReviews) return false;
+      if (seg.keyword && seg.keyword.trim()) {
+        const kw = seg.keyword.trim().toLowerCase();
+        const hay = `${lead.title || ''} ${lead.category || ''}`.toLowerCase();
+        if (!hay.includes(kw)) return false;
+      }
+      return true;
+    }
+    // Reclassify every result based on the user's current saved segments.
+    // Priority order: B first, then C, then custom in saved order. First match wins.
+    function reclassifyAllResults() {
+      const segs = loadSegments();
+      for (const r of allResults) {
+        if (segmentMatches(r, segs.B))      { r.segmentCode = 'B'; r.segmentName = segs.B.name; }
+        else if (segmentMatches(r, segs.C)) { r.segmentCode = 'C'; r.segmentName = segs.C.name; }
+        else {
+          r.segmentCode = '-'; r.segmentName = 'Other';
+          for (const cs of segs.custom) {
+            if (segmentMatches(r, cs)) { r.segmentCode = cs.id; r.segmentName = cs.name; break; }
+          }
+        }
+      }
+    }
+    function segThresholdText(seg) {
+      const bits = [];
+      const ratingBits = [];
+      if (seg.minRating != null && seg.minRating !== '') ratingBits.push(String(seg.minRating));
+      if (seg.maxRating != null && seg.maxRating !== '') ratingBits.push(String(seg.maxRating));
+      if (ratingBits.length) bits.push(`${ratingBits.join('–')} ★`);
+      if (seg.minReviews != null && seg.minReviews !== '' && +seg.minReviews > 0) bits.push(`≥${seg.minReviews} reviews`);
+      if (seg.maxReviews != null && seg.maxReviews !== '') bits.push(`≤${seg.maxReviews} reviews`);
+      if (seg.keyword && seg.keyword.trim()) bits.push(`contains "${seg.keyword.trim()}"`);
+      return bits.join(' · ') || 'any rating / any reviews';
+    }
+
+    // Modal: render, edit, save
+    function segCardHTML(seg, kind) {
+      const isCustom = kind === 'custom';
+      const badge = isCustom ? '<span style="font-size:10px;color:var(--red);text-transform:uppercase;letter-spacing:0.06em;">Custom</span>' : '';
+      return `
+        <div class="seg-card ${isCustom ? 'custom' : ''}" data-seg-id="${seg.id}" data-seg-kind="${kind}">
+          <div class="seg-card-title">${seg.id === 'B' || seg.id === 'C' ? 'Segment ' + seg.id : 'Custom'} ${badge}${isCustom ? `<button type="button" class="seg-delete-btn" onclick="deleteSegmentRow(this)">Delete</button>` : ''}</div>
+          <div class="seg-name-row">
+            <div>
+              <label style="font-size:11px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:4px;">Name</label>
+              <input type="text" class="seg-name" maxlength="30" value="${escapeAttr(seg.name || '')}" placeholder="e.g. Manchester premium" style="font-family:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;width:100%;">
+            </div>
+          </div>
+          <div class="seg-grid">
+            <div><label>Min rating</label><input type="number" class="seg-minRating" step="0.1" min="0" max="5" value="${seg.minRating == null ? '' : seg.minRating}"></div>
+            <div><label>Max rating</label><input type="number" class="seg-maxRating" step="0.1" min="0" max="5" value="${seg.maxRating == null ? '' : seg.maxRating}"></div>
+            <div><label>Min reviews</label><input type="number" class="seg-minReviews" min="0" value="${seg.minReviews == null ? '' : seg.minReviews}"></div>
+            <div><label>Max reviews</label><input type="number" class="seg-maxReviews" min="0" value="${seg.maxReviews == null ? '' : seg.maxReviews}"></div>
+          </div>
+          ${isCustom ? `
+          <div><label style="font-size:11px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:4px;">Keyword filter <span style="text-transform:none;letter-spacing:0;color:var(--text-tertiary);">— matches name OR category (optional)</span></label>
+            <input type="text" class="seg-keyword" value="${escapeAttr(seg.keyword || '')}" style="font-family:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;width:100%;" placeholder="e.g. specialty"></div>
+          ` : ''}
+        </div>
+      `;
+    }
+    function renderSegmentModal() {
+      const segs = loadSegments();
+      const list = document.getElementById('segList');
+      if (!list) return;
+      list.innerHTML = segCardHTML(segs.B, 'B') + segCardHTML(segs.C, 'C') + segs.custom.map(c => segCardHTML(c, 'custom')).join('');
+    }
+    window.openSegmentModal = () => { renderSegmentModal(); document.getElementById('segModal').classList.add('open'); };
+    window.closeSegmentModal = () => { document.getElementById('segModal').classList.remove('open'); };
+    window.addCustomSegment = () => {
+      const list = document.getElementById('segList');
+      const id = 'cs_' + Date.now().toString(36);
+      list.insertAdjacentHTML('beforeend', segCardHTML({ id, name: '', minRating: '', maxRating: '', minReviews: '', maxReviews: '', keyword: '' }, 'custom'));
+    };
+    window.deleteSegmentRow = (btn) => { btn.closest('.seg-card').remove(); };
+    window.resetSegmentsToDefaults = () => {
+      if (!confirm('Reset Segment B and C to their original thresholds and remove all custom segments?')) return;
+      saveSegments(JSON.parse(JSON.stringify(DEFAULT_SEGMENTS)));
+      renderSegmentModal();
+    };
+    window.saveSegmentsFromModal = () => {
+      const cards = document.querySelectorAll('#segList .seg-card');
+      const next = { B: { ...DEFAULT_SEGMENTS.B }, C: { ...DEFAULT_SEGMENTS.C }, custom: [] };
+      cards.forEach(card => {
+        const kind = card.dataset.segKind;
+        const id = card.dataset.segId;
+        const nameEl = card.querySelector('.seg-name');
+        const getVal = (cls, parser) => {
+          const el = card.querySelector(cls);
+          if (!el) return '';
+          const v = el.value;
+          if (v === '' || v == null) return '';
+          const n = parser ? parser(v) : v;
+          return Number.isFinite(n) ? n : (parser ? '' : v);
+        };
+        const entry = {
+          id,
+          name: (nameEl?.value || '').trim() || (kind === 'B' ? 'Segment B' : kind === 'C' ? 'Segment C' : 'Custom'),
+          minRating: getVal('.seg-minRating', parseFloat),
+          maxRating: getVal('.seg-maxRating', parseFloat),
+          minReviews: getVal('.seg-minReviews', parseInt),
+          maxReviews: getVal('.seg-maxReviews', parseInt),
+          keyword: card.querySelector('.seg-keyword')?.value || ''
+        };
+        if (kind === 'B') next.B = entry;
+        else if (kind === 'C') next.C = entry;
+        else if (kind === 'custom' && entry.name.trim()) next.custom.push(entry);
+      });
+      saveSegments(next);
+      closeSegmentModal();
+      // Reclassify + re-render without refetching
+      reclassifyAllResults();
+      render();
+      showToast('Segments saved');
+    };
+    // Close on backdrop click
+    document.getElementById('segModal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'segModal') closeSegmentModal();
+    });
     (function restorePrefs() {
       const prefs = loadPrefs();
       if (!<%= !!query ? 'true' : 'false' %>) {
@@ -927,10 +1122,16 @@
           <div class="stat-sub">businesses matched your filters</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Segmented</div>
+          <div class="stat-label" style="display: flex; align-items: center;">Segmented
+            <button type="button" class="info-tip" aria-label="Segment definitions" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p><strong>${loadSegments().B.name}</strong> — ${segThresholdText(loadSegments().B)}</p><p><strong>${loadSegments().C.name}</strong> — ${segThresholdText(loadSegments().C)}</p><p>Click <em>Manage segments</em> in the search form to edit these thresholds or add your own.</p></span></button>
+          </div>
           <div class="stat-value">${segTotal}</div>
-          <div class="stat-sub">${segB} in Segment B · ${segC} in Segment C</div>
-          <div class="stat-microbar" title="Segment B (black) vs Segment C (red)"><div style="width: ${bPct}%; background: var(--black);"></div><div style="width: ${cPct}%; background: var(--red);"></div></div>
+          <div class="stat-sub">${segB} in ${loadSegments().B.name} · ${segC} in ${loadSegments().C.name}</div>
+          <div class="stat-microbar" title="${loadSegments().B.name} (black) vs ${loadSegments().C.name} (red)"><div style="width: ${bPct}%; background: var(--black);"></div><div style="width: ${cPct}%; background: var(--red);"></div></div>
+          <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 6px; line-height: 1.35;">
+            <div>${loadSegments().B.name}: ${segThresholdText(loadSegments().B)}</div>
+            <div>${loadSegments().C.name}: ${segThresholdText(loadSegments().C)}</div>
+          </div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Outreach mix</div>
@@ -962,6 +1163,12 @@
       document.getElementById('cntSegB').textContent = allResults.filter(r => r.segmentCode === 'B').length;
       document.getElementById('cntSegC').textContent = allResults.filter(r => r.segmentCode === 'C').length;
       document.getElementById('cntSegOther').textContent = allResults.filter(r => r.segmentCode === '-').length;
+      // Relabel Segment B/C pills using the saved segment names (e.g. "Manchester premium")
+      const segs = loadSegments();
+      const pillB = document.querySelector('[data-filter="segment"][data-value="B"]');
+      const pillC = document.querySelector('[data-filter="segment"][data-value="C"]');
+      if (pillB) pillB.childNodes[0].nodeValue = segs.B.name + ' ';
+      if (pillC) pillC.childNodes[0].nodeValue = segs.C.name + ' ';
       const dmEl = document.getElementById('cntDecisionMaker');
       if (dmEl) dmEl.textContent = allResults.filter(isDecisionMakerLead).length;
     }
@@ -1514,8 +1721,26 @@
       showToast(`Exported ${rows.length} rows as JSON`);
     });
 
-    function render() { renderStats(); updateFilterCounts(); renderRows(); }
+    function render() { renderStats(); updateFilterCounts(); renderRows(); renderActiveSegDefn(); }
+    // Reclassify every result with the user's saved segment thresholds before the first paint,
+    // so custom segments and edited B/C behave immediately (no SerpAPI refetch needed).
+    try { reclassifyAllResults(); } catch {}
     render();
+
+    // Show the active target-segment's threshold under the dropdown (e.g. "4.1–4.7 ★ · ≤300 reviews")
+    function renderActiveSegDefn() {
+      const el = document.getElementById('activeSegDefn');
+      if (!el) return;
+      const sel = document.getElementById('targetSegmentSelect');
+      const segs = loadSegments();
+      const val = sel ? sel.value : 'all';
+      if (val === 'all') { el.textContent = 'All leads, no filter'; return; }
+      if (val === 'B') { el.textContent = `${segs.B.name} · ${segThresholdText(segs.B)}`; return; }
+      if (val === 'C') { el.textContent = `${segs.C.name} · ${segThresholdText(segs.C)}`; return; }
+      if (val === 'BC') { el.textContent = `Both · ${segs.B.name} or ${segs.C.name}`; return; }
+      el.textContent = '';
+    }
+    document.getElementById('targetSegmentSelect')?.addEventListener('change', renderActiveSegDefn);
 
     // Sticky summary bar — fire when the sentinel (just below the heading) leaves the viewport
     (function wireStickySummary() {
