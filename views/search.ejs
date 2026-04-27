@@ -228,6 +228,25 @@
       margin-left: 6px; vertical-align: middle; flex-shrink: 0;
     }
 
+    /* ——— Cache prompt banner (pre-search hit) + cached badge (post-load) ——— */
+    .cache-prompt {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 14px 18px; margin-bottom: 24px;
+      background: var(--white); border: 1px solid var(--border); border-left: 3px solid var(--red);
+      border-radius: 8px; font-size: 13px; color: var(--text-primary); line-height: 1.5;
+    }
+    .cache-prompt .cp-body { flex: 1; }
+    .cache-prompt .cp-headline { font-weight: 500; margin-bottom: 4px; }
+    .cache-prompt .cp-meta { color: var(--text-secondary); font-size: 12px; }
+    .cache-prompt .cp-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+    .cache-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 12px; margin-bottom: 12px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+      font-size: 12px; color: var(--text-secondary);
+    }
+    .cache-badge a { color: var(--red); font-weight: 500; }
+
     /* ——— Dismissible intro banner ——— */
     .intro-banner {
       display: flex; align-items: flex-start; gap: 12px;
@@ -447,6 +466,51 @@
       </div>
       <!-- Sentinel for the sticky bar: observe this element; when it leaves the viewport, the sticky bar becomes visible -->
       <div id="stickySentinel" style="height: 1px;"></div>
+
+      <% if (typeof cachePrompt !== 'undefined' && cachePrompt) { %>
+        <div class="cache-prompt" role="status">
+          <div class="cp-body">
+            <div class="cp-headline">This search was run <%= cachePrompt.ageDays === 0 ? 'today' : cachePrompt.ageDays === 1 ? 'yesterday' : cachePrompt.ageDays + ' days ago' %> by the team.</div>
+            <div class="cp-meta">
+              <%= cachePrompt.totalLeads %> leads · <%= cachePrompt.emailCount %> emails · <%= cachePrompt.instagramCount %> Instagram · <%= cachePrompt.phoneCount %> phones · <%= cachePrompt.credits %> SerpAPI credit<%= cachePrompt.credits === 1 ? '' : 's' %> used
+            </div>
+          </div>
+          <div class="cp-actions">
+            <%
+              const buildUrl = (extras) => {
+                const p = new URLSearchParams({
+                  keyword: query?.keyword || '', city: query?.city || '', state: query?.state || '',
+                  ratingMin: query?.ratingMin || '', ratingMax: query?.ratingMax || '',
+                  maxReviews: query?.maxReviews || '', maxResults: query?.maxResults || 100,
+                  targetSegment: query?.targetSegment || 'all',
+                  outreachPriority: query?.outreachPriority || 'phone-first',
+                  ...extras
+                });
+                return '/search?' + p.toString();
+              };
+            %>
+            <a class="btn btn-primary" href="<%= buildUrl({ cacheReuse: '1' }) %>">Reuse those results</a>
+            <a class="btn" href="<%= buildUrl({ forceFresh: '1' }) %>">Run fresh search</a>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (typeof cachedFrom !== 'undefined' && cachedFrom) { %>
+        <div class="cache-badge" role="status">
+          <span>Showing cached results from <%= cachedFrom.ageDays === 0 ? 'today' : cachedFrom.ageDays === 1 ? 'yesterday' : cachedFrom.ageDays + ' days ago' %></span>
+          <%
+            const refreshParams = new URLSearchParams({
+              keyword: query?.keyword || '', city: query?.city || '', state: query?.state || '',
+              ratingMin: query?.ratingMin || '', ratingMax: query?.ratingMax || '',
+              maxReviews: query?.maxReviews || '', maxResults: query?.maxResults || 100,
+              targetSegment: query?.targetSegment || 'all',
+              outreachPriority: query?.outreachPriority || 'phone-first',
+              forceFresh: '1'
+            });
+          %>
+          <a href="/search?<%= refreshParams.toString() %>">— Refresh from source</a>
+        </div>
+      <% } %>
 
       <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 32px;">
         <span class="ui-label" style="margin-right: 8px;">Vertical</span>

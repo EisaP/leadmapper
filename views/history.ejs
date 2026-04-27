@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>History — LeadHunter</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
       --red: #E11D2E; --red-hover: #B8161E; --red-active: #8B1015;
@@ -22,16 +22,20 @@
     a { color: var(--red); text-decoration: none; }
     a:hover { color: var(--red-hover); }
     .section-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 10px; display: block; }
-    .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-soft); }
-    .btn { font-family: inherit; font-size: 14px; font-weight: 500; padding: 10px 16px; border-radius: var(--radius-input); border: 1px solid var(--border); background: var(--white); color: var(--text-primary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s; }
+    svg[stroke] { stroke-width: 1.5; }
+
+    .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); }
+    .btn { font-family: inherit; font-size: 14px; font-weight: 400; padding: 8px 14px; border-radius: var(--radius-input); border: 1px solid var(--border); background: var(--white); color: var(--text-primary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: border-color 0.15s, background 0.15s; }
     .btn:hover { background: var(--surface); border-color: var(--border-strong); }
-    .btn-primary { background: var(--red); border: 1px solid var(--red); color: var(--white); font-weight: 500; padding: 10px 18px; }
+    .btn-primary { background: var(--red); border-color: var(--red); color: var(--white); font-weight: 500; }
     .btn-primary:hover { background: var(--red-hover); border-color: var(--red-hover); }
+
+    .input { font-family: inherit; font-size: 13px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-input); background: var(--white); color: var(--text-primary); }
+    .input:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 3px rgba(225,29,46,0.12); }
+
     .sidebar { background: var(--white); border-right: 1px solid var(--border); width: 236px; flex-shrink: 0; display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; }
     .brand-lockup { display: flex; align-items: center; gap: 8px; padding: 22px 20px 18px; border-bottom: 1px solid var(--border); }
-    .logo-mark { color: var(--black); flex-shrink: 0; }
     .logo-wordmark { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 18px; color: var(--black); letter-spacing: -0.01em; }
-    svg[stroke] { stroke-width: 1.5; }
     .sidebar-nav { padding: 12px 8px; flex: 1; }
     .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin: 2px 0; border-radius: var(--radius-input); font-size: 14px; font-weight: 400; color: var(--text-secondary); text-decoration: none; position: relative; }
     .sidebar-nav a .nav-count { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--text-tertiary); }
@@ -41,19 +45,44 @@
     .sidebar-nav a.active .nav-count { color: var(--text-secondary); }
     .sidebar-nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
     .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
-    .badge-count { display: inline-flex; align-items: center; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 9999px; background: var(--black); color: var(--white); }
+
+    /* Stats grid (4 cards across) */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+    .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 20px; }
+    .stat-card .stat-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 12px; }
+    .stat-card .stat-value { font-size: 32px; font-weight: 500; color: var(--text-primary); line-height: 1; letter-spacing: -0.02em; }
+    .stat-card .stat-sub { font-size: 12px; color: var(--text-secondary); margin-top: 8px; line-height: 1.45; }
+
+    /* Filter row */
+    .filter-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; padding: 0; }
+    .filter-row .filter-label { font-size: 12px; color: var(--text-secondary); margin-right: 4px; }
+
+    /* Data table */
     .data-table { width: 100%; font-size: 14px; border-collapse: separate; border-spacing: 0; }
-    .data-table th { text-align: left; padding: 11px 14px; font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); background: var(--surface); }
-    .data-table td { padding: 14px; border-bottom: 1px solid var(--border); color: var(--text-primary); }
+    .data-table th { text-align: left; padding: 0 14px; height: 44px; vertical-align: middle; font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); white-space: nowrap; line-height: 1; background: var(--surface); }
+    .data-table th.sortable { cursor: pointer; }
+    .data-table th.sortable:hover { color: var(--text-primary); }
+    .data-table th.sortable a { color: inherit; text-decoration: none; }
+    .data-table th.active { color: var(--text-primary); }
+    .data-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text-primary); vertical-align: middle; }
     .data-table tbody tr:hover { background: var(--surface); }
-    .ico-box { width: 40px; height: 40px; border-radius: 8px; background: var(--surface); color: var(--black); display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); }
+    .data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    .row-actions { display: inline-flex; gap: 12px; }
+    .row-actions a, .row-actions button { font-size: 13px; font-weight: 500; color: var(--text-primary); background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; }
+    .row-actions a:hover, .row-actions button:hover { color: var(--red); }
+    .row-actions .delete { color: var(--text-tertiary); }
+    .row-actions .delete:hover { color: var(--red); }
+
+    .empty { padding: 56px 24px; text-align: center; }
+    .ico-box { width: 40px; height: 40px; border-radius: 8px; background: var(--surface); color: var(--black); display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); margin: 0 auto 18px; }
   </style>
 </head>
 <body>
   <div style="display: flex; min-height: 100vh;">
     <aside class="sidebar">
       <div class="brand-lockup">
-        <svg class="logo-mark" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="color: var(--black);">
           <circle cx="12" cy="12" r="8"/>
           <line x1="12" y1="1" y2="5" x2="12"/>
           <line x1="12" y1="19" y2="23" x2="12"/>
@@ -64,27 +93,66 @@
         <span class="logo-wordmark">LeadHunter</span>
       </div>
       <nav class="sidebar-nav">
-        <a href="/"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>Search</a>
-        <a href="/history" class="active"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>History<% if (typeof historyCount !== 'undefined' && historyCount > 0) { %><span class="nav-count"><%= historyCount %></span><% } %></a>
-        <a href="/leads"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>Saved leads<% if (typeof savedLeadsCount !== 'undefined' && savedLeadsCount > 0) { %><span class="nav-count"><%= savedLeadsCount %></span><% } %></a>
+        <a href="/"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>Search</a>
+        <a href="/history" class="active"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>History<% if (typeof historyCount !== 'undefined' && historyCount > 0) { %><span class="nav-count"><%= historyCount %></span><% } %></a>
+        <a href="/leads"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>Saved leads<% if (typeof savedLeadsCount !== 'undefined' && savedLeadsCount > 0) { %><span class="nav-count"><%= savedLeadsCount %></span><% } %></a>
       </nav>
       <div class="sidebar-footer">
         <div style="font-size: 11px; color: var(--text-tertiary);">Internal tool</div>
       </div>
     </aside>
 
-    <main style="flex: 1; padding: 36px 44px; min-width: 0; max-width: 1400px;">
-      <div style="margin-bottom: 24px;">
-        <span class="section-label">Prospecting</span>
-        <h1 style="font-size: 28px; margin-bottom: 6px;">Search history</h1>
-        <p style="color: var(--text-secondary); font-size: 15px; margin: 0;">Every search you've run, with filters and result counts. Click a row to re-open the results.</p>
+    <main style="flex: 1; padding: 40px 44px 80px; min-width: 0; max-width: 1600px;">
+      <div style="margin-bottom: 28px;">
+        <h1 style="font-size: 28px;">Search history</h1>
+        <p style="color: var(--text-secondary); font-size: 14px; margin: 6px 0 0;">Every team-wide search, with filters and result counts. Click <em>Reuse</em> to load cached results without spending SerpAPI credits.</p>
       </div>
 
+      <!-- Stat cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total searches</div>
+          <div class="stat-value"><%= stats.totalSearches.toLocaleString() %></div>
+          <div class="stat-sub">all-time, team-wide</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total leads</div>
+          <div class="stat-value"><%= stats.totalLeads.toLocaleString() %></div>
+          <div class="stat-sub">discovered across every search</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">SerpAPI credits</div>
+          <div class="stat-value"><%= stats.monthlyCredits.toLocaleString() %></div>
+          <div class="stat-sub">this calendar month</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Top city</div>
+          <div class="stat-value" style="font-size: 22px; line-height: 1.2; word-break: break-word;"><%= stats.topCity || '—' %></div>
+          <div class="stat-sub"><%= stats.topCityCount > 0 ? stats.topCityCount + ' search' + (stats.topCityCount === 1 ? '' : 'es') + ' this month' : 'no searches this month' %></div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <form method="GET" action="/history" class="filter-row">
+        <span class="filter-label">From</span>
+        <input class="input" type="date" name="from" value="<%= filters.from %>">
+        <span class="filter-label">To</span>
+        <input class="input" type="date" name="to" value="<%= filters.to %>">
+        <input class="input" type="text" name="city" placeholder="City filter" value="<%= filters.city %>" style="width: 160px;">
+        <input class="input" type="text" name="keyword" placeholder="Keyword filter" value="<%= filters.keyword %>" style="width: 200px;">
+        <input type="hidden" name="sort" value="<%= filters.sort %>">
+        <input type="hidden" name="dir" value="<%= filters.dir %>">
+        <button type="submit" class="btn btn-primary">Apply</button>
+        <% if (filters.from || filters.to || filters.city || filters.keyword) { %>
+          <a class="btn" href="/history">Clear</a>
+        <% } %>
+      </form>
+
       <% if (searches.length === 0) { %>
-        <div class="card" style="padding: 56px 24px; text-align: center;">
-          <div class="ico-box" style="margin: 0 auto 18px;"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-          <h2 style="font-size: 18px; margin: 0 0 6px; color: var(--text-primary); font-weight: 500;">No searches yet</h2>
-          <p style="color: var(--text-secondary); margin: 0 0 20px;">Your searches will appear here.</p>
+        <div class="card empty">
+          <div class="ico-box"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+          <h2 style="font-size: 18px; margin: 0 0 6px; color: var(--text-primary); font-weight: 500;">No searches match these filters</h2>
+          <p style="color: var(--text-secondary); margin: 0 0 20px;"><% if (stats.totalSearches === 0) { %>Run your first search to populate the history.<% } else { %>Adjust the filters or clear them to see all searches.<% } %></p>
           <a href="/" class="btn btn-primary">Start searching</a>
         </div>
       <% } else { %>
@@ -92,28 +160,49 @@
           <table class="data-table">
             <thead>
               <tr>
+                <%
+                  const sortLink = (col, label, opts) => {
+                    const nextDir = (filters.sort === col && filters.dir === 'desc') ? 'asc' : 'desc';
+                    const arrow = filters.sort === col ? (filters.dir === 'desc' ? ' ↓' : ' ↑') : '';
+                    const p = new URLSearchParams({ ...filters, sort: col, dir: nextDir });
+                    return `<a href="/history?${p.toString()}">${label}${arrow}</a>`;
+                  };
+                %>
+                <th class="sortable <%= filters.sort === 'created' ? 'active' : '' %>"><%- sortLink('created', 'Date') %></th>
                 <th>Keyword</th>
-                <th>Location</th>
-                <th style="text-align: center; width: 100px;">Results</th>
-                <th style="width: 180px;">Date</th>
-                <th style="text-align: right; width: 160px;">Actions</th>
+                <th>City</th>
+                <th>Country</th>
+                <th class="sortable num <%= filters.sort === 'leads' ? 'active' : '' %>"><%- sortLink('leads', 'Leads') %></th>
+                <th class="num">Emails</th>
+                <th class="num">IG</th>
+                <th class="num">Phones</th>
+                <th class="sortable num <%= filters.sort === 'credits' ? 'active' : '' %>"><%- sortLink('credits', 'Credits') %></th>
+                <th style="width: 220px;">Actions</th>
               </tr>
             </thead>
             <tbody>
               <% searches.forEach(s => { %>
-              <tr>
-                <td style="font-weight: 500;"><%= s.keyword %></td>
-                <td style="color: var(--text-secondary);"><%= s.city %>, <%= s.state %></td>
-                <td style="text-align: center;"><span class="badge-count"><%= s.resultCount %></span></td>
-                <td style="color: var(--text-tertiary); font-size: 13px;"><%= new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></td>
-                <td style="text-align: right;">
-                  <a href="/history/<%= s.key %>" style="margin-right: 14px; font-size: 13px; font-weight: 500;">View</a>
-                  <form method="POST" action="/history/delete/<%= s.key %>" style="display: inline;" onsubmit="return confirm('Delete this search?')">
-                    <button type="submit" style="background: none; border: none; color: var(--red); font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit;">Delete</button>
-                  </form>
-                </td>
-              </tr>
-              <% }); %>
+                <tr>
+                  <td style="color: var(--text-tertiary); font-size: 13px; white-space: nowrap;"><%= new Date(s.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></td>
+                  <td style="font-weight: 500; max-width: 280px; overflow: hidden; text-overflow: ellipsis;" title="<%= s.keyword %>"><%= s.keyword %></td>
+                  <td style="color: var(--text-secondary);"><%= s.city %></td>
+                  <td style="color: var(--text-secondary);"><%= s.country %></td>
+                  <td class="num"><%= (s.total_leads || 0).toLocaleString() %></td>
+                  <td class="num" style="color: var(--text-secondary);"><%= s.email_count || 0 %></td>
+                  <td class="num" style="color: var(--text-secondary);"><%= s.instagram_count || 0 %></td>
+                  <td class="num" style="color: var(--text-secondary);"><%= s.phone_count || 0 %></td>
+                  <td class="num" style="color: var(--text-secondary);"><%= s.serpapi_credits_used || 0 %></td>
+                  <td>
+                    <div class="row-actions">
+                      <a href="/history/<%= s.id %>" title="Load cached results, no SerpAPI cost">Reuse</a>
+                      <a href="/history/run/<%= s.id %>" title="Re-run with the same params, fresh SerpAPI calls">Run again</a>
+                      <form method="POST" action="/history/delete/<%= s.id %>" style="display: inline;" onsubmit="return confirm('Delete this search from history?')">
+                        <button type="submit" class="delete" title="Remove from history">Delete</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
             </tbody>
           </table>
         </div>

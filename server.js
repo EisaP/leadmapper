@@ -8,16 +8,19 @@ const fs = require('fs');
 const { enrichLead } = require('./enrichment/orchestrator');
 const { isAggregatorDomain, JUNK_IG_HANDLES, handleMatchesBusiness, normForMatch } = require('./enrichment/utils/domain-utils');
 
+// Persistent storage — SQLite for searches + saved leads, JSON for short-lived caches
+const store = require('./db/sqlite-store');
+const { hashSearchParams } = require('./db/hash');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const SERPAPI_KEY = process.env.SERPAPI_KEY || '';
 // Phase D placeholders — reserved for paid APIs.
 // process.env.PROSPEO_API_KEY, process.env.MILLIONVERIFIER_API_KEY
-// Layer 3 SMTP verification uses this "from" address in the handshake.
-// Not a real inbox — override via env if you want the outbound banner to match your own domain.
-// process.env.LEADHUNTER_VERIFY_FROM
+// process.env.LEADHUNTER_VERIFY_FROM   — Layer 3 SMTP HELO/MAIL FROM identity
+// process.env.LEADHUNTER_DB_PATH       — override SQLite location (default: ./data/leadhunter.sqlite)
 
-// --- Local file-backed database ---
+// --- Short-lived caches still live in a JSON file (TTL-bound; safe to lose on restart) ---
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'local-db.json');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -35,13 +38,24 @@ function saveDB() {
 }
 function dbSet(key, value) { db[key] = value; saveDB(); }
 function dbGet(key) { return db[key] || null; }
-function dbDelete(key) { delete db[key]; saveDB(); }
 function dbList(prefix) {
   return Object.keys(db)
     .filter(k => k.startsWith(prefix))
     .map(k => ({ key: k, value: db[k] }));
 }
 loadDB();
+
+// --- One-time migration: pull old search:/lead: rows out of the JSON DB into SQLite ---
+try {
+  const out = store.migrateFromJSON(DB_FILE);
+  if (out.migrated || out.leads) {
+    console.log(`[migrate] Imported ${out.migrated || 0} searches + ${out.leads || 0} saved leads → ${out.dbPath}`);
+  } else {
+    console.log(`[storage] SQLite ready at ${store.DB_PATH}`);
+  }
+} catch (err) {
+  console.error('[migrate] Failed:', err.message);
+}
 
 // --- Express setup ---
 app.set('view engine', 'ejs');
@@ -240,21 +254,10 @@ async function googleFallbackInstagram(businessName, city) {
 // --- ROUTES ---
 
 // Helper: pull the last N searches for the recent-searches sidebar
-function getRecentSearches(n = 5) {
-  return dbList('search:')
-    .map(s => ({ key: s.key, ...s.value }))
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, n)
-    .map(s => ({ key: s.key, keyword: s.keyword, city: s.city, state: s.state, resultCount: s.resultCount, date: s.date }));
-}
+const getRecentSearches = (n = 5) => store.getRecentSearches(n);
 
 // Helper: sidebar badge counts (shown next to History + Saved leads nav items)
-function getSidebarCounts() {
-  return {
-    historyCount: dbList('search:').length,
-    savedLeadsCount: dbList('lead:').length
-  };
-}
+const getSidebarCounts = () => store.getSidebarCounts();
 
 // Search page (GET — empty form, optionally pre-populated from URL query for deep linking)
 app.get('/', (req, res) => {
@@ -296,6 +299,54 @@ async function handleSearch(src, res) {
 
   const limit = Math.min(parseInt(maxResults) || 20, 500);
 
+  // --- Cache flow ---
+  // Three modes (controlled by query string):
+  //   default       → check cache; if hit, render the prompt banner asking which to do
+  //   ?cacheReuse=1 → load cached row, render results immediately + "cached from N days ago" badge
+  //   ?forceFresh=1 → skip cache lookup, run fresh SerpAPI search (also used by "Refresh from source")
+  const cacheParams = { keyword, city, state, ratingMin, ratingMax, maxReviews, maxResults: limit, targetSegment, outreachPriority };
+  const paramsHash = hashSearchParams(cacheParams);
+  const forceFresh = String(src.forceFresh || '') === '1';
+  const cacheReuse = String(src.cacheReuse || '') === '1';
+
+  if (!forceFresh) {
+    const cached = store.findCachedSearch(paramsHash);
+    if (cached) {
+      if (cacheReuse) {
+        // User picked "Reuse" — render cached results
+        store.touchAccess(cached.id);
+        const results = JSON.parse(cached.results_json || '[]');
+        return res.render('search', {
+          results, totalScraped: results.length,
+          query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useIgFallback, useLayer3: src.useLayer3 || 'on', extractFollowers: src.extractFollowers || 'on', outreachPriority, targetSegment, searchString: cached.keyword + ' in ' + cached.city + ', ' + cached.country },
+          error: null,
+          cachedFrom: { ageDays: Math.round(cached.age_days), createdAt: cached.created_at, hash: paramsHash },
+          recentSearches: getRecentSearches(), ...getSidebarCounts()
+        });
+      }
+      // Default mode — show the prompt banner, no SerpAPI call yet
+      return res.render('search', {
+        results: null, totalScraped: 0,
+        query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useIgFallback, useLayer3: src.useLayer3 || 'on', extractFollowers: src.extractFollowers || 'on', outreachPriority, targetSegment },
+        error: null,
+        cachePrompt: {
+          ageDays: Math.round(cached.age_days),
+          createdAt: cached.created_at,
+          totalLeads: cached.total_leads,
+          emailCount: cached.email_count,
+          phoneCount: cached.phone_count,
+          instagramCount: cached.instagram_count,
+          credits: cached.serpapi_credits_used,
+          hash: paramsHash
+        },
+        recentSearches: getRecentSearches(), ...getSidebarCounts()
+      });
+    }
+  } else if (forceFresh) {
+    // User chose "Refresh from source" — invalidate any cached rows for this exact param set
+    store.invalidateHash(paramsHash);
+  }
+
   // Parse multi-keyword (comma-separated) — each becomes its own search, results merged & deduped
   const keywords = String(keyword).split(',').map(k => k.trim()).filter(Boolean);
   const excludeTerms = String(excludeKeywords || '').split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
@@ -307,6 +358,7 @@ async function handleSearch(src, res) {
   try {
     // Run one pass per keyword, concat all raw results
     let allResults = [];
+    let serpCredits = 0; // track for the search_history row
     const perPage = 20;
     for (const kw of keywords) {
       const searchString = `${kw} in ${city}, ${state}`;
@@ -315,6 +367,7 @@ async function handleSearch(src, res) {
       let kwCount = 0;
       for (let page = 0; page < maxPages; page++) {
         const data = await serpApiSearch(searchString, start);
+        serpCredits++;
         const places = data.local_results || [];
         if (places.length === 0) break;
         allResults = allResults.concat(places);
@@ -484,6 +537,7 @@ async function handleSearch(src, res) {
             try {
               const out = await googleFallbackInstagram(lead.title, lead.city);
               handle = out.handle; followers = out.followers;
+              serpCredits++; // 1 SerpAPI call (uncached)
             } catch (e) {
               console.log(`[ig-fallback] Failed for "${lead.title}": ${e.message}`);
             }
@@ -527,7 +581,7 @@ async function handleSearch(src, res) {
               return;
             }
             let n = null;
-            try { n = await followersForHandle(handle, lead.title); } catch {}
+            try { n = await followersForHandle(handle, lead.title); serpCredits++; } catch {}
             dbSet(cacheKey, { n, ts: Date.now() });
             if (n != null) { lead.instagram_followers = n; populated++; }
           }));
@@ -612,19 +666,24 @@ async function handleSearch(src, res) {
     else if (segFilter === 'BC') segmentFiltered = filteredResults.filter(r => r.segmentCode === 'B' || r.segmentCode === 'C');
     console.log(`[search] After target-segment filter (${segFilter}): ${segmentFiltered.length}`);
 
-    // Save to search history
-    const timestamp = Date.now();
-    const searchKey = `search:${timestamp}`;
-    const searchLabel = `${keywords.join(', ')} in ${city}, ${state}`;
-    dbSet(searchKey, {
-      query: searchLabel,
-      keyword, city, state,
-      resultCount: segmentFiltered.length,
-      totalScraped: mappedResults.length,
-      filters: { ratingMin: minVal, ratingMax: maxVal, maxReviews: maxReviewsVal, targetSegment: segFilter.toLowerCase() },
-      outreachPriority: outreachPriority || 'phone-first',
-      results: segmentFiltered,
-      date: new Date().toISOString()
+    // Save to search history (SQLite — persistent across container restarts)
+    store.recordSearch({
+      hash: paramsHash,
+      keyword: keywords.join(', '),
+      city: String(city),
+      country: String(state),
+      rating_min: minVal,
+      rating_max: maxVal,
+      max_reviews: maxReviewsVal,
+      results_limit: limit,
+      segment_target: segFilter.toLowerCase(),
+      outreach_priority: outreachPriority || 'phone-first',
+      total_leads: segmentFiltered.length,
+      email_count: segmentFiltered.filter(r => r.email).length,
+      phone_count: segmentFiltered.filter(r => r.phone).length,
+      instagram_count: segmentFiltered.filter(r => r.instagram).length,
+      serpapi_credits_used: serpCredits,
+      results_json: JSON.stringify(segmentFiltered),
     });
 
     res.render('search', {
@@ -646,56 +705,71 @@ async function handleSearch(src, res) {
 
 // --- History ---
 app.get('/history', (req, res) => {
-  const searches = dbList('search:')
-    .map(s => ({ key: s.key, ...s.value }))
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
-  res.render('history', { searches, ...getSidebarCounts() });
+  const { from, to, city, keyword, sort, dir } = req.query;
+  const searches = store.listSearches({ from, to, city, keyword, sort, dir });
+  const stats = store.getStats();
+  res.render('history', {
+    searches,
+    stats,
+    filters: { from: from || '', to: to || '', city: city || '', keyword: keyword || '', sort: sort || 'created', dir: dir || 'desc' },
+    ...getSidebarCounts()
+  });
 });
 
-app.get('/history/:key', (req, res) => {
-  const data = dbGet(req.params.key);
-  if (!data) return res.redirect('/history');
+// View one historical search — loads the cached results from SQLite
+app.get('/history/:id', (req, res) => {
+  const row = store.getSearchById(parseInt(req.params.id, 10));
+  if (!row) return res.redirect('/history');
+  store.touchAccess(row.id);
+  const results = JSON.parse(row.results_json || '[]');
   res.render('search', {
-    results: data.results,
-    totalScraped: data.totalScraped || data.results.length,
-    query: { keyword: data.keyword, city: data.city, state: data.state, outreachPriority: data.outreachPriority || 'phone-first', searchString: data.query },
+    results,
+    totalScraped: results.length,
+    query: { keyword: row.keyword, city: row.city, state: row.country, outreachPriority: row.outreach_priority || 'phone-first', searchString: `${row.keyword} in ${row.city}, ${row.country}` },
     error: null,
+    cachedFrom: { ageDays: Math.max(0, Math.round((Date.now() - new Date(row.created_at).getTime()) / 86400000)), createdAt: row.created_at, hash: row.search_params_hash },
     recentSearches: getRecentSearches(), ...getSidebarCounts()
   });
 });
 
-app.post('/history/delete/:key', (req, res) => {
-  dbDelete(req.params.key);
+// Delete one history row
+app.post('/history/delete/:id', (req, res) => {
+  store.deleteSearchById(parseInt(req.params.id, 10));
   res.redirect('/history');
 });
 
-// --- Leads ---
+// "Run again" — redirect to /search with the same params (forceFresh=1 to skip cache)
+app.get('/history/run/:id', (req, res) => {
+  const row = store.getSearchById(parseInt(req.params.id, 10));
+  if (!row) return res.redirect('/history');
+  const params = new URLSearchParams({
+    keyword: row.keyword, city: row.city, state: row.country,
+    ratingMin: row.rating_min ?? '', ratingMax: row.rating_max ?? '',
+    maxReviews: row.max_reviews ?? '', maxResults: row.results_limit ?? 100,
+    targetSegment: row.segment_target ?? 'all',
+    outreachPriority: row.outreach_priority ?? 'phone-first',
+    forceFresh: '1'
+  });
+  res.redirect('/search?' + params.toString());
+});
+
+// --- Leads (now SQLite-backed) ---
 app.get('/leads', (req, res) => {
-  const leads = dbList('lead:')
-    .map(l => ({ key: l.key, ...l.value }))
-    .sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
-  res.render('leads', { leads, ...getSidebarCounts() });
+  res.render('leads', { leads: store.listSavedLeads(), ...getSidebarCounts() });
 });
 
 app.get('/leads/saved', (req, res) => {
-  const leads = dbList('lead:').map(l => ({ key: l.key, title: l.value.title }));
-  res.json(leads);
+  res.json(store.listSavedLeadKeys());
 });
 
 app.post('/leads/save', (req, res) => {
   const lead = req.body;
   if (!lead || !lead.title) return res.status(400).json({ error: 'Lead data required.' });
-
-  const existing = dbList('lead:').find(l => l.value.title === lead.title);
-  if (existing) return res.json({ status: 'exists', key: existing.key });
-
-  const key = `lead:${Date.now()}`;
-  dbSet(key, { ...lead, savedAt: new Date().toISOString() });
-  res.json({ status: 'saved', key });
+  res.json(store.saveLead(lead));
 });
 
 app.post('/leads/delete/:key', (req, res) => {
-  dbDelete(req.params.key);
+  store.deleteSavedLead(req.params.key);
   if (req.headers['content-type']?.includes('json')) {
     return res.json({ status: 'deleted' });
   }
