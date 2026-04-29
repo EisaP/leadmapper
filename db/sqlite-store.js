@@ -56,6 +56,15 @@ db.exec(`
     saved_at  DATETIME DEFAULT CURRENT_TIMESTAMP
   );
   CREATE INDEX IF NOT EXISTS idx_saved_leads_saved_at ON saved_leads (saved_at DESC);
+
+  -- Chain tier classification cache (90-day TTL — chain size doesn't change month-to-month).
+  CREATE TABLE IF NOT EXISTS chain_tier_cache (
+    root_name              TEXT PRIMARY KEY,
+    tier                   TEXT,
+    knowledge_graph_present INTEGER,
+    total_results          INTEGER,
+    classified_at          DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 // --- search_history queries ---
@@ -213,6 +222,27 @@ function deleteSavedLead(key) {
   return db.prepare(`DELETE FROM saved_leads WHERE id = ?`).run(parseInt(key, 10));
 }
 
+// --- Chain tier cache helpers (consumed by enrichment/chains.js) ---
+function getChainTier(rootName) {
+  return db.prepare(`SELECT root_name, tier, knowledge_graph_present, total_results, classified_at FROM chain_tier_cache WHERE root_name = ?`).get(String(rootName || '').toLowerCase().trim());
+}
+function setChainTier(rootName, row) {
+  return db.prepare(`
+    INSERT INTO chain_tier_cache (root_name, tier, knowledge_graph_present, total_results, classified_at)
+    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(root_name) DO UPDATE SET
+      tier = excluded.tier,
+      knowledge_graph_present = excluded.knowledge_graph_present,
+      total_results = excluded.total_results,
+      classified_at = CURRENT_TIMESTAMP
+  `).run(
+    String(rootName || '').toLowerCase().trim(),
+    row.tier,
+    row.knowledge_graph_present ? 1 : 0,
+    row.total_results || 0
+  );
+}
+
 // --- One-time migration from legacy data/local-db.json ---
 // Brings any pre-SQLite searches + saved leads into the new store.
 // Idempotent — runs at most once, leaves a marker file behind.
@@ -280,6 +310,7 @@ module.exports = {
   recordSearch, findCachedSearch, touchAccess, getSearchById, deleteSearchById, invalidateHash,
   listSearches, getStats, getRecentSearches, getSidebarCounts,
   listSavedLeads, listSavedLeadKeys, saveLead, deleteSavedLead,
+  getChainTier, setChainTier,
   migrateFromJSON,
   CACHE_WINDOW_MS,
 };

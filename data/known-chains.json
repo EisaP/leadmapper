@@ -1,0 +1,31 @@
+{
+  "cafe": [
+    "starbucks", "costa", "cafe nero", "caffe nero", "caffè nero",
+    "pret", "pret a manger", "greggs", "joe & the juice", "leon",
+    "eat", "itsu", "harris+hoole", "soho coffee", "patisserie valerie"
+  ],
+  "restaurant": [
+    "mcdonalds", "mcdonald's", "burger king", "kfc", "subway",
+    "nandos", "nando's", "wagamama", "pizza express", "zizzi",
+    "ask italian", "pizza hut", "domino's", "dominos",
+    "five guys", "byron", "gourmet burger kitchen", "gbk",
+    "the ivy", "pho", "yo sushi", "itsu"
+  ],
+  "hotel": [
+    "holiday inn", "premier inn", "travelodge", "ibis",
+    "marriott", "hilton", "best western", "novotel",
+    "doubletree", "hyatt", "radisson", "ramada", "mercure"
+  ],
+  "salon": [
+    "toni & guy", "regis", "rush", "the hair group",
+    "sally beauty", "headmasters", "saks"
+  ],
+  "gym": [
+    "puregym", "the gym group", "anytime fitness",
+    "fitness first", "virgin active", "david lloyd",
+    "nuffield health", "bannatyne"
+  ],
+  "dental": [
+    "bupa dental", "mydentist", "my dentist", "dental practice"
+  ]
+}

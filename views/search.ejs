@@ -220,6 +220,18 @@
     .copy-chip:hover .copy-chip-count { color: var(--red); }
 
     /* Aggregator warning badge inline in row */
+    /* Chain badge — small, muted, no background fill (per brief: "Do NOT dim or de-emphasize chain rows") */
+    .chain-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 400; color: var(--text-secondary);
+      padding: 1px 7px; margin-left: 8px;
+      border: 1px solid var(--border); border-radius: 4px;
+      background: transparent;
+      letter-spacing: 0.01em; white-space: nowrap;
+      cursor: help; vertical-align: middle;
+    }
+    .chain-badge .ct-tier { color: var(--text-primary); font-weight: 500; }
+
     .aggregator-warn {
       display: inline-flex; align-items: center; justify-content: center;
       width: 18px; height: 18px; border-radius: 4px;
@@ -388,7 +400,7 @@
       .sidebar { display: none !important; }
       .sticky-summary { left: 0 !important; }
       main { padding: 20px 16px 80px !important; }
-      /* Stat cards: stack 2x2 */
+      /* Stat cards: stack 2-wide on tablet (5 cards => 2-2-1 layout) */
       #statsGrid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
       /* Form field grids: collapse to single column */
       #searchForm > div > div { grid-template-columns: 1fr !important; gap: 12px !important; }
@@ -695,7 +707,7 @@
       <% } %>
 
       <% if (results && results.length > 0) { %>
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px;" id="statsGrid"></div>
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 32px;" id="statsGrid"></div>
 
         <div style="padding: 0 0 16px; margin-bottom: 16px; border-top: 1px solid var(--border); padding-top: 20px;">
           <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;">
@@ -707,6 +719,7 @@
             <span style="width: 1px; height: 24px; background: var(--border); margin: 0 8px;"></span>
             <button class="filter-pill" data-filter="saved" data-value="true" type="button">⭐ Saved only</button>
             <button class="filter-pill" data-filter="decisionMaker" data-value="true" type="button" title="Show only leads with a priority-70+ email (named person, owner, manager, or marketing/partnerships)">Decision-maker emails <span class="count" id="cntDecisionMaker">0</span></button>
+            <button class="filter-pill" data-filter="chainOnly" data-value="true" type="button" title="Show only leads detected as a chain or franchise (any tier — local through global)">Chain <span class="count" id="cntChain">0</span></button>
             <span style="width: 1px; height: 24px; background: var(--border); margin: 0 8px;"></span>
             <div id="followersFilterWrap" style="position: relative; display: inline-flex; align-items: center; gap: 6px;">
               <span class="ui-label" style="margin-right: 4px;">Followers</span>
@@ -890,7 +903,7 @@
     let savedLeads = {};
     const state = {
       channels: { email: true, phone: true, instagram: true },
-      filters: { segment: 'all', saved: false, decisionMaker: false, followerBand: 'any', followerCustomMin: null, followerCustomMax: null, text: '' },
+      filters: { segment: 'all', saved: false, decisionMaker: false, chainOnly: false, followerBand: 'any', followerCustomMin: null, followerCustomMax: null, text: '' },
       sort: { key: null, dir: 'asc' },
       expanded: new Set(),
       selected: new Set()
@@ -1264,6 +1277,26 @@
           <div class="stat-sub">${enrichRate}% enrichment rate${igFromFallback > 0 ? ` · <span title="Of ${igFromSite + igFromMaps + igFromFallback} Instagram handles: ${igFromSite} from website, ${igFromMaps} from Maps, ${igFromFallback} from Google fallback (please verify these).">${igFromFallback} IG via Google fallback</span>` : ''}</div>
           <div class="stat-microbar"><div style="width: ${Math.min(avgQuality, 100)}%; background: var(--red);"></div></div>
         </div>
+        ${(() => {
+          const chainLeads = allResults.filter(r => r.is_chain_candidate);
+          const total = chainLeads.length;
+          const tierCounts = { local: 0, regional: 0, national: 0, global: 0 };
+          for (const r of chainLeads) {
+            const t = r.chain_tier || 'local';
+            if (tierCounts[t] != null) tierCounts[t]++;
+          }
+          return `
+            <div class="stat-card">
+              <div class="stat-label" style="display: flex; align-items: center;">
+                Chain detection
+                <button type="button" class="info-tip" aria-label="About chain detection" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Chain detection</strong> flags leads that look like a chain or franchise based on three signals: repeated contact data within the search, repeated business-name root, and a known-chains blocklist (Starbucks, Costa, Pret, etc.).</p><p>Each candidate is then classified by tier (local / regional / national / global) using a single Google search via SerpAPI — cached for 90 days.</p></span></button>
+              </div>
+              <div class="stat-value">${total}</div>
+              <div class="stat-sub">Local: ${tierCounts.local} · Regional: ${tierCounts.regional} · National: ${tierCounts.national} · Global: ${tierCounts.global}</div>
+              <div class="stat-microbar" title="Tier mix"><div style="width: ${total ? (tierCounts.local/total)*100 : 0}%; background: var(--text-tertiary);"></div><div style="width: ${total ? (tierCounts.regional/total)*100 : 0}%; background: var(--text-secondary);"></div><div style="width: ${total ? (tierCounts.national/total)*100 : 0}%; background: var(--text-primary);"></div><div style="width: ${total ? (tierCounts.global/total)*100 : 0}%; background: var(--red);"></div></div>
+            </div>
+          `;
+        })()}
       `;
     }
 
@@ -1284,6 +1317,8 @@
       if (pillC) pillC.childNodes[0].nodeValue = segs.C.name + ' ';
       const dmEl = document.getElementById('cntDecisionMaker');
       if (dmEl) dmEl.textContent = allResults.filter(isDecisionMakerLead).length;
+      const chainEl = document.getElementById('cntChain');
+      if (chainEl) chainEl.textContent = allResults.filter(r => r.is_chain_candidate).length;
     }
 
     function passesChannels(r) {
@@ -1317,13 +1352,14 @@
       return true;
     }
     function applyFilters() {
-      const { segment, saved, decisionMaker, followerBand, followerCustomMin, followerCustomMax, text } = state.filters;
+      const { segment, saved, decisionMaker, chainOnly, followerBand, followerCustomMin, followerCustomMax, text } = state.filters;
       const q = text.trim().toLowerCase();
       let rows = allResults.filter(r => {
         if (!passesChannels(r)) return false;
         if (segment !== 'all' && r.segmentCode !== segment) return false;
         if (saved && !savedLeads[r.title]) return false;
         if (decisionMaker && !isDecisionMakerLead(r)) return false;
+        if (chainOnly && !r.is_chain_candidate) return false;
         if (!passesFollowerBand(r, followerBand, followerCustomMin, followerCustomMax)) return false;
         if (q && !r.title.toLowerCase().includes(q)) return false;
         return true;
@@ -1379,6 +1415,26 @@
     const ICO_IG = `<svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>`;
     const ICO_PHONE = `<svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>`;
     const ICO_EMAIL = `<svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`;
+
+    // Chain badge (Local / Regional / National / Global) — small, muted, hover for reasoning.
+    function chainBadgeHTML(r) {
+      if (!r || !r.is_chain_candidate) return '';
+      const tier = r.chain_tier || 'local';
+      const label = tier.charAt(0).toUpperCase() + tier.slice(1);
+      // Build a short reasoning line — what signals fired + what root we matched on.
+      const signals = Array.isArray(r.chain_signals_fired) ? r.chain_signals_fired : [];
+      const sigParts = [];
+      if (signals.includes('blocklist')) sigParts.push('matches a known-chain blocklist entry');
+      if (signals.includes('name'))      sigParts.push(`shares root name "${r.chain_root_name || '?'}" with other leads`);
+      if (signals.includes('contact'))   sigParts.push('shares contact data with other leads');
+      const tierBlurb = tier === 'global'   ? 'Major Google presence with Knowledge Graph plus very large worldwide footprint.'
+                       : tier === 'national' ? 'Knowledge Graph present plus large national footprint.'
+                       : tier === 'regional' ? 'Knowledge Graph present at a regional scale.'
+                       : tier === 'local'    ? 'Multiple branches in this search; no Knowledge Graph at scale.'
+                       : 'No chain signals fired.';
+      const tooltip = `Detected as a ${tier} chain. ${tierBlurb}${sigParts.length ? ' Signals: ' + sigParts.join('; ') + '.' : ''}`;
+      return `<span class="chain-badge" title="${escapeAttr(tooltip)}">Chain · <span class="ct-tier">${label}</span></span>`;
+    }
 
     function contactCellIG(r) {
       if (!r.instagram) return '<span class="empty-dash">—</span>';
@@ -1476,8 +1532,9 @@
             </button>
           </td>
           <td>
-            <div style="font-weight: 500; color: var(--near-black); display: flex; align-items: center;">
+            <div style="font-weight: 500; color: var(--near-black); display: flex; align-items: center; flex-wrap: wrap;">
               <span>${escapeHTML(r.title)}</span>
+              ${chainBadgeHTML(r)}
               ${r.isAggregator ? `<span class="aggregator-warn" title="This business's listed website is a third-party platform (e.g. Talabat, Yelp, OpenTable). Contact info may be incomplete — verify the Instagram and phone before outreach.">⚠</span>` : ''}
             </div>
             <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">${escapeHTML(r.category)}${r.address ? ' · ' + escapeHTML(r.address) : ''}</div>
@@ -1620,7 +1677,7 @@
     // ——— Filter pills ———
     document.querySelectorAll('.filter-pill').forEach(p => p.addEventListener('click', () => {
       const f = p.dataset.filter, v = p.dataset.value;
-      if (f === 'saved' || f === 'decisionMaker') {
+      if (f === 'saved' || f === 'decisionMaker' || f === 'chainOnly') {
         state.filters[f] = !state.filters[f];
         p.classList.toggle('active', state.filters[f]);
       } else {
@@ -1663,13 +1720,13 @@
     });
     window.clearAllFilters = () => {
       state.channels = { email: true, phone: true, instagram: true };
-      state.filters = { segment: 'all', saved: false, decisionMaker: false, followerBand: 'any', followerCustomMin: null, followerCustomMax: null, text: '' };
+      state.filters = { segment: 'all', saved: false, decisionMaker: false, chainOnly: false, followerBand: 'any', followerCustomMin: null, followerCustomMax: null, text: '' };
       const tf = document.getElementById('textFilter'); if (tf) tf.value = '';
       const fs = document.getElementById('followerBandSelect'); if (fs) fs.value = 'any';
       const fc = document.getElementById('followerCustomRange'); if (fc) fc.style.display = 'none';
       document.querySelectorAll('.channel-check').forEach(cb => cb.checked = true);
       document.querySelectorAll('.filter-pill').forEach(p => {
-        const isToggle = p.dataset.filter === 'saved' || p.dataset.filter === 'decisionMaker';
+        const isToggle = p.dataset.filter === 'saved' || p.dataset.filter === 'decisionMaker' || p.dataset.filter === 'chainOnly';
         if (isToggle) { p.classList.remove('active'); return; }
         p.classList.toggle('active', p.dataset.value === 'all');
       });
@@ -1830,12 +1887,16 @@
       copyList(rows.filter(r => r.phone).map(r => r.phone), 'No phones in current filter', 'Phones copied');
     });
     function exportCSV(rows, filename) {
-      const headers = ['Name','Phone','Email','EmailSource','EmailConfidence','EmailRole','Instagram','Followers','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','Segment','Outreach','QualityScore','Google Maps URL'];
+      const headers = ['Name','Phone','Email','EmailSource','EmailConfidence','EmailRole','Instagram','Followers','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','Segment','Outreach','QualityScore','IsChainCandidate','ChainTier','ChainSignals','Google Maps URL'];
       const csvRows = rows.map(r => [
         r.title, r.phone, r.email, r.email_source || '', r.email_confidence || '', r.emailRole || '',
         r.instagram || '', r.instagram_followers != null ? r.instagram_followers : '',
         r.booking || '', r.hours || '', r.priceTier || '',
-        r.website, r.category, r.address, r.rating, r.reviewCount, r.segment || '', r.outreach || '', r.qualityScore || '', r.url
+        r.website, r.category, r.address, r.rating, r.reviewCount, r.segment || '', r.outreach || '', r.qualityScore || '',
+        r.is_chain_candidate ? 'true' : 'false',
+        r.chain_tier || 'independent',
+        Array.isArray(r.chain_signals_fired) ? r.chain_signals_fired.join('|') : '',
+        r.url
       ].map(v => `"${(v === null || v === undefined ? '' : v).toString().replace(/"/g, '""')}"`).join(','));
       const csv = [headers.join(','), ...csvRows].join('\n');
       downloadBlob(csv, 'text/csv', filename || `leadhunter-${Date.now()}.csv`);

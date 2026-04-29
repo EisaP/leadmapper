@@ -11,6 +11,7 @@ const { isAggregatorDomain, JUNK_IG_HANDLES, handleMatchesBusiness, normForMatch
 // Persistent storage — SQLite for searches + saved leads, JSON for short-lived caches
 const store = require('./db/sqlite-store');
 const { hashSearchParams } = require('./db/hash');
+const { detectChains, classifyTier } = require('./enrichment/chains');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -657,6 +658,49 @@ async function handleSearch(src, res) {
       if (r.ownerName) score += 10;
       r.qualityScore = Math.min(score, 100);
     });
+
+    // --- Chain detection + tier classification ---
+    // Runs AFTER enrichment so contact-based grouping (Signal A) can use scraped emails / phones.
+    // Chain candidates are flagged in-place; tier classification is per unique root name and cached for 90 days.
+    try {
+      detectChains(filteredResults);
+      const candidateRoots = [...new Set(filteredResults.filter(r => r.is_chain_candidate && r.chain_root_name).map(r => r.chain_root_name))];
+      if (candidateRoots.length > 0) {
+        console.log(`[chains] ${candidateRoots.length} unique candidate root(s): ${candidateRoots.slice(0, 8).join(', ')}${candidateRoots.length > 8 ? '…' : ''}`);
+        const tierByRoot = new Map();
+        let chainCreditsUsed = 0;
+        for (const root of candidateRoots) {
+          // Track whether Signal B (name pattern) fired for at least one lead with this root —
+          // affects the classifier's fallback when there's no Knowledge Graph.
+          const nameSignalFired = filteredResults.some(r => r.chain_root_name === root && (r.chain_signals_fired || []).includes('name'));
+          const before = serpCredits;
+          const out = await classifyTier(root, {
+            serpFn: async (q) => { serpCredits++; return await serpApiGoogleSearch(q, 5); },
+            cache: { get: store.getChainTier, set: store.setChainTier },
+            signalNameFired: nameSignalFired,
+          });
+          if (serpCredits > before) chainCreditsUsed += (serpCredits - before);
+          tierByRoot.set(root, out.tier);
+          console.log(`[chains]   "${root}" → ${out.tier}${out.fromCache ? ' (cached)' : ''}`);
+        }
+        // Apply tier to every chain-candidate lead
+        for (const r of filteredResults) {
+          if (r.is_chain_candidate) r.chain_tier = tierByRoot.get(r.chain_root_name) || 'local';
+          else r.chain_tier = 'independent';
+        }
+        const flagged = filteredResults.filter(r => r.is_chain_candidate).length;
+        console.log(`[chains] Flagged ${flagged}/${filteredResults.length} leads as chain candidates · ${chainCreditsUsed} credit(s) spent on classification`);
+      } else {
+        for (const r of filteredResults) r.chain_tier = 'independent';
+      }
+    } catch (e) {
+      console.error('[chains] Detection failed:', e.message);
+      for (const r of filteredResults) {
+        r.is_chain_candidate = r.is_chain_candidate || false;
+        r.chain_tier = r.chain_tier || 'independent';
+        r.chain_signals_fired = r.chain_signals_fired || [];
+      }
+    }
 
     // Target segment filter (server-side; applied AFTER segment tagging)
     let segmentFiltered = filteredResults;

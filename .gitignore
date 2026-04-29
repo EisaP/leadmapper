@@ -1,3 +1,10 @@
 node_modules/
 .env
+
+# Runtime data files (DBs, caches) — but ship the chain blocklist
 data/*.json
+!data/known-chains.json
+data/*.sqlite
+data/*.sqlite-wal
+data/*.sqlite-shm
+data/*.migrated
