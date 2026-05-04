@@ -14,15 +14,20 @@ const { layer4PaidApi } = require('./layer4-paid-api');
 const { layer5Verify } = require('./layer5-verify');
 
 async function enrichLead(websiteUrl, businessName, opts = {}) {
-  // Layer 2 — scrape. Always run; the only source of phone/IG/booking fields.
-  const l2 = await layer2Scrape(websiteUrl, businessName);
+  // Pass-through toggles: layer2 honours extractEmails / extractInstagram (skips the page fetch
+  // entirely if both are off); the orchestrator gates Layer 3 on useLayer3 + extractEmails.
+  const layer2Opts = {
+    extractEmails:    opts.extractEmails    !== false,
+    extractInstagram: opts.extractInstagram !== false,
+  };
+  const l2 = await layer2Scrape(websiteUrl, businessName, layer2Opts);
 
   // If Layer 2 found an email on the site, that's our answer — no further layers needed.
   if (l2.email) return l2;
 
   // Layer 3 — pattern-guess. Opt-in via opts.useLayer3 (default: true).
-  // Skipped automatically for aggregator sites (Layer 3 checks internally).
-  if (opts.useLayer3 !== false && websiteUrl && !l2.isAggregator) {
+  // Also gated on extractEmails — no point pattern-guessing emails the user doesn't want.
+  if (opts.useLayer3 !== false && layer2Opts.extractEmails && websiteUrl && !l2.isAggregator) {
     try {
       const l3 = await layer3Pattern({ website: websiteUrl, title: businessName });
       if (l3 && l3.email) {

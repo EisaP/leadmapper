@@ -212,6 +212,12 @@
     /* Legacy .channel-toggle removed — filters now live as checkboxes in Advanced */
     /* Channel checkboxes — use accent-color for red tint */
     .channel-check { accent-color: var(--red); width: 15px; height: 15px; cursor: pointer; }
+    /* Enrichment toggle row — used in the search form's "What to fetch" section */
+    .enrich-toggle { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--text-primary); cursor: pointer; line-height: 1.45; padding: 4px 0; }
+    .enrich-toggle input[type="checkbox"] { accent-color: var(--red); width: 15px; height: 15px; cursor: pointer; margin-top: 3px; flex-shrink: 0; }
+    .enrich-toggle strong { font-weight: 500; }
+    .enrich-toggle .enrich-cost { display: block; font-size: 11px; color: var(--text-tertiary); font-weight: 400; margin-top: 1px; }
+    .enrich-toggle .enrich-cost.paid { color: var(--warn); }
     /* Copy action chips — first-class styling */
     .copy-chip { font-family: inherit; font-size: 13px; font-weight: 500; padding: 6px 12px; border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--white); color: var(--text-primary); cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
     .copy-chip:hover { border-color: var(--red); color: var(--red); background: var(--white); }
@@ -646,46 +652,64 @@
           </div>
         </div>
 
+        <!-- Enrichment depth — controls what actually runs (every toggle gates real work, not display) -->
+        <div style="border-top: 1px solid var(--border); padding-top: 32px; margin-bottom: 32px;">
+          <span class="section-label" style="display: flex; align-items: center; justify-content: space-between;">
+            What to fetch
+            <button type="button" id="enrichmentPresetCheap" style="font-size: 11px; font-weight: 500; color: var(--red); background: none; border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; cursor: pointer; text-transform: none; letter-spacing: 0;">Names + ratings only (fastest)</button>
+          </span>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px;">
+            <label class="enrich-toggle">
+              <input type="checkbox" name="extractPhones" id="extractPhones" value="on" <%= (!query || query?.extractPhones !== 'off') ? 'checked' : '' %>>
+              <span><strong>Phone numbers</strong> <span class="enrich-cost">free · from Google Maps listing</span></span>
+            </label>
+            <label class="enrich-toggle">
+              <input type="checkbox" name="extractInstagram" id="extractInstagram" value="on" <%= (!query || query?.extractInstagram !== 'off') ? 'checked' : '' %>>
+              <span><strong>Instagram handles</strong> <span class="enrich-cost">free · scraped from website</span></span>
+            </label>
+            <label class="enrich-toggle">
+              <input type="checkbox" name="extractEmails" id="extractEmails" value="on" <%= (!query || query?.extractEmails !== 'off') ? 'checked' : '' %>>
+              <span><strong>Emails — website scrape</strong> <span class="enrich-cost">free · Layer 2</span></span>
+            </label>
+            <label class="enrich-toggle">
+              <input type="checkbox" name="useLayer3" id="useLayer3" value="on" <%= (!query || query?.useLayer3 !== 'off') ? 'checked' : '' %>>
+              <span><strong>Pattern-guess missing emails</strong> <span class="enrich-cost">free · Layer 3 (only runs if Layer 2 returned nothing)</span></span>
+            </label>
+            <label class="enrich-toggle">
+              <input type="checkbox" name="useIgFallback" id="useIgFallback" value="on" <%= (query?.useIgFallback === 'on') ? 'checked' : '' %>>
+              <span><strong>Find Instagram via Google fallback</strong> <span class="enrich-cost paid">~1 SerpAPI credit per lead missing IG · capped at 30</span></span>
+            </label>
+            <label class="enrich-toggle">
+              <input type="checkbox" name="extractFollowers" id="extractFollowers" value="on" <%= (query?.extractFollowers === 'on') ? 'checked' : '' %>>
+              <span><strong>Instagram follower counts</strong> <span class="enrich-cost paid">1 SerpAPI credit per IG-having lead · cached 7 days</span></span>
+            </label>
+          </div>
+          <div id="creditEstimate" style="margin-top: 16px; font-size: 12px; color: var(--text-secondary);">
+            Estimated SerpAPI credits: <strong id="creditEstimateValue" style="color: var(--text-primary); font-weight: 500;">—</strong>
+            <span id="creditEstimateBreakdown" style="color: var(--text-tertiary);"></span>
+          </div>
+        </div>
+
+        <!-- Display filters: only affect what's SHOWN, never what's fetched -->
         <details style="border-top: 1px solid var(--border); padding-top: 20px; margin-bottom: 32px;">
-          <summary style="color: var(--text-secondary); font-size: 13px; font-weight: 400;"><span class="chev">▸</span> Advanced</summary>
+          <summary style="color: var(--text-secondary); font-size: 13px; font-weight: 400;"><span class="chev">▸</span> Display filters <span style="color: var(--text-tertiary); font-weight: 400;">— affect rendering only, not what's fetched</span></summary>
           <div style="margin-top: 14px;">
-            <label class="ui-label" style="display: block; margin-bottom: 8px;">Show leads that have</label>
+            <label class="ui-label" style="display: block; margin-bottom: 8px;">After results load, show only leads that have</label>
             <div style="display: flex; gap: 22px; flex-wrap: wrap;">
               <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-primary); cursor: pointer;">
                 <input type="checkbox" class="channel-check" data-channel="email" checked> Email <span class="ch-count" id="cntEmail" style="color: var(--text-tertiary); font-size: 12px;">0</span>
               </label>
               <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-primary); cursor: pointer;">
-                <input type="checkbox" class="channel-check" data-channel="phone" checked> Contact number <span class="ch-count" id="cntPhone" style="color: var(--text-tertiary); font-size: 12px;">0</span>
+                <input type="checkbox" class="channel-check" data-channel="phone" checked> Phone <span class="ch-count" id="cntPhone" style="color: var(--text-tertiary); font-size: 12px;">0</span>
               </label>
               <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-primary); cursor: pointer;">
                 <input type="checkbox" class="channel-check" data-channel="instagram" checked> Instagram <span class="ch-count" id="cntInstagram" style="color: var(--text-tertiary); font-size: 12px;">0</span>
               </label>
             </div>
-            <div class="helper-text">Show leads that have at least one of the selected contact methods.</div>
-          </div>
-          <div style="margin-top: 14px; display: flex; align-items: center; gap: 10px;">
-            <input type="checkbox" name="skipEnrichment" id="skipEnrichment" <%= query?.skipEnrichment === 'on' ? 'checked' : '' %>>
-            <label for="skipEnrichment" style="font-size: 13px; color: var(--text-primary);">Skip enrichment — faster, returns listings without email/phone/Instagram</label>
-          </div>
-          <div style="margin-top: 10px; display: flex; align-items: flex-start; gap: 10px;">
-            <input type="checkbox" name="useIgFallback" id="useIgFallback" value="on" <%= (!query || query?.useIgFallback !== 'off') ? 'checked' : '' %> style="margin-top: 3px;">
-            <label for="useIgFallback" style="font-size: 13px; color: var(--body); line-height: 1.5;">
-              Use Google to find Instagram handles when the business website doesn't have one. Uses extra SerpAPI credits.
-            </label>
-          </div>
-          <div style="margin-top: 10px; display: flex; align-items: flex-start; gap: 10px;">
-            <input type="checkbox" name="useLayer3" id="useLayer3" value="on" <%= (!query || query?.useLayer3 !== 'off') ? 'checked' : '' %> style="margin-top: 3px;">
-            <label for="useLayer3" style="font-size: 13px; color: var(--body); line-height: 1.5;">
-              <strong style="font-weight: 500;">Layer 3 — pattern-guess emails.</strong> When the website has no email, try common patterns (<code style="font-size: 12px;">info@</code>, <code style="font-size: 12px;">hello@</code>, <code style="font-size: 12px;">{business}@</code> …) and verify each via SMTP. Catch-all domains flagged as medium confidence. Lifts UK hit rate from ~45% to ~65-75%.
-            </label>
-          </div>
-          <div style="margin-top: 10px; display: flex; align-items: flex-start; gap: 10px;">
-            <input type="checkbox" name="extractFollowers" id="extractFollowers" value="on" <%= (!query || query?.extractFollowers !== 'off') ? 'checked' : '' %> style="margin-top: 3px;">
-            <label for="extractFollowers" style="font-size: 13px; color: var(--body); line-height: 1.5;">
-              <strong style="font-weight: 500;">Extract Instagram follower counts</strong> — looks up every IG handle via Google Search to pull follower count. Uses <strong>1 SerpAPI credit per IG lead</strong>. Results cached 7 days.
-            </label>
+            <div class="helper-text">Display filter — does not affect what's fetched. To skip the fetch entirely, untick the matching toggle in <em>What to fetch</em> above.</div>
           </div>
         </details>
+        <input type="hidden" name="skipEnrichment" id="skipEnrichment" value="">
 
         <div style="border-top: 1px solid var(--border); padding-top: 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
           <button type="submit" class="btn btn-primary" id="searchBtn" style="min-width: 200px;">
@@ -1172,13 +1196,22 @@
         set('ratingMin', prefs.ratingMin); set('ratingMax', prefs.ratingMax);
         set('maxReviews', prefs.maxReviews); set('maxResults', prefs.maxResults);
         set('targetSegment', prefs.targetSegment);
-        // Restore IG fallback + Layer 3 checkboxes (both default ON if never set)
-        const igCb = document.getElementById('useIgFallback');
-        if (igCb && prefs.useIgFallback === 'off') igCb.checked = false;
-        const l3Cb = document.getElementById('useLayer3');
-        if (l3Cb && prefs.useLayer3 === 'off') l3Cb.checked = false;
-        const efCb = document.getElementById('extractFollowers');
-        if (efCb && prefs.extractFollowers === 'off') efCb.checked = false;
+        // Restore enrichment-toggle state from prefs.
+        // Defaults baked into the form markup: phone/email/IG/Layer3 = ON, igFallback/followers = OFF
+        // (paid options stay OFF unless the user has explicitly turned them on at least once).
+        const setBool = (id, prefVal, defaultOn) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          if (prefVal === 'on') el.checked = true;
+          else if (prefVal === 'off') el.checked = false;
+          // else: leave the markup's default
+        };
+        setBool('extractPhones',    prefs.extractPhones,    true);
+        setBool('extractEmails',    prefs.extractEmails,    true);
+        setBool('extractInstagram', prefs.extractInstagram, true);
+        setBool('useLayer3',        prefs.useLayer3,        true);
+        setBool('useIgFallback',    prefs.useIgFallback,    false);
+        setBool('extractFollowers', prefs.extractFollowers, false);
       }
       // Restore column visibility
       const cols = (prefs.columns || {});
@@ -1191,6 +1224,45 @@
       refreshPriorityHint();
     })();
 
+    // ——— Live credit estimator ———
+    // Recomputes whenever any toggle / Results dropdown changes.
+    function estimateCredits() {
+      const maxResults = parseInt(document.querySelector('[name=maxResults]')?.value || '100', 10) || 100;
+      const igFallback = document.getElementById('useIgFallback')?.checked;
+      const followers  = document.getElementById('extractFollowers')?.checked;
+      const baseCredits = Math.ceil(maxResults / 20); // 1 credit per Maps page (20 results / page)
+      // IG fallback: capped at 30 in code, expected ~30% of leads need it
+      const fbHi = igFallback ? Math.min(30, Math.round(maxResults * 0.3)) : 0;
+      const fbLo = 0;
+      // Follower lookups: ~40-60% of leads have IG; 1 credit per (uncached) lead
+      const flLo = followers ? Math.round(maxResults * 0.4) : 0;
+      const flHi = followers ? Math.round(maxResults * 0.6) : 0;
+      const lo = baseCredits + fbLo + flLo;
+      const hi = baseCredits + fbHi + flHi;
+      const valEl = document.getElementById('creditEstimateValue');
+      const breakEl = document.getElementById('creditEstimateBreakdown');
+      if (!valEl) return;
+      valEl.textContent = lo === hi ? `~${lo}` : `${lo}–${hi}`;
+      const parts = [`${baseCredits} base`];
+      if (igFallback) parts.push(`up to ${fbHi} IG fallback`);
+      if (followers) parts.push(`${flLo}–${flHi} follower lookups`);
+      if (breakEl) breakEl.textContent = parts.length > 1 ? ' · ' + parts.join(' · ') : '';
+    }
+    document.querySelectorAll('#useIgFallback, #extractFollowers, [name=maxResults], #extractEmails, #extractInstagram, #extractPhones, #useLayer3').forEach(el => {
+      el.addEventListener('change', estimateCredits);
+    });
+    estimateCredits();
+
+    // ——— "Names + ratings only" preset ———
+    // Single click for the cheapest possible scrape: just SerpAPI Maps + ratings, nothing else.
+    document.getElementById('enrichmentPresetCheap')?.addEventListener('click', () => {
+      ['extractPhones', 'extractEmails', 'extractInstagram', 'useLayer3', 'useIgFallback', 'extractFollowers'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.checked = false;
+      });
+      estimateCredits();
+    });
+
     document.getElementById('searchForm').addEventListener('submit', function(e) {
       const fd = new FormData(e.target);
       savePrefs({
@@ -1199,8 +1271,11 @@
         ratingMin: fd.get('ratingMin'), ratingMax: fd.get('ratingMax'),
         maxReviews: fd.get('maxReviews'), maxResults: fd.get('maxResults'),
         targetSegment: fd.get('targetSegment'),
-        useIgFallback: fd.get('useIgFallback') ? 'on' : 'off',
-        useLayer3: fd.get('useLayer3') ? 'on' : 'off',
+        extractPhones:    fd.get('extractPhones')    ? 'on' : 'off',
+        extractEmails:    fd.get('extractEmails')    ? 'on' : 'off',
+        extractInstagram: fd.get('extractInstagram') ? 'on' : 'off',
+        useLayer3:        fd.get('useLayer3')        ? 'on' : 'off',
+        useIgFallback:    fd.get('useIgFallback')    ? 'on' : 'off',
         extractFollowers: fd.get('extractFollowers') ? 'on' : 'off'
       });
       const btn = document.getElementById('searchBtn');

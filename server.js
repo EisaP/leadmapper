@@ -276,10 +276,33 @@ app.post('/search', async (req, res) => handleSearch(req.body, res));
 
 async function handleSearch(src, res) {
   const { keyword, excludeKeywords, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, targetSegment, useIgFallback } = src;
-  // Enrichment is always-on by default; user can opt out via "Skip enrichment" advanced toggle.
-  const enrich = skipEnrichment === 'on' ? false : true;
-  // IG Google fallback is opt-in on by default (undefined → true); user disables via `useIgFallback === 'off'`.
-  const igFallbackEnabled = useIgFallback !== 'off';
+
+  // --- Enrichment toggles ---
+  // Each one *gates real work* — it doesn't just hide results. Defaults match the form markup:
+  //   phone / email / IG / Layer 3 = ON (free)
+  //   IG Google fallback / follower counts = OFF (paid)
+  // Reading helper: undefined-on-form-submit = OFF (browser doesn't send unchecked boxes).
+  // For inputs the user might never have touched (deep-linked GET), we infer "intended default"
+  // from whether ANY enrichment-related field came in: if NONE did, this is a deep-link with
+  // no opinions, so apply the safe defaults from the form.
+  const anyEnrichmentParam = ['extractPhones', 'extractEmails', 'extractInstagram', 'useLayer3', 'useIgFallback', 'extractFollowers'].some(k => src[k] !== undefined);
+  const onByDefault = (val, def) => {
+    if (val === 'on') return true;
+    if (val === 'off') return false;
+    return anyEnrichmentParam ? false : def;
+  };
+  const extractPhones    = onByDefault(src.extractPhones,    true);
+  const extractEmails    = onByDefault(src.extractEmails,    true);
+  const extractInstagram = onByDefault(src.extractInstagram, true);
+  const useLayer3Enabled = onByDefault(src.useLayer3,        true);
+  const igFallbackEnabled = onByDefault(src.useIgFallback,   false);
+  const extractFollowers = onByDefault(src.extractFollowers, false);
+
+  // Master enrich flag — only run the website-scrape pass if at least one of the things it produces is wanted.
+  // (Phone is sourced from Google Maps listing, not website scraping, so it doesn't gate Layer 2.)
+  const wantsLayer2 = extractEmails || extractInstagram;
+  const wantsLayer3 = useLayer3Enabled && extractEmails; // Layer 3 only matters when we want emails
+  const enrich = skipEnrichment === 'on' ? false : (wantsLayer2 || wantsLayer3);
 
   if (!keyword || !city || !state) {
     return res.render('search', {
@@ -305,7 +328,11 @@ async function handleSearch(src, res) {
   //   default       → check cache; if hit, render the prompt banner asking which to do
   //   ?cacheReuse=1 → load cached row, render results immediately + "cached from N days ago" badge
   //   ?forceFresh=1 → skip cache lookup, run fresh SerpAPI search (also used by "Refresh from source")
-  const cacheParams = { keyword, city, state, ratingMin, ratingMax, maxReviews, maxResults: limit, targetSegment, outreachPriority };
+  const cacheParams = {
+    keyword, city, state, ratingMin, ratingMax, maxReviews, maxResults: limit, targetSegment, outreachPriority,
+    extractPhones, extractEmails, extractInstagram,
+    useLayer3: useLayer3Enabled, useIgFallback: igFallbackEnabled, extractFollowers,
+  };
   const paramsHash = hashSearchParams(cacheParams);
   const forceFresh = String(src.forceFresh || '') === '1';
   const cacheReuse = String(src.cacheReuse || '') === '1';
@@ -420,9 +447,13 @@ async function handleSearch(src, res) {
         else if (item.hours.status) hours = item.hours.status;
       }
       if (!hours && item.open_state) hours = item.open_state;
+      // Honor the per-result toggles at the source: if the user opted out of phone/IG, never
+      // even surface what Maps gave us for that field.
+      const initialPhone = extractPhones    ? (item.phone || '') : '';
+      const initialIg    = extractInstagram ? ig                 : '';
       return {
         title: item.title || '',
-        phone: item.phone || '',
+        phone: initialPhone,
         website: item.website || '',
         email: '',
         emailRole: '',
@@ -430,10 +461,10 @@ async function handleSearch(src, res) {
         emails: [],
         email_source: null,
         email_confidence: null,
-        instagram: ig,
+        instagram: initialIg,
         // Source of the Instagram handle: 'maps' (extracted from Google Maps "website" field that was an IG URL),
         // 'website' (scraped from business's own site), 'google_fallback' (resolved via Google search), or null.
-        instagramSource: ig ? 'maps' : null,
+        instagramSource: initialIg ? 'maps' : null,
         // Follower count — populated by Google fallback when the snippet/knowledge-panel includes it.
         instagram_followers: null,
         booking: '',
@@ -470,16 +501,18 @@ async function handleSearch(src, res) {
 
     console.log(`[search] After filtering: ${filteredResults.length}`);
 
-    // Enrich contacts by default (disable only via skipEnrichment)
-    // Layer 3 (pattern-guess + SMTP verify) is opt-in via `useLayer3` query param — default ON.
-    const useLayer3 = String(src.useLayer3 || 'on') !== 'off';
+    // Enrich contacts (skips the website scrape entirely if both email and IG toggles are OFF)
     if (enrich) {
-      console.log(`[enrich] Enriching ${filteredResults.length} leads (Layer 3 ${useLayer3 ? 'ON' : 'OFF'})...`);
+      console.log(`[enrich] Enriching ${filteredResults.length} leads · L2-emails=${extractEmails} L2-IG=${extractInstagram} L3=${useLayer3Enabled}`);
       const BATCH_SIZE = 5;
       for (let i = 0; i < filteredResults.length; i += BATCH_SIZE) {
         const batch = filteredResults.slice(i, i + BATCH_SIZE);
         const enrichments = await Promise.all(
-          batch.map(r => enrichLead(r.website, r.title, { useLayer3 }))
+          batch.map(r => enrichLead(r.website, r.title, {
+            useLayer3: wantsLayer3,
+            extractEmails,
+            extractInstagram,
+          }))
         );
         enrichments.forEach((enriched, j) => {
           const idx = i + j;
@@ -509,7 +542,9 @@ async function handleSearch(src, res) {
     // Targets leads that finished primary enrichment WITHOUT an IG handle AND either have an
     // aggregator-rejected website or no website at all. Other leads (with a normal website that
     // just didn't mention IG) are assumed to genuinely have no IG — we don't burn extra credits on them.
-    if (enrich && igFallbackEnabled) {
+    // Gate Google IG fallback on BOTH toggles: the user must want IG at all AND specifically opt
+    // into the paid fallback. Either off → skip the SerpAPI calls entirely.
+    if (enrich && igFallbackEnabled && extractInstagram) {
       const candidates = filteredResults.filter(r => !r.instagram && (r.isAggregator || !r.website));
       // Cap: top 30 by rating (desc), so extra credit burn is bounded even on large searches
       const FALLBACK_CAP = 30;
@@ -559,12 +594,10 @@ async function handleSearch(src, res) {
     }
 
     // --- Dedicated follower-count lookup ---
-    // Covers every lead that has an IG handle but no follower count yet (typically leads whose
-    // handle came from the website scrape — the Google fallback only ran for aggregator/no-website cases).
-    // Controlled by `extractFollowers` toggle (default ON) — users can disable to save credits.
-    // Server-side cached per handle for 7 days so repeat searches don't pay twice.
-    const extractFollowers = String(src.extractFollowers || 'on') !== 'off';
-    if (enrich && extractFollowers) {
+    // Covers every lead that has an IG handle but no follower count yet. Default OFF (paid).
+    // Gated on extractInstagram too — no point fetching follower counts for a search that
+    // doesn't even want IG handles.
+    if (enrich && extractFollowers && extractInstagram) {
       const followerQueue = filteredResults.filter(r => r.instagram && r.instagram_followers == null);
       if (followerQueue.length > 0) {
         console.log(`[followers] Fetching follower counts for ${followerQueue.length} IG handles (+${followerQueue.length} credits)`);
@@ -733,7 +766,14 @@ async function handleSearch(src, res) {
     res.render('search', {
       results: segmentFiltered,
       totalScraped: mappedResults.length,
-      query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useIgFallback, useLayer3: useLayer3 ? 'on' : 'off', extractFollowers: extractFollowers ? 'on' : 'off', outreachPriority, targetSegment, searchString: keywords.join(', ') + ` in ${city}, ${state}` },
+      query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, outreachPriority, targetSegment,
+        extractPhones:    extractPhones    ? 'on' : 'off',
+        extractEmails:    extractEmails    ? 'on' : 'off',
+        extractInstagram: extractInstagram ? 'on' : 'off',
+        useLayer3:        useLayer3Enabled ? 'on' : 'off',
+        useIgFallback:    igFallbackEnabled ? 'on' : 'off',
+        extractFollowers: extractFollowers ? 'on' : 'off',
+        searchString: keywords.join(', ') + ` in ${city}, ${state}` },
       error: null,
       recentSearches: getRecentSearches(), ...getSidebarCounts()
     });

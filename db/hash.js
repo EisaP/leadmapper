@@ -26,9 +26,17 @@ function nullable(v) {
   return s;
 }
 
+// Bool helper — turns 'on' / 'off' / undefined / true / false into a stable 0/1.
+const onBit = (v, def) => {
+  if (v === 'on'  || v === true)  return 1;
+  if (v === 'off' || v === false) return 0;
+  return def ? 1 : 0;
+};
+
 // Compose the canonical object that goes into the hash.
-// Only the inputs that actually influence the SerpAPI search + filtering
-// are part of the cache key. UI-only flags (e.g. column visibility) are excluded.
+// Includes EVERY input that affects what the search actually fetches — so a
+// "names-only" cache is never reused for a "full-enrichment" search and vice versa.
+// UI-only flags (column visibility, display filters) stay excluded.
 function canonicalParams(p) {
   return {
     keyword:           normKeyword(p.keyword),
@@ -40,6 +48,13 @@ function canonicalParams(p) {
     results_limit:     nullable(p.maxResults),
     segment_target:    nullable(p.targetSegment),
     outreach_priority: nullable(p.outreachPriority) || 'phone-first',
+    // Enrichment-depth toggles — different combinations yield different result data
+    extract_phones:    onBit(p.extractPhones, true),
+    extract_emails:    onBit(p.extractEmails, true),
+    extract_instagram: onBit(p.extractInstagram, true),
+    use_layer3:        onBit(p.useLayer3, true),
+    use_ig_fallback:   onBit(p.useIgFallback, false),
+    extract_followers: onBit(p.extractFollowers, false),
   };
 }
 

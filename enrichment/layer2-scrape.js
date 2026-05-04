@@ -8,7 +8,13 @@
 const { isAggregatorDomain, JUNK_IG_HANDLES, handleMatchesBusiness } = require('./utils/domain-utils');
 const { classifyEmail } = require('./utils/email-classifier');
 
-async function layer2Scrape(websiteUrl, businessName) {
+// `opts.extractEmails` / `opts.extractInstagram` (default true) gate which fields are extracted
+// from the scraped HTML. If BOTH are false the website fetch is skipped entirely — saves bandwidth
+// and respects the user's toggle. `phone` continues to come from the Maps listing, not from this
+// scrape, so the phone toggle is handled in the caller (server.js mappedResults).
+async function layer2Scrape(websiteUrl, businessName, opts = {}) {
+  const extractEmails    = opts.extractEmails    !== false;
+  const extractInstagram = opts.extractInstagram !== false;
   const empty = {
     email: '', emailRole: '', emailPriority: 0, emails: [],
     email_source: null, email_confidence: null,
@@ -16,12 +22,17 @@ async function layer2Scrape(websiteUrl, businessName) {
   };
   if (!websiteUrl) return empty;
 
+  // Both fields opted out → no point fetching the page at all (saves bandwidth + respects toggles).
+  if (!extractEmails && !extractInstagram) {
+    return { ...empty, isAggregator: isAggregatorDomain(websiteUrl) };
+  }
+
   // Aggregator websites never get scraped — they return platform contacts, not the business's.
   if (isAggregatorDomain(websiteUrl)) {
     const igDirect = websiteUrl.match(/(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/i);
     const directHandle = igDirect ? igDirect[1].toLowerCase() : '';
     const igIgnore = new Set(['p', 'reel', 'reels', 'stories', 'explore', 'accounts', 'about', 'developer', 'legal', 'terms', 'privacy', 'directory', 'static', 'share']);
-    const goodDirect = directHandle && !igIgnore.has(directHandle) && !JUNK_IG_HANDLES.has(directHandle) ? directHandle : '';
+    const goodDirect = (extractInstagram && directHandle && !igIgnore.has(directHandle) && !JUNK_IG_HANDLES.has(directHandle)) ? directHandle : '';
     return { ...empty, instagram: goodDirect, isAggregator: true };
   }
 
@@ -76,15 +87,24 @@ async function layer2Scrape(websiteUrl, businessName) {
       if (!contentType.includes('text/html')) continue;
       const html = await resp.text();
 
-      (html.match(emailRegex) || []).forEach(e => {
-        if (ignoreEmails.test(e)) return;
-        emails.add(e.toLowerCase());
-      });
+      if (extractEmails) {
+        (html.match(emailRegex) || []).forEach(e => {
+          if (ignoreEmails.test(e)) return;
+          emails.add(e.toLowerCase());
+        });
 
-      (html.match(/href=["']tel:([^"']+)["']/gi) || []).forEach(t => {
-        const num = t.replace(/href=["']tel:/i, '').replace(/["']/g, '').trim();
-        if (num.length >= 7) phones.add(num);
-      });
+        (html.match(/href=["']tel:([^"']+)["']/gi) || []).forEach(t => {
+          const num = t.replace(/href=["']tel:/i, '').replace(/["']/g, '').trim();
+          if (num.length >= 7) phones.add(num);
+        });
+      }
+
+      if (!extractInstagram) {
+        // booking platforms still detected even without IG (they're just regex matches)
+        bookingPlatforms.forEach(bp => { if (bp.re.test(html)) bookings.add(bp.name); });
+        if (extractEmails && emails.size > 0) break;
+        continue;
+      }
 
       let igMatch;
       while ((igMatch = igRegex.exec(html)) !== null) {
