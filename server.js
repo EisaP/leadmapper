@@ -13,6 +13,10 @@ const store = require('./db/sqlite-store');
 const { hashSearchParams } = require('./db/hash');
 const { detectChains, classifyTier } = require('./enrichment/chains');
 
+// Apify-based scrapers (Layer 1 alternative to SerpAPI + IG enrichment)
+const { scrapeMapsViaCompass } = require('./enrichment/layer1-compass-maps');
+const { enrichInstagramViaApify } = require('./enrichment/layer-instagram-apify');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const SERPAPI_KEY = process.env.SERPAPI_KEY || '';
@@ -114,139 +118,6 @@ async function serpApiGoogleSearch(query, num = 10) {
   }
 }
 
-// Parse "1.2K followers" / "234K followers" / "15,300 followers" / "1.2M" into an integer.
-// Returns null when nothing parseable is found.
-function parseFollowerCount(text) {
-  if (!text || typeof text !== 'string') return null;
-  // Match either "1.2K followers" style OR "15,300 followers" style
-  const re = /(\d+(?:\.\d+)?[KkMm]?|\d{1,3}(?:,\d{3})+|\d{1,7})\s+followers/i;
-  const m = text.match(re);
-  if (!m) return null;
-  const raw = m[1];
-  // Comma-separated integers: "15,300" → 15300
-  if (/,/.test(raw)) return parseInt(raw.replace(/,/g, ''), 10);
-  // Suffix notation: 1.2K, 234K, 1.2M
-  const suffixMatch = raw.match(/^(\d+(?:\.\d+)?)([KkMm])$/);
-  if (suffixMatch) {
-    const num = parseFloat(suffixMatch[1]);
-    const mult = /m/i.test(suffixMatch[2]) ? 1_000_000 : 1_000;
-    return Math.round(num * mult);
-  }
-  // Plain integer
-  return parseInt(raw, 10);
-}
-
-// Given a Google result object (organic_result / knowledge_graph / answer_box / rich_snippet),
-// search any string field for a "followers" match. First hit wins.
-function followerCountFromAnyText(value) {
-  if (!value) return null;
-  if (typeof value === 'string') return parseFollowerCount(value);
-  if (Array.isArray(value)) {
-    for (const v of value) {
-      const got = followerCountFromAnyText(v);
-      if (got != null) return got;
-    }
-    return null;
-  }
-  if (typeof value === 'object') {
-    for (const v of Object.values(value)) {
-      const got = followerCountFromAnyText(v);
-      if (got != null) return got;
-    }
-    return null;
-  }
-  return null;
-}
-
-// --- Direct follower-count lookup for a known Instagram handle ---
-// Runs for every lead that HAS an IG handle but no follower count yet.
-// Uses SerpAPI Google Search — 1 credit per handle — cached server-side for 7 days.
-async function followersForHandle(handle, businessName) {
-  if (!handle) return null;
-  const cleanHandle = String(handle).replace(/^[@\/]+/, '');
-  if (!cleanHandle) return null;
-  // Query format: site-scoped search picks up the profile's knowledge panel / rich snippet reliably
-  const query = `site:instagram.com "${cleanHandle}" followers`;
-  let data;
-  try {
-    data = await serpApiGoogleSearch(query, 5);
-  } catch (e) {
-    console.log(`[followers] SerpAPI error for @${cleanHandle}: ${e.message}`);
-    return null;
-  }
-  const n = followerCountFromAnyText(data.knowledge_graph)
-    ?? followerCountFromAnyText(data.answer_box)
-    ?? followerCountFromAnyText(data.organic_results);
-  if (n != null) {
-    console.log(`[followers] @${cleanHandle}: ${n.toLocaleString()}`);
-  }
-  return n;
-}
-
-// --- Google fallback Instagram discovery ---
-// Used when primary enrichment couldn't find an IG handle AND the business's listed website
-// was rejected (aggregator) or missing. Searches Google for "business" "city" instagram and validates candidates.
-// Returns { handle, followers } — `followers` may be null if Google didn't include a count in any snippet.
-async function googleFallbackInstagram(businessName, city) {
-  if (!businessName || !city) return { handle: null, followers: null };
-  const query = `"${businessName}" "${city}" instagram`;
-  console.log(`[ig-fallback] Query: ${query}`);
-  let data;
-  try {
-    data = await serpApiGoogleSearch(query, 10);
-  } catch (e) {
-    console.log(`[ig-fallback] SerpAPI error: ${e.message}`);
-    return { handle: null, followers: null };
-  }
-  // Collect IG URLs from organic_results + knowledge_graph + answer_box
-  const urls = [];
-  const pushFrom = (v) => {
-    if (!v) return;
-    if (typeof v === 'string') {
-      const m = v.match(/https?:\/\/(?:www\.)?(?:instagram\.com|instagr\.am)\/[a-zA-Z0-9_.][a-zA-Z0-9_./?=&-]*/gi);
-      if (m) m.forEach(u => urls.push(u));
-    } else if (Array.isArray(v)) {
-      v.forEach(pushFrom);
-    } else if (typeof v === 'object') {
-      Object.values(v).forEach(pushFrom);
-    }
-  };
-  pushFrom(data.organic_results);
-  pushFrom(data.knowledge_graph);
-  pushFrom(data.answer_box);
-
-  // Validate each: profile URL only, not junk, fuzzy-match business name
-  const rejectedPathRe = /\/(p|reel|reels|stories|tv|explore|accounts|direct|about|developer|legal|terms|privacy)\b/i;
-  const handleRe = /(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/i;
-  const candidates = [];
-  for (const u of urls) {
-    if (rejectedPathRe.test(u)) continue;
-    const m = u.match(handleRe);
-    if (!m) continue;
-    const h = m[1].toLowerCase();
-    if (JUNK_IG_HANDLES.has(h)) continue;
-    if (h.length < 3) continue;
-    if (!handleMatchesBusiness(h, businessName)) continue;
-    let score = 0;
-    const nName = normForMatch(businessName);
-    const nH = normForMatch(h);
-    if (nH === nName) score += 100;
-    if (nH.startsWith(nName) || nName.startsWith(nH)) score += 30;
-    score += Math.min(h.length, 25);
-    score -= candidates.length;
-    if (!candidates.find(c => c.handle === h)) candidates.push({ handle: h, score });
-  }
-
-  // Follower count: prefer the knowledge panel (most reliable), fall back to any snippet.
-  const followers = followerCountFromAnyText(data.knowledge_graph)
-    ?? followerCountFromAnyText(data.answer_box)
-    ?? followerCountFromAnyText(data.organic_results);
-
-  if (!candidates.length) return { handle: null, followers };
-  candidates.sort((a, b) => b.score - a.score);
-  console.log(`[ig-fallback] Picked "${candidates[0].handle}"${followers != null ? ` · ${followers.toLocaleString()} followers` : ''}`);
-  return { handle: candidates[0].handle, followers };
-}
 
 // Aggregator blocklist + fuzzy name matching + junk IG handles now live in ./enrichment/utils/domain-utils.js
 // (imported above). Keep this file focused on routing and the SerpAPI Maps flow.
@@ -285,7 +156,7 @@ async function handleSearch(src, res) {
   // For inputs the user might never have touched (deep-linked GET), we infer "intended default"
   // from whether ANY enrichment-related field came in: if NONE did, this is a deep-link with
   // no opinions, so apply the safe defaults from the form.
-  const anyEnrichmentParam = ['extractPhones', 'extractEmails', 'extractInstagram', 'useLayer3', 'useIgFallback', 'extractFollowers'].some(k => src[k] !== undefined);
+  const anyEnrichmentParam = ['extractPhones', 'extractEmails', 'extractInstagram', 'useLayer3', 'enrichInstagramApify'].some(k => src[k] !== undefined);
   const onByDefault = (val, def) => {
     if (val === 'on') return true;
     if (val === 'off') return false;
@@ -295,8 +166,9 @@ async function handleSearch(src, res) {
   const extractEmails    = onByDefault(src.extractEmails,    true);
   const extractInstagram = onByDefault(src.extractInstagram, true);
   const useLayer3Enabled = onByDefault(src.useLayer3,        true);
-  const igFallbackEnabled = onByDefault(src.useIgFallback,   false);
-  const extractFollowers = onByDefault(src.extractFollowers, false);
+  // Apify Instagram Profile Scraper — replaces the old useIgFallback + extractFollowers toggles.
+  // Default ON: validates each IG handle + populates follower count via Apify.
+  const enrichInstagramApifyEnabled = onByDefault(src.enrichInstagramApify, true);
 
   // Master enrich flag — only run the website-scrape pass if at least one of the things it produces is wanted.
   // (Phone is sourced from Google Maps listing, not website scraping, so it doesn't gate Layer 2.)
@@ -331,7 +203,9 @@ async function handleSearch(src, res) {
   const cacheParams = {
     keyword, city, state, ratingMin, ratingMax, maxReviews, maxResults: limit, targetSegment, outreachPriority,
     extractPhones, extractEmails, extractInstagram,
-    useLayer3: useLayer3Enabled, useIgFallback: igFallbackEnabled, extractFollowers,
+    useLayer3: useLayer3Enabled,
+    enrichInstagramApify: enrichInstagramApifyEnabled,
+    dataSource: String(src.dataSource || 'serpapi').toLowerCase(),
   };
   const paramsHash = hashSearchParams(cacheParams);
   const forceFresh = String(src.forceFresh || '') === '1';
@@ -384,9 +258,40 @@ async function handleSearch(src, res) {
   console.log(`[search] Exclude: ${JSON.stringify(excludeTerms)} · rating ${ratingMin}–${ratingMax} · maxReviews ${maxReviews}`);
 
   try {
+    // --- Data source feature flag ---
+    // dataSource=apify  → try Apify Compass first; on failure, fall back to SerpAPI.
+    // dataSource=serpapi (default) → existing SerpAPI flow.
+    const useApify = String(src.dataSource || '').toLowerCase() === 'apify';
+    let mappedResults = null;
+    let filteredResults = null;
+    let serpCredits = 0;        // SerpAPI page-call counter (history row)
+    let apifyCostUsd = 0;       // Cumulative Apify spend for this request (history + UI)
+    let dataSourceUsed = 'serpapi';
+
+    if (useApify) {
+      console.log('[search] Using Apify Compass for Maps (feature flag)');
+      const compass = await scrapeMapsViaCompass({
+        keyword, city, country: state,
+        resultsLimit: limit, ratingMin, ratingMax, maxReviews, excludeKeywords,
+      });
+      if (compass.leads != null && !compass.error) {
+        // Compass already returns leads in our normalised shape, with exclude + rating + max-reviews
+        // filters applied. So mappedResults and filteredResults are the same value.
+        mappedResults   = compass.leads;
+        filteredResults = compass.leads;
+        apifyCostUsd   += compass.costUsd || 0;
+        dataSourceUsed  = 'apify';
+        console.log(`[search] Compass returned ${filteredResults.length} leads · $${apifyCostUsd.toFixed(4)}`);
+      } else {
+        console.warn(`[search] Compass failed (${compass.error || 'unknown'}) — falling back to SerpAPI`);
+        dataSourceUsed = 'serpapi-fallback';
+      }
+    }
+
+    // SerpAPI path (default + Apify fallback)
+    if (!filteredResults) {
     // Run one pass per keyword, concat all raw results
     let allResults = [];
-    let serpCredits = 0; // track for the search_history row
     const perPage = 20;
     for (const kw of keywords) {
       const searchString = `${kw} in ${city}, ${state}`;
@@ -432,7 +337,7 @@ async function handleSearch(src, res) {
     }
 
     // Map SerpAPI results to our clean format
-    const mappedResults = allResults.map(item => {
+    mappedResults = allResults.map(item => {
       let ig = '';
       if (item.website) {
         const igMatch = item.website.match(/(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/i);
@@ -492,7 +397,7 @@ async function handleSearch(src, res) {
 
     console.log(`[search] Parsed filters — minVal: ${minVal}, maxVal: ${maxVal}, maxReviewsVal: ${maxReviewsVal}`);
 
-    const filteredResults = mappedResults.filter(r => {
+    filteredResults = mappedResults.filter(r => {
       if (minVal !== null && (r.rating === null || r.rating < minVal)) return false;
       if (maxVal !== null && (r.rating === null || r.rating > maxVal)) return false;
       if (maxReviewsVal !== null && r.reviewCount >= maxReviewsVal) return false;
@@ -500,6 +405,7 @@ async function handleSearch(src, res) {
     });
 
     console.log(`[search] After filtering: ${filteredResults.length}`);
+    } // end SerpAPI path
 
     // Enrich contacts (skips the website scrape entirely if both email and IG toggles are OFF)
     if (enrich) {
@@ -538,89 +444,27 @@ async function handleSearch(src, res) {
       console.log(`[enrich] Emails: ${emailCount}/${filteredResults.length} (site: ${siteCount}, guessed: ${guessCount})`);
     }
 
-    // --- Instagram Google-search fallback phase ---
-    // Targets leads that finished primary enrichment WITHOUT an IG handle AND either have an
-    // aggregator-rejected website or no website at all. Other leads (with a normal website that
-    // just didn't mention IG) are assumed to genuinely have no IG — we don't burn extra credits on them.
-    // Gate Google IG fallback on BOTH toggles: the user must want IG at all AND specifically opt
-    // into the paid fallback. Either off → skip the SerpAPI calls entirely.
-    if (enrich && igFallbackEnabled && extractInstagram) {
-      const candidates = filteredResults.filter(r => !r.instagram && (r.isAggregator || !r.website));
-      // Cap: top 30 by rating (desc), so extra credit burn is bounded even on large searches
-      const FALLBACK_CAP = 30;
-      let fallbackQueue = candidates;
-      if (candidates.length > FALLBACK_CAP) {
-        fallbackQueue = candidates.slice().sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, FALLBACK_CAP);
-        console.log(`[ig-fallback] ${candidates.length} leads need fallback — capping at top ${FALLBACK_CAP} by rating`);
-      }
-      if (fallbackQueue.length > 0) {
-        console.log(`[ig-fallback] Running Google fallback for ${fallbackQueue.length} leads (extra ${fallbackQueue.length} SerpAPI credits)`);
-        const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-        const CONCURRENCY = 2;
-        let found = 0;
-        for (let i = 0; i < fallbackQueue.length; i += CONCURRENCY) {
-          const batch = fallbackQueue.slice(i, i + CONCURRENCY);
-          const results = await Promise.all(batch.map(async lead => {
-            // Server-side cache by placeId (stores handle + follower count together)
-            const cacheKey = lead.placeId ? `igcache:${lead.placeId}` : null;
-            if (cacheKey) {
-              const cached = dbGet(cacheKey);
-              if (cached && cached.ts && (Date.now() - cached.ts) < CACHE_TTL_MS) {
-                return { lead, handle: cached.handle || null, followers: cached.followers ?? null, fromCache: true };
-              }
-            }
-            let handle = null, followers = null;
-            try {
-              const out = await googleFallbackInstagram(lead.title, lead.city);
-              handle = out.handle; followers = out.followers;
-              serpCredits++; // 1 SerpAPI call (uncached)
-            } catch (e) {
-              console.log(`[ig-fallback] Failed for "${lead.title}": ${e.message}`);
-            }
-            if (cacheKey) dbSet(cacheKey, { handle: handle || '', followers, ts: Date.now() });
-            return { lead, handle, followers, fromCache: false };
-          }));
-          results.forEach(({ lead, handle, followers }) => {
-            if (handle) {
-              lead.instagram = handle;
-              lead.instagramSource = 'google_fallback';
-              found++;
-            }
-            if (followers != null) lead.instagram_followers = followers;
-          });
+    // --- Apify Instagram Profile Scraper ---
+    // Replaces the old SerpAPI Google-snippet fallback + follower extraction.
+    // For every lead with an IG handle (typically from Layer 2's website scrape):
+    //   1. Fetch the IG profile (followers + display name) via apify/instagram-profile-scraper
+    //   2. Validate that the profile's display name overlaps with the business name.
+    //      If not → strip the IG handle (Whitebird Coffee → trentsvineyard bug fix).
+    //   3. Populate lead.instagram_followers from the real profile data.
+    // Default ON; toggle off to keep the website-scraped handle without follower enrichment.
+    // Gated on extractInstagram too — never run when the user opted out of IG entirely.
+    if (enrich && enrichInstagramApifyEnabled && extractInstagram) {
+      const candidates = filteredResults.filter(r => r.instagram);
+      if (candidates.length > 0) {
+        console.log(`[apify-ig] Validating + enriching ${candidates.length} IG handles via apify/instagram-profile-scraper`);
+        try {
+          const igOut = await enrichInstagramViaApify(candidates);
+          apifyCostUsd += igOut.costUsd || 0;
+          console.log(`[apify-ig] $${(igOut.costUsd || 0).toFixed(4)} · ${igOut.populated || 0} populated · ${igOut.rejected || 0} rejected · ${igOut.missing || 0} missing`);
+        } catch (e) {
+          console.error(`[apify-ig] Enrichment failed: ${e.message}`);
+          // Don't crash the search — leads keep their website-scraped IG handles, just no follower data.
         }
-        console.log(`[ig-fallback] Resolved ${found}/${fallbackQueue.length} via Google fallback`);
-      }
-    }
-
-    // --- Dedicated follower-count lookup ---
-    // Covers every lead that has an IG handle but no follower count yet. Default OFF (paid).
-    // Gated on extractInstagram too — no point fetching follower counts for a search that
-    // doesn't even want IG handles.
-    if (enrich && extractFollowers && extractInstagram) {
-      const followerQueue = filteredResults.filter(r => r.instagram && r.instagram_followers == null);
-      if (followerQueue.length > 0) {
-        console.log(`[followers] Fetching follower counts for ${followerQueue.length} IG handles (+${followerQueue.length} credits)`);
-        const FOLLOWER_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
-        const CONCURRENCY = 3;
-        let populated = 0;
-        for (let i = 0; i < followerQueue.length; i += CONCURRENCY) {
-          const batch = followerQueue.slice(i, i + CONCURRENCY);
-          await Promise.all(batch.map(async lead => {
-            const handle = String(lead.instagram).replace(/^[@\/]+/, '').toLowerCase();
-            const cacheKey = `followers:${handle}`;
-            const cached = dbGet(cacheKey);
-            if (cached && cached.ts && (Date.now() - cached.ts) < FOLLOWER_CACHE_TTL) {
-              if (cached.n != null) { lead.instagram_followers = cached.n; populated++; }
-              return;
-            }
-            let n = null;
-            try { n = await followersForHandle(handle, lead.title); serpCredits++; } catch {}
-            dbSet(cacheKey, { n, ts: Date.now() });
-            if (n != null) { lead.instagram_followers = n; populated++; }
-          }));
-        }
-        console.log(`[followers] Populated ${populated}/${followerQueue.length}`);
       }
     }
 
@@ -765,14 +609,16 @@ async function handleSearch(src, res) {
 
     res.render('search', {
       results: segmentFiltered,
-      totalScraped: mappedResults.length,
+      totalScraped: mappedResults ? mappedResults.length : segmentFiltered.length,
+      apifyCostUsd,
+      dataSourceUsed,
       query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, outreachPriority, targetSegment,
         extractPhones:    extractPhones    ? 'on' : 'off',
         extractEmails:    extractEmails    ? 'on' : 'off',
         extractInstagram: extractInstagram ? 'on' : 'off',
         useLayer3:        useLayer3Enabled ? 'on' : 'off',
-        useIgFallback:    igFallbackEnabled ? 'on' : 'off',
-        extractFollowers: extractFollowers ? 'on' : 'off',
+        enrichInstagramApify: enrichInstagramApifyEnabled ? 'on' : 'off',
+        dataSource:       String(src.dataSource || 'serpapi').toLowerCase(),
         searchString: keywords.join(', ') + ` in ${city}, ${state}` },
       error: null,
       recentSearches: getRecentSearches(), ...getSidebarCounts()

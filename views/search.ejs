@@ -676,12 +676,8 @@
               <span><strong>Pattern-guess missing emails</strong> <span class="enrich-cost">free · Layer 3 (only runs if Layer 2 returned nothing)</span></span>
             </label>
             <label class="enrich-toggle">
-              <input type="checkbox" name="useIgFallback" id="useIgFallback" value="on" <%= (query?.useIgFallback === 'on') ? 'checked' : '' %>>
-              <span><strong>Find Instagram via Google fallback</strong> <span class="enrich-cost paid">~1 SerpAPI credit per lead missing IG · capped at 30</span></span>
-            </label>
-            <label class="enrich-toggle">
-              <input type="checkbox" name="extractFollowers" id="extractFollowers" value="on" <%= (query?.extractFollowers === 'on') ? 'checked' : '' %>>
-              <span><strong>Instagram follower counts</strong> <span class="enrich-cost paid">1 SerpAPI credit per IG-having lead · cached 7 days</span></span>
+              <input type="checkbox" name="enrichInstagramApify" id="enrichInstagramApify" value="on" <%= (!query || query?.enrichInstagramApify !== 'off') ? 'checked' : '' %>>
+              <span><strong>Enrich Instagram profiles via Apify</strong> <span class="enrich-cost paid">~$0.005 per IG-having lead · validates handle ownership + populates follower count</span></span>
             </label>
           </div>
           <div id="creditEstimate" style="margin-top: 16px; font-size: 12px; color: var(--text-secondary);">
@@ -689,6 +685,25 @@
             <span id="creditEstimateBreakdown" style="color: var(--text-tertiary);"></span>
           </div>
         </div>
+
+        <!-- Advanced: data-source switcher (SerpAPI vs Apify Compass, feature-flagged) -->
+        <details style="border-top: 1px solid var(--border); padding-top: 20px; margin-bottom: 24px;">
+          <summary style="color: var(--text-secondary); font-size: 13px; font-weight: 400;"><span class="chev">▸</span> Advanced <span style="color: var(--text-tertiary); font-weight: 400;">— data source, validation mode</span></summary>
+          <div style="margin-top: 14px;">
+            <label class="ui-label" style="display: block; margin-bottom: 8px;">Google Maps data source</label>
+            <div style="display: flex; gap: 22px; flex-wrap: wrap; font-size: 13px; color: var(--text-primary);">
+              <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="radio" name="dataSource" value="serpapi" <%= (!query || (query?.dataSource || 'serpapi') === 'serpapi') ? 'checked' : '' %> style="accent-color: var(--red);">
+                <span>SerpAPI <span style="color: var(--text-tertiary); font-size: 12px;">— existing, default</span></span>
+              </label>
+              <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="radio" name="dataSource" value="apify" <%= (query?.dataSource === 'apify') ? 'checked' : '' %> style="accent-color: var(--red);">
+                <span>Apify Compass <span style="color: var(--text-tertiary); font-size: 12px;">— new, validation mode</span></span>
+              </label>
+            </div>
+            <div class="helper-text">Per-search override. Both paths produce the same lead shape; outputs are comparable side-by-side. Compass falls back to SerpAPI on failure.</div>
+          </div>
+        </details>
 
         <!-- Display filters: only affect what's SHOWN, never what's fetched -->
         <details style="border-top: 1px solid var(--border); padding-top: 20px; margin-bottom: 32px;">
@@ -731,6 +746,11 @@
       <% } %>
 
       <% if (results && results.length > 0) { %>
+        <% if (typeof apifyCostUsd !== 'undefined' && apifyCostUsd > 0) { %>
+          <div style="margin-bottom: 16px; font-size: 12px; color: var(--text-secondary);">
+            This search used approximately <strong style="color: var(--text-primary); font-weight: 500;">$<%= apifyCostUsd.toFixed(4) %></strong> of Apify credits<% if (typeof dataSourceUsed !== 'undefined') { %> <span style="color: var(--text-tertiary);">· data source: <%= dataSourceUsed %></span><% } %>.
+          </div>
+        <% } %>
         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 32px;" id="statsGrid"></div>
 
         <div style="padding: 0 0 16px; margin-bottom: 16px; border-top: 1px solid var(--border); padding-top: 20px;">
@@ -1210,8 +1230,11 @@
         setBool('extractEmails',    prefs.extractEmails,    true);
         setBool('extractInstagram', prefs.extractInstagram, true);
         setBool('useLayer3',        prefs.useLayer3,        true);
-        setBool('useIgFallback',    prefs.useIgFallback,    false);
-        setBool('extractFollowers', prefs.extractFollowers, false);
+        setBool('enrichInstagramApify', prefs.enrichInstagramApify, true);
+        // Data source radio — default 'serpapi' for the validation week
+        const ds = prefs.dataSource === 'apify' ? 'apify' : 'serpapi';
+        const dsRadio = document.querySelector(`[name="dataSource"][value="${ds}"]`);
+        if (dsRadio) dsRadio.checked = true;
       }
       // Restore column visibility
       const cols = (prefs.columns || {});
@@ -1226,29 +1249,33 @@
 
     // ——— Live credit estimator ———
     // Recomputes whenever any toggle / Results dropdown changes.
+    // Live credit estimator. Splits cost across two providers:
+    //   SerpAPI credits (base Maps scrape — used when dataSource=serpapi)
+    //   Apify USD (Compass + Instagram Profile Scraper — used when dataSource=apify, or IG-only)
     function estimateCredits() {
       const maxResults = parseInt(document.querySelector('[name=maxResults]')?.value || '100', 10) || 100;
-      const igFallback = document.getElementById('useIgFallback')?.checked;
-      const followers  = document.getElementById('extractFollowers')?.checked;
-      const baseCredits = Math.ceil(maxResults / 20); // 1 credit per Maps page (20 results / page)
-      // IG fallback: capped at 30 in code, expected ~30% of leads need it
-      const fbHi = igFallback ? Math.min(30, Math.round(maxResults * 0.3)) : 0;
-      const fbLo = 0;
-      // Follower lookups: ~40-60% of leads have IG; 1 credit per (uncached) lead
-      const flLo = followers ? Math.round(maxResults * 0.4) : 0;
-      const flHi = followers ? Math.round(maxResults * 0.6) : 0;
-      const lo = baseCredits + fbLo + flLo;
-      const hi = baseCredits + fbHi + flHi;
+      const apifyIg    = document.getElementById('enrichInstagramApify')?.checked;
+      const ds         = document.querySelector('[name="dataSource"]:checked')?.value || 'serpapi';
+      const useApify   = ds === 'apify';
+      // Base Maps scrape: SerpAPI charges per 20-result page; Apify charges ~$0.005/place.
+      const serpBaseCredits = useApify ? 0 : Math.ceil(maxResults / 20);
+      const apifyMapsLo = useApify ? +(maxResults * 0.004).toFixed(2) : 0;
+      const apifyMapsHi = useApify ? +(maxResults * 0.007).toFixed(2) : 0;
+      // Apify IG: ~$0.005 per IG-having lead, expected 40-60% of leads
+      const igLo = apifyIg ? +(maxResults * 0.40 * 0.005).toFixed(2) : 0;
+      const igHi = apifyIg ? +(maxResults * 0.60 * 0.005).toFixed(2) : 0;
       const valEl = document.getElementById('creditEstimateValue');
       const breakEl = document.getElementById('creditEstimateBreakdown');
       if (!valEl) return;
-      valEl.textContent = lo === hi ? `~${lo}` : `${lo}–${hi}`;
-      const parts = [`${baseCredits} base`];
-      if (igFallback) parts.push(`up to ${fbHi} IG fallback`);
-      if (followers) parts.push(`${flLo}–${flHi} follower lookups`);
-      if (breakEl) breakEl.textContent = parts.length > 1 ? ' · ' + parts.join(' · ') : '';
+      const parts = [];
+      if (serpBaseCredits) parts.push(`SerpAPI: ${serpBaseCredits} credits`);
+      if (useApify) parts.push(`Apify Maps: $${apifyMapsLo.toFixed(2)}–$${apifyMapsHi.toFixed(2)}`);
+      if (apifyIg) parts.push(`Apify IG: $${igLo.toFixed(2)}–$${igHi.toFixed(2)}`);
+      if (parts.length === 0) parts.push('no API calls');
+      valEl.textContent = parts[0];
+      if (breakEl) breakEl.textContent = parts.length > 1 ? ' · ' + parts.slice(1).join(' · ') : '';
     }
-    document.querySelectorAll('#useIgFallback, #extractFollowers, [name=maxResults], #extractEmails, #extractInstagram, #extractPhones, #useLayer3').forEach(el => {
+    document.querySelectorAll('#enrichInstagramApify, [name=maxResults], [name="dataSource"], #extractEmails, #extractInstagram, #extractPhones, #useLayer3').forEach(el => {
       el.addEventListener('change', estimateCredits);
     });
     estimateCredits();
@@ -1256,7 +1283,7 @@
     // ——— "Names + ratings only" preset ———
     // Single click for the cheapest possible scrape: just SerpAPI Maps + ratings, nothing else.
     document.getElementById('enrichmentPresetCheap')?.addEventListener('click', () => {
-      ['extractPhones', 'extractEmails', 'extractInstagram', 'useLayer3', 'useIgFallback', 'extractFollowers'].forEach(id => {
+      ['extractPhones', 'extractEmails', 'extractInstagram', 'useLayer3', 'enrichInstagramApify'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.checked = false;
       });
@@ -1271,12 +1298,12 @@
         ratingMin: fd.get('ratingMin'), ratingMax: fd.get('ratingMax'),
         maxReviews: fd.get('maxReviews'), maxResults: fd.get('maxResults'),
         targetSegment: fd.get('targetSegment'),
-        extractPhones:    fd.get('extractPhones')    ? 'on' : 'off',
-        extractEmails:    fd.get('extractEmails')    ? 'on' : 'off',
-        extractInstagram: fd.get('extractInstagram') ? 'on' : 'off',
-        useLayer3:        fd.get('useLayer3')        ? 'on' : 'off',
-        useIgFallback:    fd.get('useIgFallback')    ? 'on' : 'off',
-        extractFollowers: fd.get('extractFollowers') ? 'on' : 'off'
+        extractPhones:        fd.get('extractPhones')        ? 'on' : 'off',
+        extractEmails:        fd.get('extractEmails')        ? 'on' : 'off',
+        extractInstagram:     fd.get('extractInstagram')     ? 'on' : 'off',
+        useLayer3:            fd.get('useLayer3')            ? 'on' : 'off',
+        enrichInstagramApify: fd.get('enrichInstagramApify') ? 'on' : 'off',
+        dataSource:           fd.get('dataSource')           || 'serpapi'
       });
       const btn = document.getElementById('searchBtn');
       btn.disabled = true;
