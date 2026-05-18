@@ -50,14 +50,14 @@ function dbList(prefix) {
 }
 loadDB();
 
-// --- One-time migration: pull old search:/lead: rows out of the JSON DB into SQLite ---
+// --- One-time migration: pull old search:/lead: rows out of the JSON DB ---
+// store.migrateFromJSON works on whichever backend is active (SQLite or in-memory).
 try {
   const out = store.migrateFromJSON(DB_FILE);
   if (out.migrated || out.leads) {
-    console.log(`[migrate] Imported ${out.migrated || 0} searches + ${out.leads || 0} saved leads → ${out.dbPath}`);
-  } else {
-    console.log(`[storage] SQLite ready at ${store.DB_PATH}`);
+    console.log(`[migrate] Imported ${out.migrated || 0} searches + ${out.leads || 0} saved leads → ${out.dbPath || store.DB_PATH}`);
   }
+  // The backend itself logs its own "ready" / "fallback" line at module load — no need to duplicate.
 } catch (err) {
   console.error('[migrate] Failed:', err.message);
 }
