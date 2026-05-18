@@ -261,6 +261,16 @@ async function handleSearch(src, res) {
   console.log(`[search] Exclude: ${JSON.stringify(excludeTerms)} · rating ${ratingMin}–${ratingMax} · maxReviews ${maxReviews}`);
 
   try {
+    // --- Filter values, parsed once at function scope ---
+    // Hoisted above both Apify and SerpAPI branches because they're persisted in the
+    // search_history row regardless of which data source ran. Each branch applies them
+    // its own way (Compass via applyFilters in layer1-compass-maps.js; SerpAPI via the
+    // inline filter loop below).
+    const minVal        = (ratingMin   !== undefined && ratingMin   !== '') ? parseFloat(ratingMin)   : null;
+    const maxVal        = (ratingMax   !== undefined && ratingMax   !== '') ? parseFloat(ratingMax)   : null;
+    const maxReviewsVal = (maxReviews  !== undefined && maxReviews  !== '') ? parseInt(maxReviews, 10) : null;
+    console.log(`[search] Parsed filters — minVal: ${minVal}, maxVal: ${maxVal}, maxReviewsVal: ${maxReviewsVal}`);
+
     // --- Data source feature flag ---
     // dataSource=apify (default) → Apify Compass scrape; on failure → render error, do NOT
     //                              silently fall back to SerpAPI (would burn credits if any).
@@ -405,13 +415,7 @@ async function handleSearch(src, res) {
 
     console.log(`[search] Mapped results: ${mappedResults.length}`);
 
-    // Apply filters (rating range + max reviews)
-    const minVal = (ratingMin !== undefined && ratingMin !== '') ? parseFloat(ratingMin) : null;
-    const maxVal = (ratingMax !== undefined && ratingMax !== '') ? parseFloat(ratingMax) : null;
-    const maxReviewsVal = (maxReviews !== undefined && maxReviews !== '') ? parseInt(maxReviews, 10) : null;
-
-    console.log(`[search] Parsed filters — minVal: ${minVal}, maxVal: ${maxVal}, maxReviewsVal: ${maxReviewsVal}`);
-
+    // Apply rating + max-reviews filters (minVal/maxVal/maxReviewsVal hoisted above)
     filteredResults = mappedResults.filter(r => {
       if (minVal !== null && (r.rating === null || r.rating < minVal)) return false;
       if (maxVal !== null && (r.rating === null || r.rating > maxVal)) return false;
