@@ -184,11 +184,14 @@ async function handleSearch(src, res) {
       recentSearches: getRecentSearches(), ...getSidebarCounts()
     });
   }
-  if (!SERPAPI_KEY) {
+  // SERPAPI_KEY is only required when dataSource=serpapi. For Apify mode the SerpAPI key
+  // can be absent or even invalid — the Compass branch runs entirely against Apify.
+  const wantsSerp = String(src.dataSource || 'apify').toLowerCase() === 'serpapi';
+  if (wantsSerp && !SERPAPI_KEY) {
     return res.render('search', {
       results: null, totalScraped: 0,
       query: null,
-      error: 'SERPAPI_KEY not set. Add it to your .env or Secrets.',
+      error: 'SerpAPI mode selected but SERPAPI_KEY is not set. Add it to Replit Secrets, or switch to Apify mode in the Advanced section.',
       recentSearches: getRecentSearches(), ...getSidebarCounts()
     });
   }
@@ -259,17 +262,18 @@ async function handleSearch(src, res) {
 
   try {
     // --- Data source feature flag ---
-    // dataSource=apify  → try Apify Compass first; on failure, fall back to SerpAPI.
-    // dataSource=serpapi (default) → existing SerpAPI flow.
-    const useApify = String(src.dataSource || '').toLowerCase() === 'apify';
+    // dataSource=apify (default) → Apify Compass scrape; on failure → render error, do NOT
+    //                              silently fall back to SerpAPI (would burn credits if any).
+    // dataSource=serpapi          → legacy SerpAPI flow.
+    const useApify = String(src.dataSource || 'apify').toLowerCase() !== 'serpapi';
     let mappedResults = null;
     let filteredResults = null;
     let serpCredits = 0;        // SerpAPI page-call counter (history row)
     let apifyCostUsd = 0;       // Cumulative Apify spend for this request (history + UI)
-    let dataSourceUsed = 'serpapi';
+    let dataSourceUsed = useApify ? 'apify' : 'serpapi';
 
     if (useApify) {
-      console.log('[search] Using Apify Compass for Maps (feature flag)');
+      console.log('[search] Using Apify Compass for Maps');
       const compass = await scrapeMapsViaCompass({
         keyword, city, country: state,
         resultsLimit: limit, ratingMin, ratingMax, maxReviews, excludeKeywords,
@@ -283,12 +287,23 @@ async function handleSearch(src, res) {
         dataSourceUsed  = 'apify';
         console.log(`[search] Compass returned ${filteredResults.length} leads · $${apifyCostUsd.toFixed(4)}`);
       } else {
-        console.warn(`[search] Compass failed (${compass.error || 'unknown'}) — falling back to SerpAPI`);
-        dataSourceUsed = 'serpapi-fallback';
+        // User explicitly chose Apify — surface the actual Compass error, don't silently fall
+        // back. Most common cause: APIFY_API_TOKEN not set in Replit Secrets.
+        const reason = compass.error || 'unknown error';
+        console.error(`[search] Compass failed: ${reason}`);
+        const isTokenIssue = /APIFY_API_TOKEN/i.test(reason) || /401|unauthorized|forbidden/i.test(reason);
+        const friendly = isTokenIssue
+          ? `Apify token missing or invalid. Set APIFY_API_TOKEN in Replit Secrets (Apify → Console → Integrations → API token).`
+          : `Apify Compass failed: ${reason}`;
+        return res.render('search', {
+          results: null, totalScraped: 0, query: null,
+          error: friendly,
+          recentSearches: getRecentSearches(), ...getSidebarCounts()
+        });
       }
     }
 
-    // SerpAPI path (default + Apify fallback)
+    // SerpAPI path (only when dataSource=serpapi explicit)
     if (!filteredResults) {
     // Run one pass per keyword, concat all raw results
     let allResults = [];
