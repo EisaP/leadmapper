@@ -1443,9 +1443,17 @@
       if (chainEl) chainEl.textContent = allResults.filter(r => r.is_chain_candidate).length;
     }
 
+    // Display filter for contact-method checkboxes.
+    //   All three checked      → no filter, EVERY lead passes (including no-contact ones)
+    //   None checked           → no filter, every lead passes (don't hide everything)
+    //   Some checked, some not → narrow to leads that have AT LEAST ONE of the checked channels
+    // This change matters because freshly-scraped Compass leads often have no enrichment yet
+    // (Layer 2 hasn't run, IG hasn't enriched). Old behaviour silently hid all of them.
     function passesChannels(r) {
       const { email, phone, instagram } = state.channels;
-      if (!email && !phone && !instagram) return false;
+      const allChecked  = email && phone && instagram;
+      const noneChecked = !email && !phone && !instagram;
+      if (allChecked || noneChecked) return true;
       if (email && r.email) return true;
       if (phone && r.phone) return true;
       if (instagram && r.instagram) return true;
