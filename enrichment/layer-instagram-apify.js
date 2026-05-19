@@ -1,8 +1,8 @@
-// Apify Instagram Profile Scraper — replaces the old SerpAPI Google-snippet follower
-// extraction. Inputs: a list of leads (some with `instagram` handles set by Layer 2's
-// website scrape). Outputs: same array with `instagram_followers` populated for valid
-// matches AND with `instagram` cleared for leads whose handle doesn't actually belong
-// to that business (catches the Whitebird Coffee → trentsvineyard class of bug).
+// Apify Instagram Profile Scraper. Inputs: a list of leads (some with `instagram`
+// handles set by Layer 2's website scrape). Outputs: same array with
+// `instagram_followers` populated for valid matches AND with `instagram` cleared
+// for leads whose handle doesn't actually belong to that business (catches the
+// Whitebird Coffee → trentsvineyard class of bug).
 
 const { client, hasToken } = require('./apify-client');
 

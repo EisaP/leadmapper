@@ -1,7 +1,6 @@
-// Layer 1 — Compass Google Maps scraper (Apify) as an alternative to SerpAPI.
-// Runs behind a feature flag (`dataSource=apify`) so we can compare outputs side-by-side
-// before cutting over fully. Normalised output matches the existing LeadHunter lead shape so
-// every downstream layer (Layer 2/3, chain detection, segmentation, UI) works unchanged.
+// Layer 1 — Compass Google Maps scraper (Apify). Sole data source.
+// Normalised output matches the existing LeadHunter lead shape so every downstream
+// layer (Layer 2/3, chain detection, segmentation, UI) works unchanged.
 
 const { client, hasToken } = require('./apify-client');
 const { isAggregatorDomain } = require('./utils/domain-utils');
@@ -167,7 +166,7 @@ async function scrapeMapsViaCompass({ keyword, city, country, resultsLimit, rati
     console.log(`[apify-compass] Dropped ${normalized.length - titled.length} items with no title (field-name mismatch?)`);
   }
 
-  // Exclude-keyword filter — mirrors the SerpAPI path's behaviour
+  // Exclude-keyword filter
   const excludeTerms = String(excludeKeywords || '')
     .split(',')
     .map(k => k.trim().toLowerCase())

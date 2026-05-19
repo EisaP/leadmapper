@@ -454,8 +454,7 @@
         <% } %>
       </nav>
       <div class="sidebar-footer">
-        <div class="credit-indicator" title="SerpAPI usage this month"><span class="dot"></span>SerpAPI · <%= typeof serpUsage !== 'undefined' ? serpUsage : '—' %></div>
-        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 10px;">Internal tool</div>
+        <div style="font-size: 11px; color: var(--text-tertiary);">Internal tool</div>
       </div>
     </aside>
 
@@ -490,7 +489,7 @@
           <div class="cp-body">
             <div class="cp-headline">This search was run <%= cachePrompt.ageDays === 0 ? 'today' : cachePrompt.ageDays === 1 ? 'yesterday' : cachePrompt.ageDays + ' days ago' %> by the team.</div>
             <div class="cp-meta">
-              <%= cachePrompt.totalLeads %> leads · <%= cachePrompt.emailCount %> emails · <%= cachePrompt.instagramCount %> Instagram · <%= cachePrompt.phoneCount %> phones · <%= cachePrompt.credits %> SerpAPI credit<%= cachePrompt.credits === 1 ? '' : 's' %> used
+              <%= cachePrompt.totalLeads %> leads · <%= cachePrompt.emailCount %> emails · <%= cachePrompt.instagramCount %> Instagram · <%= cachePrompt.phoneCount %> phones
             </div>
           </div>
           <div class="cp-actions">
@@ -583,16 +582,8 @@
                 Results
                 <button type="button" class="info-tip tip-right" aria-label="More info about the Results setting" tabindex="0">?
                   <span class="tip-content" role="tooltip">
-                    <p><strong>Results</strong> sets the maximum number of raw businesses fetched from Google Maps.</p>
-                    <p>Google Maps returns results in pages of 20. Each page = <strong>1 SerpAPI credit</strong> from your monthly quota.</p>
-                    <ul>
-                      <li><strong>20</strong> · 1 credit · ~10 sec</li>
-                      <li><strong>50</strong> · 3 credits · ~25 sec</li>
-                      <li><strong>100</strong> · 5 credits · ~45 sec</li>
-                      <li><strong>250</strong> · 13 credits · ~90 sec</li>
-                      <li><strong>500</strong> · 25 credits · ~2–3 min</li>
-                    </ul>
-                    <p>Higher isn't always better — if the market is small, asking for 500 may still return only 40–50 unique businesses after dedupe. Start with 100 for exploration and scale up once you know the market is deep.</p>
+                    <p><strong>Results</strong> sets the maximum number of raw businesses fetched from Google Maps via Apify Compass.</p>
+                    <p>Compass charges per place returned (≈ $0.005 each). Higher isn't always better — if the market is small, asking for 500 may still return only 40–50 unique businesses after dedupe. Start with 20–50 for exploration and scale up once you know the market is deep.</p>
                   </span>
                 </button>
               </label>
@@ -681,29 +672,10 @@
             </label>
           </div>
           <div id="creditEstimate" style="margin-top: 16px; font-size: 12px; color: var(--text-secondary);">
-            Estimated SerpAPI credits: <strong id="creditEstimateValue" style="color: var(--text-primary); font-weight: 500;">—</strong>
+            Estimated Apify cost: <strong id="creditEstimateValue" style="color: var(--text-primary); font-weight: 500;">—</strong>
             <span id="creditEstimateBreakdown" style="color: var(--text-tertiary);"></span>
           </div>
         </div>
-
-        <!-- Advanced: data-source switcher (SerpAPI vs Apify Compass, feature-flagged) -->
-        <details style="border-top: 1px solid var(--border); padding-top: 20px; margin-bottom: 24px;">
-          <summary style="color: var(--text-secondary); font-size: 13px; font-weight: 400;"><span class="chev">▸</span> Advanced <span style="color: var(--text-tertiary); font-weight: 400;">— data source, validation mode</span></summary>
-          <div style="margin-top: 14px;">
-            <label class="ui-label" style="display: block; margin-bottom: 8px;">Google Maps data source</label>
-            <div style="display: flex; gap: 22px; flex-wrap: wrap; font-size: 13px; color: var(--text-primary);">
-              <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
-                <input type="radio" name="dataSource" value="apify" <%= (!query || (query?.dataSource || 'apify') !== 'serpapi') ? 'checked' : '' %> style="accent-color: var(--red);">
-                <span>Apify Compass <span style="color: var(--text-tertiary); font-size: 12px;">— default</span></span>
-              </label>
-              <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
-                <input type="radio" name="dataSource" value="serpapi" <%= (query?.dataSource === 'serpapi') ? 'checked' : '' %> style="accent-color: var(--red);">
-                <span>SerpAPI <span style="color: var(--text-tertiary); font-size: 12px;">— legacy fallback</span></span>
-              </label>
-            </div>
-            <div class="helper-text">Per-search override. Both paths produce the same lead shape; outputs are comparable side-by-side. Compass falls back to SerpAPI on failure.</div>
-          </div>
-        </details>
 
         <!-- Display filters: only affect what's SHOWN, never what's fetched -->
         <details style="border-top: 1px solid var(--border); padding-top: 20px; margin-bottom: 32px;">
@@ -1231,10 +1203,6 @@
         setBool('extractInstagram', prefs.extractInstagram, true);
         setBool('useLayer3',        prefs.useLayer3,        true);
         setBool('enrichInstagramApify', prefs.enrichInstagramApify, true);
-        // Data source radio — Apify is now the default; SerpAPI only if explicitly saved
-        const ds = prefs.dataSource === 'serpapi' ? 'serpapi' : 'apify';
-        const dsRadio = document.querySelector(`[name="dataSource"][value="${ds}"]`);
-        if (dsRadio) dsRadio.checked = true;
       }
       // Restore column visibility
       const cols = (prefs.columns || {});
@@ -1247,41 +1215,33 @@
       refreshPriorityHint();
     })();
 
-    // ——— Live credit estimator ———
+    // ——— Live cost estimator ———
     // Recomputes whenever any toggle / Results dropdown changes.
-    // Live credit estimator. Splits cost across two providers:
-    //   SerpAPI credits (base Maps scrape — used when dataSource=serpapi)
-    //   Apify USD (Compass + Instagram Profile Scraper — used when dataSource=apify, or IG-only)
+    // Cost = Apify Compass (base Maps scrape) + Apify Instagram Profile Scraper (optional).
     function estimateCredits() {
       const maxResults = parseInt(document.querySelector('[name=maxResults]')?.value || '100', 10) || 100;
       const apifyIg    = document.getElementById('enrichInstagramApify')?.checked;
-      const ds         = document.querySelector('[name="dataSource"]:checked')?.value || 'apify';
-      const useApify   = ds === 'apify';
-      // Base Maps scrape: SerpAPI charges per 20-result page; Apify charges ~$0.005/place.
-      const serpBaseCredits = useApify ? 0 : Math.ceil(maxResults / 20);
-      const apifyMapsLo = useApify ? +(maxResults * 0.004).toFixed(2) : 0;
-      const apifyMapsHi = useApify ? +(maxResults * 0.007).toFixed(2) : 0;
+      // Compass: ~$0.004–$0.007 per place.
+      const apifyMapsLo = +(maxResults * 0.004).toFixed(2);
+      const apifyMapsHi = +(maxResults * 0.007).toFixed(2);
       // Apify IG: ~$0.005 per IG-having lead, expected 40-60% of leads
       const igLo = apifyIg ? +(maxResults * 0.40 * 0.005).toFixed(2) : 0;
       const igHi = apifyIg ? +(maxResults * 0.60 * 0.005).toFixed(2) : 0;
       const valEl = document.getElementById('creditEstimateValue');
       const breakEl = document.getElementById('creditEstimateBreakdown');
       if (!valEl) return;
-      const parts = [];
-      if (serpBaseCredits) parts.push(`SerpAPI: ${serpBaseCredits} credits`);
-      if (useApify) parts.push(`Apify Maps: $${apifyMapsLo.toFixed(2)}–$${apifyMapsHi.toFixed(2)}`);
+      const parts = [`Apify Maps: $${apifyMapsLo.toFixed(2)}–$${apifyMapsHi.toFixed(2)}`];
       if (apifyIg) parts.push(`Apify IG: $${igLo.toFixed(2)}–$${igHi.toFixed(2)}`);
-      if (parts.length === 0) parts.push('no API calls');
       valEl.textContent = parts[0];
       if (breakEl) breakEl.textContent = parts.length > 1 ? ' · ' + parts.slice(1).join(' · ') : '';
     }
-    document.querySelectorAll('#enrichInstagramApify, [name=maxResults], [name="dataSource"], #extractEmails, #extractInstagram, #extractPhones, #useLayer3').forEach(el => {
+    document.querySelectorAll('#enrichInstagramApify, [name=maxResults], #extractEmails, #extractInstagram, #extractPhones, #useLayer3').forEach(el => {
       el.addEventListener('change', estimateCredits);
     });
     estimateCredits();
 
     // ——— "Names + ratings only" preset ———
-    // Single click for the cheapest possible scrape: just SerpAPI Maps + ratings, nothing else.
+    // Single click for the cheapest possible scrape: Maps + ratings only, nothing else.
     document.getElementById('enrichmentPresetCheap')?.addEventListener('click', () => {
       ['extractPhones', 'extractEmails', 'extractInstagram', 'useLayer3', 'enrichInstagramApify'].forEach(id => {
         const el = document.getElementById(id);
@@ -1293,24 +1253,21 @@
     document.getElementById('searchForm').addEventListener('submit', function(e) {
       const fd = new FormData(e.target);
       // ——— Pre-flight cost gate ———
-      // Only applies when dataSource=apify. Estimates Compass cost. Two thresholds:
+      // Apify Compass cost estimate. Two thresholds:
       //   > $0.50  → confirm dialog ("This will cost ~$X.XX, continue?")
       //   > $2.00  → block, require an extra confirmation
-      const isApify = (fd.get('dataSource') || 'apify') === 'apify';
       const requestedPlaces = parseInt(fd.get('maxResults') || '20', 10) || 20;
-      const estCost = isApify ? requestedPlaces * 0.0025 : 0;   // reviews=0, base only
-      if (isApify) {
-        if (estCost > 2.0) {
-          const ok = confirm(`This search will use approximately $${estCost.toFixed(2)} of Apify credits — that's above the $2.00 per-search cap.\n\nAre you absolutely sure? Click OK to override the cap and submit anyway.`);
-          if (!ok) { e.preventDefault(); return; }
-          // Add allowExpensive=1 to override the server-side cap too
-          const hidden = document.createElement('input');
-          hidden.type = 'hidden'; hidden.name = 'allowExpensive'; hidden.value = '1';
-          e.target.appendChild(hidden);
-        } else if (estCost > 0.5) {
-          const ok = confirm(`This search will use approximately $${estCost.toFixed(2)} of Apify credits.\n\nProceed?`);
-          if (!ok) { e.preventDefault(); return; }
-        }
+      const estCost = requestedPlaces * 0.0025;   // reviews=0, base only
+      if (estCost > 2.0) {
+        const ok = confirm(`This search will use approximately $${estCost.toFixed(2)} of Apify credits — that's above the $2.00 per-search cap.\n\nAre you absolutely sure? Click OK to override the cap and submit anyway.`);
+        if (!ok) { e.preventDefault(); return; }
+        // Add allowExpensive=1 to override the server-side cap too
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden'; hidden.name = 'allowExpensive'; hidden.value = '1';
+        e.target.appendChild(hidden);
+      } else if (estCost > 0.5) {
+        const ok = confirm(`This search will use approximately $${estCost.toFixed(2)} of Apify credits.\n\nProceed?`);
+        if (!ok) { e.preventDefault(); return; }
       }
       savePrefs({
         keyword: fd.get('keyword'), excludeKeywords: fd.get('excludeKeywords'),
@@ -1323,7 +1280,6 @@
         extractInstagram:     fd.get('extractInstagram')     ? 'on' : 'off',
         useLayer3:            fd.get('useLayer3')            ? 'on' : 'off',
         enrichInstagramApify: fd.get('enrichInstagramApify') ? 'on' : 'off',
-        dataSource:           fd.get('dataSource')           || 'apify'
       });
       const btn = document.getElementById('searchBtn');
       btn.disabled = true;
@@ -1411,7 +1367,7 @@
             <div class="stat-card">
               <div class="stat-label" style="display: flex; align-items: center;">
                 Chain detection
-                <button type="button" class="info-tip" aria-label="About chain detection" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Chain detection</strong> flags leads that look like a chain or franchise based on three signals: repeated contact data within the search, repeated business-name root, and a known-chains blocklist (Starbucks, Costa, Pret, etc.).</p><p>Each candidate is then classified by tier (local / regional / national / global) using a single Google search via SerpAPI — cached for 90 days.</p></span></button>
+                <button type="button" class="info-tip" aria-label="About chain detection" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Chain detection</strong> flags leads that look like a chain or franchise based on three signals: repeated contact data within the search, repeated business-name root, and a known-chains blocklist (Starbucks, Costa, Pret, etc.).</p><p>Each candidate is then classified by tier (local / regional / national / global) from a cache populated during previous searches. Uncached chains default to <em>local</em>.</p></span></button>
               </div>
               <div class="stat-value">${total}</div>
               <div class="stat-sub">Local: ${tierCounts.local} · Regional: ${tierCounts.regional} · National: ${tierCounts.national} · Global: ${tierCounts.global}</div>
@@ -2053,7 +2009,7 @@
 
     function render() { renderStats(); updateFilterCounts(); renderRows(); renderActiveSegDefn(); }
     // Reclassify every result with the user's saved segment thresholds before the first paint,
-    // so custom segments and edited B/C behave immediately (no SerpAPI refetch needed).
+    // so custom segments and edited B/C behave immediately (no refetch needed).
     try { reclassifyAllResults(); } catch {}
     render();
 

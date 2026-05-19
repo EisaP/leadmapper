@@ -13,13 +13,12 @@ const store = require('./db/sqlite-store');
 const { hashSearchParams } = require('./db/hash');
 const { detectChains, classifyTier } = require('./enrichment/chains');
 
-// Apify-based scrapers (Layer 1 alternative to SerpAPI + IG enrichment)
+// Apify-based scrapers (Layer 1 Maps + IG enrichment)
 const { scrapeMapsViaCompass, fetchCompassRunDataset, estimateCompassCostUsd, APIFY_HARD_CAP_USD, APIFY_SOFT_WARN_USD } = require('./enrichment/layer1-compass-maps');
 const { enrichInstagramViaApify } = require('./enrichment/layer-instagram-apify');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const SERPAPI_KEY = process.env.SERPAPI_KEY || '';
 // Phase D placeholders — reserved for paid APIs.
 // process.env.PROSPEO_API_KEY, process.env.MILLIONVERIFIER_API_KEY
 // process.env.LEADHUNTER_VERIFY_FROM   — Layer 3 SMTP HELO/MAIL FROM identity
@@ -75,52 +74,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- SerpAPI helper ---
-async function serpApiSearch(query, start) {
-  const params = new URLSearchParams({
-    engine: 'google_maps',
-    q: query,
-    type: 'search',
-    api_key: SERPAPI_KEY,
-    start: start.toString(),
-  });
-
-  const url = `https://serpapi.com/search.json?${params}`;
-  console.log(`[serpapi] Fetching start=${start}`);
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`SerpAPI error ${response.status}: ${text}`);
-  }
-  return response.json();
-}
-
-// --- SerpAPI Google web search (for Instagram fallback) ---
-async function serpApiGoogleSearch(query, num = 10) {
-  const params = new URLSearchParams({
-    engine: 'google',
-    q: query,
-    api_key: SERPAPI_KEY,
-    num: String(num),
-  });
-  const url = `https://serpapi.com/search.json?${params}`;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeout);
-    if (!response.ok) throw new Error(`SerpAPI google ${response.status}`);
-    return response.json();
-  } catch (e) {
-    clearTimeout(timeout);
-    throw e;
-  }
-}
-
-
 // Aggregator blocklist + fuzzy name matching + junk IG handles now live in ./enrichment/utils/domain-utils.js
-// (imported above). Keep this file focused on routing and the SerpAPI Maps flow.
+// (imported above). Keep this file focused on routing and the Apify Compass Maps flow.
 
 
 // --- ROUTES ---
@@ -184,31 +139,18 @@ async function handleSearch(src, res) {
       recentSearches: getRecentSearches(), ...getSidebarCounts()
     });
   }
-  // SERPAPI_KEY is only required when dataSource=serpapi. For Apify mode the SerpAPI key
-  // can be absent or even invalid — the Compass branch runs entirely against Apify.
-  const wantsSerp = String(src.dataSource || 'apify').toLowerCase() === 'serpapi';
-  if (wantsSerp && !SERPAPI_KEY) {
-    return res.render('search', {
-      results: null, totalScraped: 0,
-      query: null,
-      error: 'SerpAPI mode selected but SERPAPI_KEY is not set. Add it to Replit Secrets, or switch to Apify mode in the Advanced section.',
-      recentSearches: getRecentSearches(), ...getSidebarCounts()
-    });
-  }
-
   const limit = Math.min(parseInt(maxResults) || 20, 500);
 
   // --- Cache flow ---
   // Three modes (controlled by query string):
   //   default       → check cache; if hit, render the prompt banner asking which to do
   //   ?cacheReuse=1 → load cached row, render results immediately + "cached from N days ago" badge
-  //   ?forceFresh=1 → skip cache lookup, run fresh SerpAPI search (also used by "Refresh from source")
+  //   ?forceFresh=1 → skip cache lookup, run fresh Compass search (also used by "Refresh from source")
   const cacheParams = {
     keyword, city, state, ratingMin, ratingMax, maxReviews, maxResults: limit, targetSegment, outreachPriority,
     extractPhones, extractEmails, extractInstagram,
     useLayer3: useLayer3Enabled,
     enrichInstagramApify: enrichInstagramApifyEnabled,
-    dataSource: String(src.dataSource || 'serpapi').toLowerCase(),
   };
   const paramsHash = hashSearchParams(cacheParams);
   const forceFresh = String(src.forceFresh || '') === '1';
@@ -223,16 +165,16 @@ async function handleSearch(src, res) {
         const results = JSON.parse(cached.results_json || '[]');
         return res.render('search', {
           results, totalScraped: results.length,
-          query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useIgFallback, useLayer3: src.useLayer3 || 'on', extractFollowers: src.extractFollowers || 'on', outreachPriority, targetSegment, searchString: cached.keyword + ' in ' + cached.city + ', ' + cached.country },
+          query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, targetSegment, searchString: cached.keyword + ' in ' + cached.city + ', ' + cached.country },
           error: null,
           cachedFrom: { ageDays: Math.round(cached.age_days), createdAt: cached.created_at, hash: paramsHash },
           recentSearches: getRecentSearches(), ...getSidebarCounts()
         });
       }
-      // Default mode — show the prompt banner, no SerpAPI call yet
+      // Default mode — show the prompt banner, no Compass call yet
       return res.render('search', {
         results: null, totalScraped: 0,
-        query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useIgFallback, useLayer3: src.useLayer3 || 'on', extractFollowers: src.extractFollowers || 'on', outreachPriority, targetSegment },
+        query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, targetSegment },
         error: null,
         cachePrompt: {
           ageDays: Math.round(cached.age_days),
@@ -241,7 +183,6 @@ async function handleSearch(src, res) {
           emailCount: cached.email_count,
           phoneCount: cached.phone_count,
           instagramCount: cached.instagram_count,
-          credits: cached.serpapi_credits_used,
           hash: paramsHash
         },
         recentSearches: getRecentSearches(), ...getSidebarCounts()
@@ -262,171 +203,45 @@ async function handleSearch(src, res) {
 
   try {
     // --- Filter values, parsed once at function scope ---
-    // Hoisted above both Apify and SerpAPI branches because they're persisted in the
-    // search_history row regardless of which data source ran. Each branch applies them
-    // its own way (Compass via applyFilters in layer1-compass-maps.js; SerpAPI via the
-    // inline filter loop below).
+    // Persisted on the search_history row. Compass applies them itself via
+    // applyFilters in layer1-compass-maps.js.
     const minVal        = (ratingMin   !== undefined && ratingMin   !== '') ? parseFloat(ratingMin)   : null;
     const maxVal        = (ratingMax   !== undefined && ratingMax   !== '') ? parseFloat(ratingMax)   : null;
     const maxReviewsVal = (maxReviews  !== undefined && maxReviews  !== '') ? parseInt(maxReviews, 10) : null;
     console.log(`[search] Parsed filters — minVal: ${minVal}, maxVal: ${maxVal}, maxReviewsVal: ${maxReviewsVal}`);
 
-    // --- Data source feature flag ---
-    // dataSource=apify (default) → Apify Compass scrape; on failure → render error, do NOT
-    //                              silently fall back to SerpAPI (would burn credits if any).
-    // dataSource=serpapi          → legacy SerpAPI flow.
-    const useApify = String(src.dataSource || 'apify').toLowerCase() !== 'serpapi';
     let mappedResults = null;
     let filteredResults = null;
-    let serpCredits = 0;        // SerpAPI page-call counter (history row)
     let apifyCostUsd = 0;       // Cumulative Apify spend for this request (history + UI)
-    let dataSourceUsed = useApify ? 'apify' : 'serpapi';
 
-    if (useApify) {
-      console.log('[search] Using Apify Compass for Maps · requested limit ' + limit);
-      const allowExpensive = String(src.allowExpensive || '') === '1';
-      const compass = await scrapeMapsViaCompass({
-        keyword, city, country: state,
-        resultsLimit: limit, ratingMin, ratingMax, maxReviews, excludeKeywords,
-        allowExpensive,
-      });
-      if (compass.leads != null && !compass.error) {
-        // Compass already returns leads in our normalised shape, with exclude + rating + max-reviews
-        // filters applied. So mappedResults and filteredResults are the same value.
-        mappedResults   = compass.leads;
-        filteredResults = compass.leads;
-        apifyCostUsd   += compass.costUsd || 0;
-        dataSourceUsed  = 'apify';
-        console.log(`[search] Compass returned ${filteredResults.length} leads · $${apifyCostUsd.toFixed(4)}`);
-      } else {
-        // User explicitly chose Apify — surface the actual Compass error, don't silently fall
-        // back. Most common cause: APIFY_API_TOKEN not set in Replit Secrets.
-        const reason = compass.error || 'unknown error';
-        console.error(`[search] Compass failed: ${reason}`);
-        const isTokenIssue = /APIFY_API_TOKEN/i.test(reason) || /401|unauthorized|forbidden/i.test(reason);
-        const friendly = isTokenIssue
-          ? `Apify token missing or invalid. Set APIFY_API_TOKEN in Replit Secrets (Apify → Console → Integrations → API token).`
-          : `Apify Compass failed: ${reason}`;
-        return res.render('search', {
-          results: null, totalScraped: 0, query: null,
-          error: friendly,
-          recentSearches: getRecentSearches(), ...getSidebarCounts()
-        });
-      }
-    }
-
-    // SerpAPI path (only when dataSource=serpapi explicit)
-    if (!filteredResults) {
-    // Run one pass per keyword, concat all raw results
-    let allResults = [];
-    const perPage = 20;
-    for (const kw of keywords) {
-      const searchString = `${kw} in ${city}, ${state}`;
-      const maxPages = Math.ceil(perKeywordLimit / perPage);
-      let start = 0;
-      let kwCount = 0;
-      for (let page = 0; page < maxPages; page++) {
-        const data = await serpApiSearch(searchString, start);
-        serpCredits++;
-        const places = data.local_results || [];
-        if (places.length === 0) break;
-        allResults = allResults.concat(places);
-        kwCount += places.length;
-        console.log(`[search] "${kw}" page ${page + 1}: +${places.length} (total ${allResults.length})`);
-        if (kwCount >= perKeywordLimit) break;
-        if (!data.serpapi_pagination || !data.serpapi_pagination.next) break;
-        start += perPage;
-      }
-    }
-    console.log(`[search] Raw combined results: ${allResults.length}`);
-
-    // Dedupe by place_id (fallback to normalized title+address)
-    const seen = new Set();
-    allResults = allResults.filter(item => {
-      const key = item.place_id || ((item.title || '') + '|' + (item.address || '')).toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
+    console.log('[search] Using Apify Compass for Maps · requested limit ' + limit);
+    const allowExpensive = String(src.allowExpensive || '') === '1';
+    const compass = await scrapeMapsViaCompass({
+      keyword, city, country: state,
+      resultsLimit: limit, ratingMin, ratingMax, maxReviews, excludeKeywords,
+      allowExpensive,
     });
-    console.log(`[search] After dedupe: ${allResults.length}`);
-
-    // Trim to exact limit after dedupe
-    allResults = allResults.slice(0, limit);
-
-    // Apply exclude-keywords filter on title or type
-    if (excludeTerms.length > 0) {
-      const before = allResults.length;
-      allResults = allResults.filter(item => {
-        const hay = `${item.title || ''} ${item.type || ''}`.toLowerCase();
-        return !excludeTerms.some(term => hay.includes(term));
+    if (compass.leads != null && !compass.error) {
+      // Compass already returns leads in our normalised shape, with exclude + rating + max-reviews
+      // filters applied. So mappedResults and filteredResults are the same value.
+      mappedResults   = compass.leads;
+      filteredResults = compass.leads;
+      apifyCostUsd   += compass.costUsd || 0;
+      console.log(`[search] Compass returned ${filteredResults.length} leads · $${apifyCostUsd.toFixed(4)}`);
+    } else {
+      // Most common cause: APIFY_API_TOKEN not set in Replit Secrets.
+      const reason = compass.error || 'unknown error';
+      console.error(`[search] Compass failed: ${reason}`);
+      const isTokenIssue = /APIFY_API_TOKEN/i.test(reason) || /401|unauthorized|forbidden/i.test(reason);
+      const friendly = isTokenIssue
+        ? `Apify token missing or invalid. Set APIFY_API_TOKEN in Replit Secrets (Apify → Console → Integrations → API token).`
+        : `Apify Compass failed: ${reason}`;
+      return res.render('search', {
+        results: null, totalScraped: 0, query: null,
+        error: friendly,
+        recentSearches: getRecentSearches(), ...getSidebarCounts()
       });
-      console.log(`[search] After exclude filter: ${allResults.length} (removed ${before - allResults.length})`);
     }
-
-    // Map SerpAPI results to our clean format
-    mappedResults = allResults.map(item => {
-      let ig = '';
-      if (item.website) {
-        const igMatch = item.website.match(/(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.]{1,30})\/?/i);
-        if (igMatch) ig = igMatch[1].toLowerCase();
-      }
-      // SerpAPI exposes optional fields; capture them if present
-      const priceTier = item.price || item.price_level || '';
-      let hours = '';
-      if (item.hours) {
-        if (typeof item.hours === 'string') hours = item.hours;
-        else if (Array.isArray(item.hours)) hours = item.hours.map(h => typeof h === 'string' ? h : JSON.stringify(h)).slice(0, 3).join(' · ');
-        else if (item.hours.status) hours = item.hours.status;
-      }
-      if (!hours && item.open_state) hours = item.open_state;
-      // Honor the per-result toggles at the source: if the user opted out of phone/IG, never
-      // even surface what Maps gave us for that field.
-      const initialPhone = extractPhones    ? (item.phone || '') : '';
-      const initialIg    = extractInstagram ? ig                 : '';
-      return {
-        title: item.title || '',
-        phone: initialPhone,
-        website: item.website || '',
-        email: '',
-        emailRole: '',
-        emailPriority: 0,
-        emails: [],
-        email_source: null,
-        email_confidence: null,
-        instagram: initialIg,
-        // Source of the Instagram handle: 'maps' (extracted from Google Maps "website" field that was an IG URL),
-        // 'website' (scraped from business's own site), 'google_fallback' (resolved via Google search), or null.
-        instagramSource: initialIg ? 'maps' : null,
-        // Follower count — populated by Google fallback when the snippet/knowledge-panel includes it.
-        instagram_followers: null,
-        booking: '',
-        hours: hours,
-        priceTier: priceTier,
-        placeId: item.place_id || '',
-        isAggregator: isAggregatorDomain(item.website),
-        category: item.type || '',
-        address: item.address || '',
-        city: city,
-        state: state,
-        rating: item.rating != null ? item.rating : null,
-        reviewCount: item.reviews != null ? item.reviews : 0,
-        url: item.place_id ? `https://www.google.com/maps/place/?q=place_id:${item.place_id}` : (item.gps_coordinates ? `https://www.google.com/maps?q=${item.gps_coordinates.latitude},${item.gps_coordinates.longitude}` : ''),
-        imageUrl: item.thumbnail || ''
-      };
-    }).filter(r => r.title);
-
-    console.log(`[search] Mapped results: ${mappedResults.length}`);
-
-    // Apply rating + max-reviews filters (minVal/maxVal/maxReviewsVal hoisted above)
-    filteredResults = mappedResults.filter(r => {
-      if (minVal !== null && (r.rating === null || r.rating < minVal)) return false;
-      if (maxVal !== null && (r.rating === null || r.rating > maxVal)) return false;
-      if (maxReviewsVal !== null && r.reviewCount >= maxReviewsVal) return false;
-      return true;
-    });
-
-    console.log(`[search] After filtering: ${filteredResults.length}`);
-    } // end SerpAPI path
 
     // Enrich contacts (skips the website scrape entirely if both email and IG toggles are OFF)
     if (enrich) {
@@ -466,7 +281,6 @@ async function handleSearch(src, res) {
     }
 
     // --- Apify Instagram Profile Scraper ---
-    // Replaces the old SerpAPI Google-snippet fallback + follower extraction.
     // For every lead with an IG handle (typically from Layer 2's website scrape):
     //   1. Fetch the IG profile (followers + display name) via apify/instagram-profile-scraper
     //   2. Validate that the profile's display name overlaps with the business name.
@@ -566,18 +380,12 @@ async function handleSearch(src, res) {
       if (candidateRoots.length > 0) {
         console.log(`[chains] ${candidateRoots.length} unique candidate root(s): ${candidateRoots.slice(0, 8).join(', ')}${candidateRoots.length > 8 ? '…' : ''}`);
         const tierByRoot = new Map();
-        let chainCreditsUsed = 0;
         for (const root of candidateRoots) {
-          // Track whether Signal B (name pattern) fired for at least one lead with this root —
-          // affects the classifier's fallback when there's no Knowledge Graph.
-          const nameSignalFired = filteredResults.some(r => r.chain_root_name === root && (r.chain_signals_fired || []).includes('name'));
-          const before = serpCredits;
+          // Cache-only lookup — uncached chains default to 'local' until the next data
+          // source (Leads Finder) lands with native company-size info.
           const out = await classifyTier(root, {
-            serpFn: async (q) => { serpCredits++; return await serpApiGoogleSearch(q, 5); },
             cache: { get: store.getChainTier, set: store.setChainTier },
-            signalNameFired: nameSignalFired,
           });
-          if (serpCredits > before) chainCreditsUsed += (serpCredits - before);
           tierByRoot.set(root, out.tier);
           console.log(`[chains]   "${root}" → ${out.tier}${out.fromCache ? ' (cached)' : ''}`);
         }
@@ -587,7 +395,7 @@ async function handleSearch(src, res) {
           else r.chain_tier = 'independent';
         }
         const flagged = filteredResults.filter(r => r.is_chain_candidate).length;
-        console.log(`[chains] Flagged ${flagged}/${filteredResults.length} leads as chain candidates · ${chainCreditsUsed} credit(s) spent on classification`);
+        console.log(`[chains] Flagged ${flagged}/${filteredResults.length} leads as chain candidates`);
       } else {
         for (const r of filteredResults) r.chain_tier = 'independent';
       }
@@ -624,7 +432,7 @@ async function handleSearch(src, res) {
       email_count: segmentFiltered.filter(r => r.email).length,
       phone_count: segmentFiltered.filter(r => r.phone).length,
       instagram_count: segmentFiltered.filter(r => r.instagram).length,
-      serpapi_credits_used: serpCredits,
+      serpapi_credits_used: 0,
       results_json: JSON.stringify(segmentFiltered),
     });
 
@@ -632,14 +440,13 @@ async function handleSearch(src, res) {
       results: segmentFiltered,
       totalScraped: mappedResults ? mappedResults.length : segmentFiltered.length,
       apifyCostUsd,
-      dataSourceUsed,
+      dataSourceUsed: 'apify',
       query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, outreachPriority, targetSegment,
         extractPhones:    extractPhones    ? 'on' : 'off',
         extractEmails:    extractEmails    ? 'on' : 'off',
         extractInstagram: extractInstagram ? 'on' : 'off',
         useLayer3:        useLayer3Enabled ? 'on' : 'off',
         enrichInstagramApify: enrichInstagramApifyEnabled ? 'on' : 'off',
-        dataSource:       String(src.dataSource || 'serpapi').toLowerCase(),
         searchString: keywords.join(', ') + ` in ${city}, ${state}` },
       error: null,
       recentSearches: getRecentSearches(), ...getSidebarCounts()
@@ -647,9 +454,7 @@ async function handleSearch(src, res) {
 
   } catch (err) {
     console.error('[search] Error:', err.message);
-    let errorMsg = 'Search failed: ' + (err.message || 'Unknown error');
-    if (err.message.includes('401')) errorMsg = 'Invalid SerpAPI key. Check your SERPAPI_KEY.';
-    if (err.message.includes('429')) errorMsg = 'SerpAPI rate limit reached. Try again in a moment.';
+    const errorMsg = 'Search failed: ' + (err.message || 'Unknown error');
     res.render('search', { results: null, totalScraped: 0, query: null, error: errorMsg, recentSearches: getRecentSearches(), ...getSidebarCounts() });
   }
 }
@@ -700,7 +505,6 @@ app.get('/recover-apify-run', async (req, res) => {
     query: {
       keyword: keyword || `(recovered ${runId})`,
       city, state, maxResults: out.leads.length,
-      dataSource: 'apify',
       searchString: `${keyword || 'recovered'} in ${city}, ${state} · run ${runId}`,
     },
     error: null,

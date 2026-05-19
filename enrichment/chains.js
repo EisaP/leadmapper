@@ -11,9 +11,10 @@
 // If ANY signal fires, lead.is_chain_candidate = true and lead.chain_signals_fired
 // records which ones did.
 //
-// Tier classification then runs ONE SerpAPI Google search per unique root name
-// (cached for 90 days in SQLite) and bins the chain into:
-//   global > national > regional > local > independent
+// Tier classification is currently cache-only — previously-classified chains
+// keep their stored tier (90-day TTL in SQLite); uncached chains default to
+// 'local'. Tier values: global > national > regional > local > independent.
+// Will be replaced when Layer 3 (Leads Finder) ships with native company-size data.
 
 const fs = require('fs');
 const path = require('path');
@@ -187,38 +188,15 @@ function detectChains(leads) {
   return { leads, uniqueRoots: [...uniqueRoots] };
 }
 
-// --- Tier classification via SerpAPI Google search ---
-// Pure function over a SerpAPI response: returns one of
-//   'global' | 'national' | 'regional' | 'local' | 'independent'
-function classifyTierFromSerp(serpData, opts = {}) {
-  const { signalNameFired = false } = opts;
-  const kg = serpData?.knowledge_graph || null;
-  const totalResults = Number(serpData?.search_information?.total_results) || 0;
-  const desc = (kg?.description || kg?.snippet || '').toLowerCase();
-
-  if (kg && totalResults > 100_000_000 && /\b(worldwide|global|international)\b/.test(desc)) {
-    return 'global';
-  }
-  if (kg && totalResults > 10_000_000) return 'national';
-  if (kg && totalResults >= 1_000_000) return 'regional';
-  // Edge case: KG present but tiny result count — bias toward regional rather than local
-  if (kg && totalResults < 1_000_000) return 'regional';
-  if (signalNameFired) return 'local';
-  // Default fallback (uncertain) — safer to mark as small chain than leave unclassified
-  return 'local';
-}
-
-// --- Async wrapper that uses SerpAPI + a caller-provided cache layer ---
-// `serpFn(query)` should call SerpAPI Google search and return the parsed JSON.
-// `cache` is { get(rootName), set(rootName, row) } backed by SQLite.
-// Returns { tier, fromCache, kgPresent, totalResults, classifiedAt }.
+// --- Tier classification: cache-only lookup ---
+// Returns { tier, fromCache }. Previously-classified chains keep their stored
+// tier (90-day TTL); uncached chains default to 'local'.
 const TIER_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
 
-async function classifyTier(rootName, { serpFn, cache, signalNameFired = false }) {
+async function classifyTier(rootName, { cache } = {}) {
   const key = String(rootName || '').toLowerCase().trim();
   if (!key) return { tier: 'local', fromCache: false };
 
-  // Cache lookup first
   if (cache?.get) {
     const cached = cache.get(key);
     if (cached && cached.classified_at) {
@@ -229,26 +207,11 @@ async function classifyTier(rootName, { serpFn, cache, signalNameFired = false }
     }
   }
 
-  // Fresh classification
-  let serp;
-  try { serp = await serpFn(key); } catch (e) {
-    // Network failure — return a conservative default but DO NOT cache it
-    return { tier: signalNameFired ? 'local' : 'local', fromCache: false, error: e.message };
-  }
-  const tier = classifyTierFromSerp(serp, { signalNameFired });
-  const totalResults = Number(serp?.search_information?.total_results) || 0;
-  const kgPresent = !!serp?.knowledge_graph;
-
-  if (cache?.set) {
-    cache.set(key, { tier, knowledge_graph_present: kgPresent, total_results: totalResults });
-  }
-  return { tier, fromCache: false, kgPresent, totalResults };
+  return { tier: 'local', fromCache: false };
 }
 
 module.exports = {
   detectChains,
   classifyTier,
-  classifyTierFromSerp,
-  // Internal helpers exported for tests
   _internal: { tokenize, normalizePhone, rootDomain, signalContact, signalName, signalBlocklist, KNOWN_CHAINS_FLAT },
 };

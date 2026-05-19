@@ -46,8 +46,8 @@
     .sidebar-nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
     .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
 
-    /* Stats grid (4 cards across) */
-    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+    /* Stats grid (3 cards across) */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
     .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 20px; }
     .stat-card .stat-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 12px; }
     .stat-card .stat-value { font-size: 32px; font-weight: 500; color: var(--text-primary); line-height: 1; letter-spacing: -0.02em; }
@@ -105,7 +105,7 @@
     <main style="flex: 1; padding: 40px 44px 80px; min-width: 0; max-width: 1600px;">
       <div style="margin-bottom: 28px;">
         <h1 style="font-size: 28px;">Search history</h1>
-        <p style="color: var(--text-secondary); font-size: 14px; margin: 6px 0 0;">Every team-wide search, with filters and result counts. Click <em>Reuse</em> to load cached results without spending SerpAPI credits.</p>
+        <p style="color: var(--text-secondary); font-size: 14px; margin: 6px 0 0;">Every team-wide search, with filters and result counts. Click <em>Reuse</em> to load cached results without re-running Apify.</p>
       </div>
 
       <!-- Stat cards -->
@@ -119,11 +119,6 @@
           <div class="stat-label">Total leads</div>
           <div class="stat-value"><%= stats.totalLeads.toLocaleString() %></div>
           <div class="stat-sub">discovered across every search</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">SerpAPI credits</div>
-          <div class="stat-value"><%= stats.monthlyCredits.toLocaleString() %></div>
-          <div class="stat-sub">this calendar month</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Top city</div>
@@ -176,7 +171,6 @@
                 <th class="num">Emails</th>
                 <th class="num">IG</th>
                 <th class="num">Phones</th>
-                <th class="sortable num <%= filters.sort === 'credits' ? 'active' : '' %>"><%- sortLink('credits', 'Credits') %></th>
                 <th style="width: 220px;">Actions</th>
               </tr>
             </thead>
@@ -191,11 +185,10 @@
                   <td class="num" style="color: var(--text-secondary);"><%= s.email_count || 0 %></td>
                   <td class="num" style="color: var(--text-secondary);"><%= s.instagram_count || 0 %></td>
                   <td class="num" style="color: var(--text-secondary);"><%= s.phone_count || 0 %></td>
-                  <td class="num" style="color: var(--text-secondary);"><%= s.serpapi_credits_used || 0 %></td>
                   <td>
                     <div class="row-actions">
-                      <a href="/history/<%= s.id %>" title="Load cached results, no SerpAPI cost">Reuse</a>
-                      <a href="/history/run/<%= s.id %>" title="Re-run with the same params, fresh SerpAPI calls">Run again</a>
+                      <a href="/history/<%= s.id %>" title="Load cached results, no Apify cost">Reuse</a>
+                      <a href="/history/run/<%= s.id %>" title="Re-run with the same params via Apify">Run again</a>
                       <form method="POST" action="/history/delete/<%= s.id %>" style="display: inline;" onsubmit="return confirm('Delete this search from history?')">
                         <button type="submit" class="delete" title="Remove from history">Delete</button>
                       </form>

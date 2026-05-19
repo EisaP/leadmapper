@@ -1,113 +1,54 @@
-# LeadMapper — How The Scraper Works
+# LeadHunter — How The Scraper Works
 
 ## Overview
 
-LeadMapper searches Google Maps for businesses and extracts their contact details. It uses a third-party scraping API to pull data from Google Maps, then filters and displays it in the app.
+LeadHunter searches Google Maps for businesses and enriches each result with
+contact details. Data flows through a layered waterfall:
+
+1. **Layer 1 — Maps scrape (Apify Compass)** → name, phone, website, rating, reviews, address
+2. **Layer 2 — Website scrape** → email + Instagram handle + booking platform from the business's own site
+3. **Layer 3 — Pattern-guess emails** → SMTP-verified `firstname@domain.com` style guesses when Layer 2 returned nothing
+4. **Apify Instagram Profile Scraper** → validates each IG handle + populates follower count
+5. **Chain detection + tier classification** → flags chain candidates and bins by tier (cached only — see below)
 
 ---
 
-## Current Setup: Apify
+## Layer 1: Apify Compass (Google Maps)
 
-**What it is:** Apify is a cloud scraping platform. We use their "Google Maps Scraper" actor (ID: `nwua9Gu5YrADL7ZDj`) via their API.
+**Actor:** `apify/google-maps-scraper` (Compass)
+**Client:** `enrichment/layer1-compass-maps.js`
+**Cost:** ~$0.004–$0.007 per place. With `maxReviews: 0` and 20 results, a search costs <$0.20.
+**Cost gates** (don't remove without reason):
+- Default `maxResults` = 20
+- `maxReviews` = 0 (was 5, which inflated cost ~10×)
+- Client-side `> $0.50` estimate → confirm dialog before submit
+- Client + server-side `> $2.00` estimate → blocked unless `?allowExpensive=1`
 
-**How it works:**
-1. User enters a keyword (e.g. "dentist"), city ("London"), and country ("United Kingdom")
-2. Server formats the query as: `"dentist in London, United Kingdom"`
-3. Server sends this to Apify's API with the user's API token
-4. Apify spins up a scraper that searches Google Maps, scrolls through results, and extracts data
-5. Results come back as JSON with: business name, phone, website, email, address, rating, review count, Google Maps URL
-6. Server applies filters (rating range, max reviews) and displays results
+The Apify run ID is logged for every search. If a search returns leads but the UI
+fails to render them, use `/recover-apify-run?runId=<id>&city=<>&state=<>&keyword=<>`
+to ingest the already-paid dataset without re-running the actor.
 
-**Cost:** $5/month free tier. We burned through it during development/testing.
+## Required output shape per place
 
----
+- Business name
+- Phone, website, email (Layer 1 returns whatever Maps surfaces; Layer 2/3 fill gaps)
+- Category, full address
+- Rating + review count
+- Google Maps URL
 
-## What We Need From Any Replacement API
+## Chain tier classification (cache-only as of 2026-05)
 
-The scraper API must return these fields per business:
-- **Business name**
-- **Phone number**
-- **Website URL**
-- **Email** (nice to have)
-- **Category** (e.g. "Dentist", "Coffee Shop")
-- **Full address**
-- **Rating** (e.g. 4.5 out of 5)
-- **Review count** (e.g. 127 reviews)
-- **Google Maps URL**
+Chain *detection* still runs on every search (three signals: repeated contact data,
+repeated name root, known-chains blocklist). Tier *classification* is currently
+cache-only: previously-classified chains keep their stored tier (90-day TTL in
+SQLite); uncached chains default to `'local'`. This is a deliberate stopgap —
+SerpAPI was retired in May 2026 and tier classification will be replaced by
+Layer 3 (Leads Finder) which returns native company-size data.
 
-And it must support:
-- **Location-specific search** (search within a specific city/country)
-- **Result limit** (e.g. return 20, 50, 100, 250, or 500 results)
+## Environment variables (Replit Secrets)
 
----
-
-## Alternative APIs to Research
-
-### 1. SerpAPI — Google Maps API
-- **Free tier:** 100 searches/month (no card required)
-- **Paid:** Starts at $50/month for 5,000 searches
-- **Endpoint:** `GET https://serpapi.com/search?engine=google_maps`
-- **Key params:** `q` (query), `ll` (lat/lng), `type` (search)
-- **Returns:** Business name, address, phone, website, rating, reviews, GPS coords, thumbnail
-- **Docs:** https://serpapi.com/google-maps-api
-- **Verdict:** Best free option. 100 searches/month is enough to get started.
-
-### 2. Google Places API (Official)
-- **Free tier:** $200/month credit (requires card on file, won't charge unless you exceed)
-- **Paid:** $32 per 1,000 Text Search requests after free credit
-- **Endpoint:** `POST https://places.googleapis.com/v1/places:searchText`
-- **Key params:** `textQuery`, `locationBias`, `maxResultCount` (max 20 per request)
-- **Returns:** Name, address, phone, website, rating, review count, types, Google Maps URI
-- **Limitation:** Max 20 results per request (need pagination for more)
-- **Docs:** https://developers.google.com/maps/documentation/places/web-service
-- **Verdict:** Most generous free tier. Best for heavy usage. Requires credit card.
-
-### 3. Outscraper — Google Maps API
-- **Free tier:** ~100 results free, then pay-as-you-go
-- **Paid:** $3 per 1,000 results
-- **Endpoint:** REST API with async task model
-- **Returns:** Full business data including emails (scraped from websites)
-- **Docs:** https://outscraper.com/google-maps-scraper
-- **Verdict:** Good for email extraction. Small free tier.
-
-### 4. ValueSERP
-- **Free tier:** 100 searches/month
-- **Paid:** Starts at $25/month
-- **Endpoint:** `GET https://api.valueserp.com/search?engine=google_maps`
-- **Returns:** Similar to SerpAPI
-- **Docs:** https://www.valueserp.com
-- **Verdict:** Similar to SerpAPI but less popular.
-
-### 5. Bright Data (formerly Luminati)
-- **Free tier:** Limited trial
-- **Paid:** Enterprise pricing
-- **Verdict:** Overkill for this use case.
-
----
-
-## Recommendation
-
-| Priority | API | Why |
-|----------|-----|-----|
-| **1st** | SerpAPI | Free 100 searches/mo, no card, easy integration |
-| **2nd** | Google Places API | $200/mo free credit, most reliable, needs card |
-| **3rd** | Outscraper | Includes email scraping, small free tier |
-
----
-
-## How The Server Code Would Change
-
-The only file that needs updating is `server.js`. Specifically the `/search` route (lines 60-163). The views (search.ejs, history.ejs, leads.ejs) stay exactly the same since they just display the data.
-
-**What changes:**
-- Remove `apify-client` dependency
-- Add new API's HTTP calls (simple `fetch` requests)
-- Map the new API's response format to our existing format (title, phone, website, etc.)
-
-**What stays the same:**
-- All filtering logic (rating range, max reviews)
-- All UI/views
-- History, leads, CSV export
-- File-backed database
-
-Estimated rebuild time: ~15 minutes.
+| Key | Required | Purpose |
+|---|---|---|
+| `APIFY_API_TOKEN` | yes | Compass Maps scraper + Instagram Profile scraper |
+| `LEADHUNTER_DB_PATH` | optional | Override SQLite location |
+| `LEADHUNTER_VERIFY_FROM` | optional | Layer 3 SMTP HELO/MAIL FROM identity |
