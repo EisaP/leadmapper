@@ -598,7 +598,7 @@
               </label>
               <select class="select" name="maxResults">
                 <% [20,50,100,250,500].forEach(v => { %>
-                  <option value="<%= v %>" <%= String(query?.maxResults || 100) == String(v) ? 'selected' : '' %>><%= v %></option>
+                  <option value="<%= v %>" <%= String(query?.maxResults || 20) == String(v) ? 'selected' : '' %>><%= v %><% if (v >= 100) { %> · paid<% } %></option>
                 <% }) %>
               </select>
             </div>
@@ -1292,6 +1292,26 @@
 
     document.getElementById('searchForm').addEventListener('submit', function(e) {
       const fd = new FormData(e.target);
+      // ——— Pre-flight cost gate ———
+      // Only applies when dataSource=apify. Estimates Compass cost. Two thresholds:
+      //   > $0.50  → confirm dialog ("This will cost ~$X.XX, continue?")
+      //   > $2.00  → block, require an extra confirmation
+      const isApify = (fd.get('dataSource') || 'apify') === 'apify';
+      const requestedPlaces = parseInt(fd.get('maxResults') || '20', 10) || 20;
+      const estCost = isApify ? requestedPlaces * 0.0025 : 0;   // reviews=0, base only
+      if (isApify) {
+        if (estCost > 2.0) {
+          const ok = confirm(`This search will use approximately $${estCost.toFixed(2)} of Apify credits — that's above the $2.00 per-search cap.\n\nAre you absolutely sure? Click OK to override the cap and submit anyway.`);
+          if (!ok) { e.preventDefault(); return; }
+          // Add allowExpensive=1 to override the server-side cap too
+          const hidden = document.createElement('input');
+          hidden.type = 'hidden'; hidden.name = 'allowExpensive'; hidden.value = '1';
+          e.target.appendChild(hidden);
+        } else if (estCost > 0.5) {
+          const ok = confirm(`This search will use approximately $${estCost.toFixed(2)} of Apify credits.\n\nProceed?`);
+          if (!ok) { e.preventDefault(); return; }
+        }
+      }
       savePrefs({
         keyword: fd.get('keyword'), excludeKeywords: fd.get('excludeKeywords'),
         city: fd.get('city'), state: fd.get('state'),

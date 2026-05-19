@@ -78,8 +78,18 @@ function applyFilters(items, { ratingMin, ratingMax, maxReviews } = {}) {
   });
 }
 
-// Main entry point. Returns { leads, costUsd, runId } — never throws; callers fall back to SerpAPI.
-async function scrapeMapsViaCompass({ keyword, city, country, resultsLimit, ratingMin, ratingMax, maxReviews, excludeKeywords }) {
+// Cost-cap helpers — both estimation (before the call) and enforcement (during).
+// Compass pricing (rule of thumb): ~$0.0025 per place baseline + ~$0.005 per review scraped.
+function estimateCompassCostUsd(placesLimit, reviewsPerPlace) {
+  const places = Math.max(0, parseInt(placesLimit, 10) || 0);
+  const reviews = Math.max(0, parseInt(reviewsPerPlace, 10) || 0);
+  return (places * 0.0025) + (places * reviews * 0.005);
+}
+const APIFY_HARD_CAP_USD = 2.0;       // Refuse any search whose estimate exceeds this (without explicit override)
+const APIFY_SOFT_WARN_USD = 0.5;      // Above this, the UI shows a confirm-or-cancel modal before submitting
+
+// Main entry point. Returns { leads, costUsd, runId } — never throws; callers handle errors.
+async function scrapeMapsViaCompass({ keyword, city, country, resultsLimit, ratingMin, ratingMax, maxReviews, excludeKeywords, allowExpensive }) {
   if (!hasToken) {
     return { leads: null, costUsd: 0, runId: null, error: 'APIFY_API_TOKEN not configured' };
   }
@@ -93,16 +103,31 @@ async function scrapeMapsViaCompass({ keyword, city, country, resultsLimit, rati
     return { leads: null, costUsd: 0, runId: null, error: 'No keyword provided' };
   }
 
+  // Default cap 20 unless user explicitly chose higher AND acknowledged the cost.
+  // resultsLimit is whatever the form sent. We respect it but enforce the hard cap.
+  const requestedPlaces = Math.min(Math.max(parseInt(resultsLimit, 10) || 20, 1), 500);
+  // Cost gate — reviews now default to 0 (was 5, which inflated per-search cost ~10×).
+  const REVIEWS_PER_PLACE = 0;
+  const estCost = estimateCompassCostUsd(requestedPlaces, REVIEWS_PER_PLACE);
+  if (estCost > APIFY_HARD_CAP_USD && !allowExpensive) {
+    return {
+      leads: null, costUsd: 0, runId: null,
+      error: `Search estimated at $${estCost.toFixed(2)} exceeds the $${APIFY_HARD_CAP_USD.toFixed(2)} per-search cap. Reduce Results, or add &allowExpensive=1 to the URL to override.`,
+    };
+  }
+
   const input = {
     searchStringsArray,
     locationQuery: `${city}, ${country}`,
-    maxCrawledPlacesPerSearch: Math.min(Math.max(parseInt(resultsLimit, 10) || 100, 1), 500),
+    maxCrawledPlacesPerSearch: requestedPlaces,
     language: 'en',
     skipClosedPlaces: true,
     scrapeReviewsPersonalData: false,
-    maxReviews: 5,                 // Bundle the last 5 reviews per place — unlocks future Intent Score work
+    maxReviews: REVIEWS_PER_PLACE,   // 0 = no reviews, big cost saving
     includeWebResults: false,
   };
+
+  console.log(`[apify-compass] About to call ${COMPASS_ACTOR_ID} · est cost $${estCost.toFixed(4)} · ${requestedPlaces} places · ${searchStringsArray.length} keywords`);
 
   let run;
   try {
@@ -112,35 +137,92 @@ async function scrapeMapsViaCompass({ keyword, city, country, resultsLimit, rati
     return { leads: null, costUsd: 0, runId: null, error: err.message };
   }
 
+  const actualCost = run.usageTotalUsd != null ? run.usageTotalUsd : 0;
+  console.log(`[apify-compass] Run ${run.id} completed · actual cost $${actualCost.toFixed(4)}`);
+
   let datasetItems = [];
   try {
     const out = await client.dataset(run.defaultDatasetId).listItems();
     datasetItems = out.items || [];
   } catch (err) {
     console.error(`[apify-compass] Dataset fetch failed: ${err.message}`);
-    return { leads: null, costUsd: run.usageTotalUsd || 0, runId: run.id, error: err.message };
+    return { leads: null, costUsd: actualCost, runId: run.id, error: err.message };
+  }
+
+  console.log(`[apify-compass] Dataset returned ${datasetItems.length} raw items`);
+  // Log the keys of the first item — instantly reveals any field-name mismatch
+  if (datasetItems.length > 0) {
+    const sample = datasetItems[0];
+    const keys = Object.keys(sample).slice(0, 30).join(', ');
+    console.log(`[apify-compass] First item keys: ${keys}`);
+    console.log(`[apify-compass] First item title="${sample.title}" rating=${sample.totalScore} reviews=${sample.reviewsCount}`);
   }
 
   const normalized = datasetItems.map(item => normalizeCompassItem(item, city, country));
+  console.log(`[apify-compass] After normalize: ${normalized.length} items`);
+
+  // Drop any items that lack a usable title — they'd be invisible in the UI anyway
+  const titled = normalized.filter(r => r.title && r.title.trim());
+  if (titled.length < normalized.length) {
+    console.log(`[apify-compass] Dropped ${normalized.length - titled.length} items with no title (field-name mismatch?)`);
+  }
 
   // Exclude-keyword filter — mirrors the SerpAPI path's behaviour
   const excludeTerms = String(excludeKeywords || '')
     .split(',')
     .map(k => k.trim().toLowerCase())
     .filter(Boolean);
-  const beforeExclude = normalized.length;
-  const afterExclude = excludeTerms.length === 0 ? normalized : normalized.filter(item => {
+  const afterExclude = excludeTerms.length === 0 ? titled : titled.filter(item => {
     const hay = `${item.title || ''} ${item.category || ''}`.toLowerCase();
     return !excludeTerms.some(term => hay.includes(term));
   });
+  if (afterExclude.length < titled.length) {
+    console.log(`[apify-compass] After exclude-keywords filter: ${afterExclude.length} (dropped ${titled.length - afterExclude.length})`);
+  }
 
   // Rating + max-reviews filter
   const filtered = applyFilters(afterExclude, { ratingMin, ratingMax, maxReviews });
+  if (filtered.length < afterExclude.length) {
+    console.log(`[apify-compass] After rating/maxReviews filter: ${filtered.length} (dropped ${afterExclude.length - filtered.length})`);
+  }
 
-  const costUsd = run.usageTotalUsd != null ? run.usageTotalUsd : 0;
-  console.log(`[apify-compass] Run ${run.id} · $${(costUsd || 0).toFixed(4)} · ${datasetItems.length} places → ${filtered.length} after filters (excluded ${beforeExclude - afterExclude.length})`);
+  console.log(`[apify-compass] Final: $${actualCost.toFixed(4)} · ${datasetItems.length} raw → ${filtered.length} after all filters`);
 
-  return { leads: filtered, costUsd, runId: run.id, raw: datasetItems.length };
+  return { leads: filtered, costUsd: actualCost, runId: run.id, raw: datasetItems.length };
 }
 
-module.exports = { scrapeMapsViaCompass, normalizeCompassItem, applyFilters };
+// --- Recovery: pull leads from an already-completed Apify run by run ID ---
+// Used by the /recover-apify-run route to ingest data we already paid for after a crash.
+// Cheap — only fetches the dataset, doesn't trigger a new actor run.
+async function fetchCompassRunDataset(runId, { city, country } = {}) {
+  if (!hasToken) return { leads: null, error: 'APIFY_API_TOKEN not configured' };
+  if (!runId) return { leads: null, error: 'runId is required' };
+  let run, datasetItems = [];
+  try {
+    run = await client.run(runId).get();
+    if (!run) return { leads: null, error: `Run ${runId} not found` };
+    const out = await client.dataset(run.defaultDatasetId).listItems();
+    datasetItems = out.items || [];
+  } catch (err) {
+    return { leads: null, error: `Recovery failed: ${err.message}` };
+  }
+  const normalized = datasetItems
+    .map(item => normalizeCompassItem(item, city || '', country || ''))
+    .filter(r => r.title && r.title.trim());
+  return {
+    leads: normalized,
+    runId,
+    raw: datasetItems.length,
+    costUsd: run.usageTotalUsd || 0,
+  };
+}
+
+module.exports = {
+  scrapeMapsViaCompass,
+  normalizeCompassItem,
+  applyFilters,
+  estimateCompassCostUsd,
+  fetchCompassRunDataset,
+  APIFY_HARD_CAP_USD,
+  APIFY_SOFT_WARN_USD,
+};

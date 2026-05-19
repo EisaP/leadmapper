@@ -14,7 +14,7 @@ const { hashSearchParams } = require('./db/hash');
 const { detectChains, classifyTier } = require('./enrichment/chains');
 
 // Apify-based scrapers (Layer 1 alternative to SerpAPI + IG enrichment)
-const { scrapeMapsViaCompass } = require('./enrichment/layer1-compass-maps');
+const { scrapeMapsViaCompass, fetchCompassRunDataset, estimateCompassCostUsd, APIFY_HARD_CAP_USD, APIFY_SOFT_WARN_USD } = require('./enrichment/layer1-compass-maps');
 const { enrichInstagramViaApify } = require('./enrichment/layer-instagram-apify');
 
 const app = express();
@@ -283,10 +283,12 @@ async function handleSearch(src, res) {
     let dataSourceUsed = useApify ? 'apify' : 'serpapi';
 
     if (useApify) {
-      console.log('[search] Using Apify Compass for Maps');
+      console.log('[search] Using Apify Compass for Maps · requested limit ' + limit);
+      const allowExpensive = String(src.allowExpensive || '') === '1';
       const compass = await scrapeMapsViaCompass({
         keyword, city, country: state,
         resultsLimit: limit, ratingMin, ratingMax, maxReviews, excludeKeywords,
+        allowExpensive,
       });
       if (compass.leads != null && !compass.error) {
         // Compass already returns leads in our normalised shape, with exclude + rating + max-reviews
@@ -653,6 +655,60 @@ async function handleSearch(src, res) {
 }
 
 // --- History ---
+// --- Recovery route: ingest an already-paid-for Apify run by ID ---
+// Pulls the dataset from Apify (no new actor call, no extra charges) and renders the leads
+// like a normal search. Find run IDs in Apify Console → Runs.
+// Usage: /recover-apify-run?runId=abcXYZ&city=Manchester&state=UK&keyword=cafes
+app.get('/recover-apify-run', async (req, res) => {
+  const runId = String(req.query.runId || '').trim();
+  const city = String(req.query.city || '').trim();
+  const state = String(req.query.state || '').trim();
+  const keyword = String(req.query.keyword || '').trim();
+  if (!runId) {
+    return res.render('search', {
+      results: null, totalScraped: 0, query: null,
+      error: 'Pass ?runId=<apify-run-id>&city=<city>&state=<country> to recover an already-completed Apify run.',
+      recentSearches: getRecentSearches(), ...getSidebarCounts()
+    });
+  }
+  console.log(`[recover] Fetching Apify run ${runId} dataset`);
+  const out = await fetchCompassRunDataset(runId, { city, country: state });
+  if (out.error || !out.leads) {
+    return res.render('search', {
+      results: null, totalScraped: 0, query: null,
+      error: out.error || 'Recovery returned no leads',
+      recentSearches: getRecentSearches(), ...getSidebarCounts()
+    });
+  }
+  console.log(`[recover] Recovered ${out.leads.length} leads from ${out.raw} raw places · run cost $${(out.costUsd || 0).toFixed(4)}`);
+  // Tag every lead with a minimal segment + score so the UI doesn't blank out
+  for (const r of out.leads) {
+    if (r.rating !== null && r.rating < 4.1 && r.reviewCount >= 80) { r.segment = 'Low Rating'; r.segmentCode = 'C'; }
+    else if (r.rating !== null && r.rating >= 4.1 && r.rating <= 4.7 && r.reviewCount <= 300) { r.segment = 'Good Rating, Low Volume'; r.segmentCode = 'B'; }
+    else { r.segment = 'Other'; r.segmentCode = '-'; }
+    r.outreach = r.phone ? 'Call' : (r.email ? 'Email' : (r.instagram ? 'DM' : 'None'));
+    r.qualityScore = (r.phone ? 25 : 0) + (r.instagram ? 25 : 0) + (r.website ? 15 : 0);
+    r.is_chain_candidate = false;
+    r.chain_tier = 'independent';
+    r.chain_signals_fired = [];
+  }
+  res.render('search', {
+    results: out.leads,
+    totalScraped: out.raw,
+    apifyCostUsd: out.costUsd || 0,
+    dataSourceUsed: 'apify-recovery',
+    query: {
+      keyword: keyword || `(recovered ${runId})`,
+      city, state, maxResults: out.leads.length,
+      dataSource: 'apify',
+      searchString: `${keyword || 'recovered'} in ${city}, ${state} · run ${runId}`,
+    },
+    error: null,
+    cachedFrom: { ageDays: 0, createdAt: new Date().toISOString(), hash: runId },
+    recentSearches: getRecentSearches(), ...getSidebarCounts()
+  });
+});
+
 app.get('/history', (req, res) => {
   const { from, to, city, keyword, sort, dir } = req.query;
   const searches = store.listSearches({ from, to, city, keyword, sort, dir });
