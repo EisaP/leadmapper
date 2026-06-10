@@ -101,7 +101,7 @@ app.get('/search', async (req, res) => handleSearch(req.query, res));
 app.post('/search', async (req, res) => handleSearch(req.body, res));
 
 async function handleSearch(src, res) {
-  const { keyword, excludeKeywords, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, targetSegment, useIgFallback } = src;
+  const { keyword, excludeKeywords, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, targetSegment, useIgFallback, priceTier, excludeUnknownPrice, regionPreset, verticalPreset } = src;
 
   // --- Enrichment toggles ---
   // Each one *gates real work* — it doesn't just hide results. Defaults match the form markup:
@@ -141,13 +141,44 @@ async function handleSearch(src, res) {
   }
   const limit = Math.min(parseInt(maxResults) || 20, 500);
 
+  // --- Multi-city batch ---
+  // `city` may be a pipe-separated list (regional presets fill the field with multiple cities).
+  // Each pipe segment is either "City" (falls back to the form's `state` for country) or
+  // "City, Country" (last comma splits — overrides `state` for THIS city only). Pipes were chosen
+  // over commas because some regions (GCC, Premium EU) span multiple countries and need per-city
+  // country routing for Compass's `locationQuery`. Single-city stays a clean string with no pipes.
+  const cityRawList = String(city || '').split('|').map(c => c.trim()).filter(Boolean);
+  const cityList = cityRawList.map(entry => {
+    const lastComma = entry.lastIndexOf(',');
+    if (lastComma > 0 && lastComma < entry.length - 1) {
+      return { city: entry.slice(0, lastComma).trim(), country: entry.slice(lastComma + 1).trim() };
+    }
+    return { city: entry, country: state };
+  });
+  const cities = cityList.map(x => x.city);  // bare names for cache key + logging
+
+  // --- Price tier filter (Part 1) ---
+  // priceTier may arrive as a single string (one checkbox checked, or comma-joined from cache replay)
+  // OR an array (Express qs parses multiple `?priceTier=$$&priceTier=$$$` into an array).
+  // Empty list = no tier filter. excludeUnknownPrice='on' hides leads with no priceTier data.
+  const priceTiers = Array.isArray(priceTier)
+    ? priceTier.map(t => String(t).trim()).filter(Boolean)
+    : String(priceTier || '').split(',').map(t => t.trim()).filter(Boolean);
+  const excludeUnknown = excludeUnknownPrice === 'on';
+
   // --- Cache flow ---
   // Three modes (controlled by query string):
   //   default       → check cache; if hit, render the prompt banner asking which to do
   //   ?cacheReuse=1 → load cached row, render results immediately + "cached from N days ago" badge
   //   ?forceFresh=1 → skip cache lookup, run fresh Compass search (also used by "Refresh from source")
+  // Cities are dedup'd + sorted in the cache key so "London, Manchester" and "Manchester, London"
+  // hit the same cache row.
   const cacheParams = {
-    keyword, city, state, ratingMin, ratingMax, maxReviews, maxResults: limit, targetSegment, outreachPriority,
+    keyword,
+    cities: [...new Set(cities.map(c => c.toLowerCase()))].sort().join('|'),
+    state, ratingMin, ratingMax, maxReviews, maxResults: limit, targetSegment, outreachPriority,
+    priceTier: [...priceTiers].sort().join('|'),
+    excludeUnknownPrice: excludeUnknown,
     extractPhones, extractEmails, extractInstagram,
     useLayer3: useLayer3Enabled,
     enrichInstagramApify: enrichInstagramApifyEnabled,
@@ -165,7 +196,7 @@ async function handleSearch(src, res) {
         const results = JSON.parse(cached.results_json || '[]');
         return res.render('search', {
           results, totalScraped: results.length,
-          query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, targetSegment, searchString: cached.keyword + ' in ' + cached.city + ', ' + cached.country },
+          query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, targetSegment, priceTier: priceTiers.join(','), excludeUnknownPrice: excludeUnknown ? 'on' : 'off', regionPreset: regionPreset || '', verticalPreset: verticalPreset || '', searchString: cached.keyword + ' in ' + cached.city + ', ' + cached.country },
           error: null,
           cachedFrom: { ageDays: Math.round(cached.age_days), createdAt: cached.created_at, hash: paramsHash },
           recentSearches: getRecentSearches(), ...getSidebarCounts()
@@ -174,7 +205,7 @@ async function handleSearch(src, res) {
       // Default mode — show the prompt banner, no Compass call yet
       return res.render('search', {
         results: null, totalScraped: 0,
-        query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, targetSegment },
+        query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, targetSegment, priceTier: priceTiers.join(','), excludeUnknownPrice: excludeUnknown ? 'on' : 'off', regionPreset: regionPreset || '', verticalPreset: verticalPreset || '' },
         error: null,
         cachePrompt: {
           ageDays: Math.round(cached.age_days),
@@ -214,33 +245,97 @@ async function handleSearch(src, res) {
     let filteredResults = null;
     let apifyCostUsd = 0;       // Cumulative Apify spend for this request (history + UI)
 
-    console.log('[search] Using Apify Compass for Maps · requested limit ' + limit);
     const allowExpensive = String(src.allowExpensive || '') === '1';
-    const compass = await scrapeMapsViaCompass({
-      keyword, city, country: state,
-      resultsLimit: limit, ratingMin, ratingMax, maxReviews, excludeKeywords,
-      allowExpensive,
-    });
-    if (compass.leads != null && !compass.error) {
-      // Compass already returns leads in our normalised shape, with exclude + rating + max-reviews
-      // filters applied. So mappedResults and filteredResults are the same value.
-      mappedResults   = compass.leads;
-      filteredResults = compass.leads;
-      apifyCostUsd   += compass.costUsd || 0;
-      console.log(`[search] Compass returned ${filteredResults.length} leads · $${apifyCostUsd.toFixed(4)}`);
-    } else {
-      // Most common cause: APIFY_API_TOKEN not set in Replit Secrets.
-      const reason = compass.error || 'unknown error';
-      console.error(`[search] Compass failed: ${reason}`);
-      const isTokenIssue = /APIFY_API_TOKEN/i.test(reason) || /401|unauthorized|forbidden/i.test(reason);
+
+    // --- Per-keyword places cap ---
+    // Preset bundles have 4–5 partially-redundant keywords, so giving each a full `limit` floor
+    // compounds cost wastefully. When the search is preset-driven (vertical or region preset
+    // selected), drop the per-keyword cap to 10 (cheaper, still enough for dedupe overlap).
+    // Manual searches keep `limit` as the per-keyword cap.
+    //
+    // STICKY BEHAVIOUR: the preset stays "active" even if the user manually edits the keyword
+    // field after clicking a preset chip — only the "Clear preset" button (or full form reset)
+    // takes them out of preset-driven mode. This is intentional: editing a preset keyword to
+    // remove a redundant term shouldn't quietly 2× the cost.
+    const isPresetDriven = !!(verticalPreset || regionPreset);
+    const perKeywordCap = isPresetDriven ? 10 : limit;
+
+    // --- Combined cost cap ---
+    // Per-call cap lives in layer1-compass-maps.js (refuses >$2/call without allowExpensive).
+    // For multi-city, the TOTAL across cities can blow past $2 even if each call is fine, so we
+    // enforce the same hard cap on the sum. Estimate: cities × keywords × perKeywordCap × $0.0025.
+    const combinedEst = cityList.length * keywords.length * perKeywordCap * 0.0025;
+    if (combinedEst > 2.0 && !allowExpensive) {
+      return res.render('search', {
+        results: null, totalScraped: 0, query: null,
+        error: `Combined multi-city search estimated at $${combinedEst.toFixed(2)} across ${cityList.length} cities × ${keywords.length} keywords × ${perKeywordCap} places/keyword — exceeds the $2 per-search cap. Reduce cities, keywords, or Results, or add &allowExpensive=1 to the URL to override.`,
+        recentSearches: getRecentSearches(), ...getSidebarCounts()
+      });
+    }
+
+    console.log(`[search] Using Apify Compass · ${cityList.length} cit${cityList.length === 1 ? 'y' : 'ies'} · ${perKeywordCap}/keyword (preset-driven: ${isPresetDriven}) · est combined cost $${combinedEst.toFixed(4)}`);
+
+    // --- Loop Compass per city ---
+    // Single-city is the trivial 1-iteration case. Multi-city sums costs, dedupes by placeId.
+    // A failed city is logged + skipped; the search keeps going (resilient). If ALL cities fail
+    // for the same reason (token issue), we surface that error verbatim.
+    const allLeads = [];
+    const seenPlaces = new Set();
+    const cityErrors = [];
+    for (const { city: c, country: ctr } of cityList) {
+      const compass = await scrapeMapsViaCompass({
+        keyword, city: c, country: ctr,
+        resultsLimit: perKeywordCap, ratingMin, ratingMax, maxReviews, excludeKeywords,
+        allowExpensive,
+      });
+      if (compass.error || compass.leads == null) {
+        const reason = compass.error || 'unknown error';
+        cityErrors.push({ city: c, reason });
+        console.error(`[search] Compass failed for "${c}, ${ctr}": ${reason}`);
+        continue;
+      }
+      apifyCostUsd += compass.costUsd || 0;
+      let addedFromCity = 0;
+      for (const lead of compass.leads) {
+        const dedupKey = lead.placeId || `${(lead.title || '').toLowerCase()}|${(lead.address || '').toLowerCase()}`;
+        if (seenPlaces.has(dedupKey)) continue;
+        seenPlaces.add(dedupKey);
+        allLeads.push(lead);
+        addedFromCity++;
+      }
+      console.log(`[search] "${c}, ${ctr}": +${addedFromCity} new (Compass returned ${compass.leads.length}) · $${(compass.costUsd || 0).toFixed(4)}`);
+    }
+
+    // If EVERY city failed, surface the first error (likely shared root cause, e.g. token).
+    if (allLeads.length === 0 && cityErrors.length === cityList.length) {
+      const first = cityErrors[0];
+      const isTokenIssue = /APIFY_API_TOKEN/i.test(first.reason) || /401|unauthorized|forbidden/i.test(first.reason);
       const friendly = isTokenIssue
         ? `Apify token missing or invalid. Set APIFY_API_TOKEN in Replit Secrets (Apify → Console → Integrations → API token).`
-        : `Apify Compass failed: ${reason}`;
+        : `Apify Compass failed across all ${cityList.length} cit${cityList.length === 1 ? 'y' : 'ies'}: ${first.reason}`;
       return res.render('search', {
         results: null, totalScraped: 0, query: null,
         error: friendly,
         recentSearches: getRecentSearches(), ...getSidebarCounts()
       });
+    }
+
+    mappedResults   = allLeads;
+    filteredResults = allLeads;
+    console.log(`[search] Multi-city merged → ${filteredResults.length} unique leads · $${apifyCostUsd.toFixed(4)}`);
+
+    // --- Price tier filter (Part 1) ---
+    // Applied AFTER Compass returns. Leads with no priceTier data pass through unless
+    // excludeUnknown is set (Compass populates price unreliably for SMBs).
+    if (priceTiers.length || excludeUnknown) {
+      const before = filteredResults.length;
+      filteredResults = filteredResults.filter(r => {
+        const tier = (r.priceTier || '').trim();
+        if (!tier) return !excludeUnknown;                            // unknown — pass unless excluding
+        if (!priceTiers.length) return true;                          // no tier filter active
+        return priceTiers.includes(tier);
+      });
+      console.log(`[search] Price tier filter (${priceTiers.join(',') || 'any'}${excludeUnknown ? ', exclude-unknown' : ''}): ${filteredResults.length}/${before}`);
     }
 
     // Enrich contacts (skips the website scrape entirely if both email and IG toggles are OFF)
@@ -442,12 +537,16 @@ async function handleSearch(src, res) {
       apifyCostUsd,
       dataSourceUsed: 'apify',
       query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, outreachPriority, targetSegment,
+        priceTier: priceTiers.join(','),
+        excludeUnknownPrice: excludeUnknown ? 'on' : 'off',
+        regionPreset: regionPreset || '',
+        verticalPreset: verticalPreset || '',
         extractPhones:    extractPhones    ? 'on' : 'off',
         extractEmails:    extractEmails    ? 'on' : 'off',
         extractInstagram: extractInstagram ? 'on' : 'off',
         useLayer3:        useLayer3Enabled ? 'on' : 'off',
         enrichInstagramApify: enrichInstagramApifyEnabled ? 'on' : 'off',
-        searchString: keywords.join(', ') + ` in ${city}, ${state}` },
+        searchString: keywords.join(', ') + ` in ${cities.join(' / ') || city}, ${state}` },
       error: null,
       recentSearches: getRecentSearches(), ...getSidebarCounts()
     });

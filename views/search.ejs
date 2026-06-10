@@ -529,35 +529,44 @@
         </div>
       <% } %>
 
+      <!-- Region preset row — optional. Selecting a region fills the city field with a multi-city list -->
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px;">
+        <span class="ui-label" style="margin-right: 8px;">Region</span>
+        <button type="button" class="chip" data-region="gcc-hospitality" title="Major GCC cities. Best for hospitality and clinics.">GCC Hospitality</button>
+        <button type="button" class="chip" data-region="med-destinations" title="TripAdvisor-led Mediterranean destinations. High value-per-customer for hospitality.">Med Destinations</button>
+        <button type="button" class="chip" data-region="premium-eu" title="Premium European destinations with high-tier hospitality.">Premium EU</button>
+        <button type="button" class="chip" data-region="uk-tier1" title="Major UK cities and tourist towns.">UK Tier 1</button>
+        <button type="button" class="chip" data-region="us-tourist" title="US destinations where TripAdvisor drives discovery.">US Tourist Towns</button>
+      </div>
+
+      <!-- Vertical preset row — ICP-aligned bundles up front; legacy single-vertical chips under "More verticals" -->
       <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 32px;">
         <span class="ui-label" style="margin-right: 8px;">Vertical</span>
-        <button type="button" class="chip" data-preset="cafes">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M6 2v2"/><path d="M17 8H3v9a4 4 0 0 0 4 4h7a4 4 0 0 0 4-4Z"/><path d="M16 8a4 4 0 1 1 0 8h-1"/></svg>
-          Cafes
-        </button>
-        <button type="button" class="chip" data-preset="restaurants">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
-          Restaurants
-        </button>
-        <button type="button" class="chip" data-preset="salons">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>
-          Salons
-        </button>
-        <button type="button" class="chip" data-preset="hotels">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>
-          Hotels
-        </button>
-        <button type="button" class="chip" data-preset="dental">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-          Dental
-        </button>
-        <button type="button" class="chip" data-preset="gyms">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 6.5 11 11"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="m18 22 4-4"/><path d="m2 6 4-4"/><path d="m3 10 7-7"/><path d="m14 21 7-7"/></svg>
-          Gyms
-        </button>
+        <button type="button" class="chip" data-vertical="premium-restaurants" title="Mid-to-upscale independent restaurants — the primary ICP for review tools.">Premium restaurants</button>
+        <button type="button" class="chip" data-vertical="boutique-hotels" title="Independent and family-run hotels with 15–100 rooms.">Boutique hotels</button>
+        <button type="button" class="chip" data-vertical="private-clinics" title="Private healthcare clinics in EU/GCC. Note: US locations may have HIPAA constraints.">Private clinics</button>
+        <button type="button" class="chip" data-vertical="upscale-groups" title="Multi-location upscale restaurant groups (3–10 locations).">Upscale groups</button>
+        <!-- More verticals: legacy per-vertical chips, shown via a dropdown to keep the primary row clean -->
+        <div style="position: relative; display: inline-block;">
+          <button type="button" class="chip" id="moreVerticalsToggle" aria-expanded="false">More verticals ▾</button>
+          <div id="moreVerticalsMenu" style="display: none; position: absolute; top: calc(100% + 6px); left: 0; background: var(--white); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(10,10,10,0.08); padding: 6px; z-index: 10; min-width: 180px;">
+            <button type="button" class="chip" data-vertical="cafes" style="display: block; border: none; width: 100%; text-align: left; margin: 2px 0;">Cafes</button>
+            <button type="button" class="chip" data-vertical="restaurants" style="display: block; border: none; width: 100%; text-align: left; margin: 2px 0;">General restaurants</button>
+            <button type="button" class="chip" data-vertical="salons" style="display: block; border: none; width: 100%; text-align: left; margin: 2px 0;">Salons</button>
+            <button type="button" class="chip" data-vertical="gyms" style="display: block; border: none; width: 100%; text-align: left; margin: 2px 0;">Gyms</button>
+            <button type="button" class="chip" data-vertical="bars" style="display: block; border: none; width: 100%; text-align: left; margin: 2px 0;">Bars</button>
+          </div>
+        </div>
+        <!-- Clear preset — only appears when a region or vertical is active -->
+        <button type="button" class="chip" id="clearPresetBtn" style="display: none; color: var(--text-secondary); border-style: dashed;">Clear preset</button>
       </div>
 
       <form method="GET" action="/search" id="searchForm" style="padding: 0; margin-bottom: 48px;">
+        <!-- Hidden preset state. Both fields stay empty for fully-manual searches; chip click
+             handlers populate them, and the "Clear preset" button wipes them.
+             Server uses verticalPreset/regionPreset to decide whether to drop per-keyword cap 20 → 10. -->
+        <input type="hidden" name="verticalPreset" value="<%= query?.verticalPreset || '' %>">
+        <input type="hidden" name="regionPreset" value="<%= query?.regionPreset || '' %>">
         <div style="margin-bottom: 32px;">
           <span class="section-label">What to find</span>
           <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 120px; gap: 20px;">
@@ -639,6 +648,26 @@
                 <a href="#" onclick="event.preventDefault(); openSegmentModal();" style="color: var(--red); font-weight: 500;">Manage segments →</a>
                 <span id="activeSegDefn" style="color: var(--text-tertiary); font-size: 11px;"></span>
               </div>
+            </div>
+          </div>
+
+          <!-- Price tier filter — multi-select. Empty = Any. Leads with no priceTier data pass through unless excluded. -->
+          <div style="margin-top: 20px;">
+            <label class="ui-label" style="display: flex; align-items: center; margin-bottom: 6px;">Price tier
+              <button type="button" class="info-tip" aria-label="More info about Price tier" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Price tier</strong> filters leads by Google Maps' $/$$/$$$/$$$$ rating. Multi-select.</p><p>Compass populates this unreliably for SMBs — many leads have no price data. By default those pass through; toggle <em>Hide leads with no price data</em> to exclude them.</p><p>The "Premium restaurants" preset pre-selects $$, $$$, $$$$.</p></span></button>
+            </label>
+            <div id="priceTierGroup" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+              <% const selectedTiers = String(query?.priceTier || '').split(',').map(t => t.trim()).filter(Boolean); %>
+              <% ['$', '$$', '$$$', '$$$$'].forEach(tier => { %>
+                <label class="chip" style="cursor: pointer; padding: 0 12px; height: 32px; font-weight: 500;">
+                  <input type="checkbox" name="priceTier" value="<%= tier %>" <%= selectedTiers.includes(tier) ? 'checked' : '' %> style="margin-right: 6px; accent-color: var(--red);">
+                  <span><%= tier %></span>
+                </label>
+              <% }) %>
+              <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); cursor: pointer; margin-left: 4px;">
+                <input type="checkbox" name="excludeUnknownPrice" value="on" <%= query?.excludeUnknownPrice === 'on' ? 'checked' : '' %> style="accent-color: var(--red);">
+                Hide leads with no price data
+              </label>
             </div>
           </div>
         </div>
@@ -767,7 +796,6 @@
                 <label><input type="checkbox" data-col="outreach"> Outreach primary</label>
                 <label><input type="checkbox" data-col="booking"> Booking platform</label>
                 <label><input type="checkbox" data-col="hours"> Hours</label>
-                <label><input type="checkbox" data-col="price"> Price tier</label>
               </div>
             </div>
           </div>
@@ -838,7 +866,7 @@
                   </th>
                   <th class="col-booking col-hidden" style="width: 140px;"><span class="th-inner">Booking</span></th>
                   <th class="col-hours col-hidden" style="width: 120px;"><span class="th-inner">Hours</span></th>
-                  <th class="col-price col-hidden" style="width: 70px;"><span class="th-inner">Price</span></th>
+                  <th class="sortable col-price" data-sort="priceTier" style="width: 76px;"><span class="th-inner">Price <span class="sort-indicator" aria-hidden="true"></span></span></th>
                   <th class="sortable" data-sort="qualityScore" style="width: 96px; text-align: center;">
                     <span class="th-inner" style="justify-content: center;">Quality
                       <button type="button" class="info-tip tip-right" aria-label="About the Quality score" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p><strong>Quality Score</strong> (0–100) reflects how much contact data was extracted for this lead.</p><p>Higher scores mean more reachable and higher confidence. Typical breakdown:</p><ul><li>Email found (verified): +25</li><li>Phone number: +25</li><li>Instagram handle: +25</li><li>Website reachable: +15</li><li>Owner name extracted: +10</li></ul><p>Email points scale by source confidence — website-scraped or verified guesses score full value; catch-all guesses score 60%; unverifiable scores 20%.</p><p>Below <strong>40</strong> usually means one or two contact methods only. Above <strong>75</strong> = highly reachable across channels.</p></span></button>
@@ -949,26 +977,107 @@
       return `<span class="email-role-badge role-${role}" title="${label}${unvFlag} — ${title}">${label}</span>`;
     }
 
-    // ——— Presets ———
-    const PRESETS = {
-      cafes:       { keyword: 'cafes, coffee shops, espresso bars', ratingMin: 4.1, ratingMax: 4.7, maxReviews: '300' },
-      restaurants: { keyword: 'restaurants, bistros, eateries',     ratingMin: 4.0, ratingMax: 4.6, maxReviews: '500' },
-      salons:      { keyword: 'hair salons, barbershops',           ratingMin: 4.1, ratingMax: 4.8, maxReviews: '200' },
-      hotels:      { keyword: 'hotels, boutique hotels',            ratingMin: 3.8, ratingMax: 4.5, maxReviews: '1000' },
-      dental:      { keyword: 'dental clinic, dentist',             ratingMin: 4.0, ratingMax: 4.9, maxReviews: '500' },
-      gyms:        { keyword: 'gyms, fitness studios',              ratingMin: 4.0, ratingMax: 4.7, maxReviews: '300' }
+    // ——— ICP vertical presets ———
+    // Primary 4 are the ICPs surfaced as top-level chips; the rest live in the "More verticals"
+    // dropdown for backward compatibility with the legacy per-vertical workflow.
+    // When a preset chip is clicked, the per-keyword Compass cap drops 20 → 10 (server-side, via
+    // the hidden `verticalPreset` field). Editing the keyword field afterward keeps the preset
+    // "sticky" — only clicking "Clear preset" returns the user to manual-search mode.
+    const ICP_PRESETS = {
+      'premium-restaurants': { keyword: 'restaurants, fine dining, gastropub, brasserie, bistro', ratingMin: 4.0, ratingMax: 5.0, maxReviews: '', priceTier: ['$$','$$$','$$$$'] },
+      'boutique-hotels':     { keyword: 'boutique hotel, independent hotel, guesthouse, B&B, inn', ratingMin: 4.0, ratingMax: 5.0, maxReviews: '', priceTier: [] },
+      'private-clinics':     { keyword: 'dental clinic, cosmetic dentist, dermatologist, aesthetic clinic, medical spa, plastic surgery', ratingMin: 4.0, ratingMax: 5.0, maxReviews: '', priceTier: [] },
+      'upscale-groups':      { keyword: 'restaurant group, restaurant collection, hospitality group', ratingMin: 4.0, ratingMax: 5.0, maxReviews: '', priceTier: ['$$$','$$$$'] },
+      // Legacy single verticals (More verticals dropdown)
+      cafes:       { keyword: 'cafes, coffee shops, espresso bars', ratingMin: 4.1, ratingMax: 4.7, maxReviews: '300', priceTier: [] },
+      restaurants: { keyword: 'restaurants, bistros, eateries',     ratingMin: 4.0, ratingMax: 4.6, maxReviews: '500', priceTier: [] },
+      salons:      { keyword: 'hair salons, barbershops',           ratingMin: 4.1, ratingMax: 4.8, maxReviews: '200', priceTier: [] },
+      gyms:        { keyword: 'gyms, fitness studios',              ratingMin: 4.0, ratingMax: 4.7, maxReviews: '300', priceTier: [] },
+      bars:        { keyword: 'bars, cocktail bars, wine bars',     ratingMin: 4.0, ratingMax: 4.7, maxReviews: '500', priceTier: [] },
     };
-    document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
-      const p = PRESETS[b.dataset.preset];
+
+    // ——— Regional presets ———
+    // Cities are pipe-separated "City, Country" tokens — the backend splits on `|` and uses the
+    // per-token country for Compass's locationQuery (so GCC's mixed countries route correctly).
+    const REGION_PRESETS = {
+      'gcc-hospitality':  { cities: ['Doha, Qatar', 'Dubai, UAE', 'Abu Dhabi, UAE', 'Riyadh, Saudi Arabia', 'Manama, Bahrain', 'Kuwait City, Kuwait', 'Muscat, Oman'], state: 'UAE' },
+      'med-destinations': { cities: ['Mykonos, Greece', 'Santorini, Greece', 'Crete, Greece', 'Ibiza, Spain', 'Amalfi, Italy', 'Capri, Italy', 'Mallorca, Spain', 'Dubrovnik, Croatia'], state: 'Greece' },
+      'premium-eu':       { cities: ['Zurich, Switzerland', 'Lucerne, Switzerland', 'Florence, Italy', 'Milan, Italy', 'Vienna, Austria', 'Salzburg, Austria', 'Como, Italy', 'Saint-Tropez, France'], state: 'Italy' },
+      'uk-tier1':         { cities: ['London, UK', 'Manchester, UK', 'Edinburgh, UK', 'Bristol, UK', 'Brighton, UK', 'Bath, UK', 'York, UK', 'Oxford, UK'], state: 'UK' },
+      'us-tourist':       { cities: ['Aspen, CO, USA', 'Vail, CO, USA', 'Napa, CA, USA', 'Sedona, AZ, USA', 'Charleston, SC, USA', 'Savannah, GA, USA', 'Key West, FL, USA', 'Carmel, CA, USA'], state: 'USA' },
+    };
+
+    function updatePresetUI() {
+      const v = document.querySelector('[name=verticalPreset]')?.value || '';
+      const r = document.querySelector('[name=regionPreset]')?.value || '';
+      document.querySelectorAll('[data-vertical]').forEach(x => x.classList.toggle('active', x.dataset.vertical === v));
+      document.querySelectorAll('[data-region]').forEach(x => x.classList.toggle('active', x.dataset.region === r));
+      const clearBtn = document.getElementById('clearPresetBtn');
+      if (clearBtn) clearBtn.style.display = (v || r) ? '' : 'none';
+    }
+
+    function applyVerticalPreset(key) {
+      const p = ICP_PRESETS[key];
+      if (!p) return;
       document.querySelector('[name=keyword]').value = p.keyword;
       document.querySelector('[name=ratingMin]').value = p.ratingMin;
       document.querySelector('[name=ratingMax]').value = p.ratingMax;
       document.querySelector('[name=maxReviews]').value = p.maxReviews;
-      document.querySelectorAll('[data-preset]').forEach(x => x.classList.remove('active'));
-      b.classList.add('active');
-      document.querySelector('[name=keyword]').focus();
+      // Sync price tier checkboxes
+      document.querySelectorAll('input[name=priceTier]').forEach(cb => { cb.checked = p.priceTier.includes(cb.value); });
+      document.querySelector('[name=verticalPreset]').value = key;
+      updatePresetUI();
+      document.getElementById('moreVerticalsMenu').style.display = 'none';
       refreshPriorityHint();
-    }));
+      if (typeof estimateCredits === 'function') estimateCredits();
+    }
+
+    function applyRegionPreset(key) {
+      const p = REGION_PRESETS[key];
+      if (!p) return;
+      document.querySelector('[name=city]').value = p.cities.join(' | ');
+      document.querySelector('[name=state]').value = p.state;
+      document.querySelector('[name=regionPreset]').value = key;
+      updatePresetUI();
+      if (typeof estimateCredits === 'function') estimateCredits();
+    }
+
+    document.querySelectorAll('[data-vertical]').forEach(b => b.addEventListener('click', () => applyVerticalPreset(b.dataset.vertical)));
+    document.querySelectorAll('[data-region]').forEach(b => b.addEventListener('click', () => applyRegionPreset(b.dataset.region)));
+
+    document.getElementById('moreVerticalsToggle')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const m = document.getElementById('moreVerticalsMenu');
+      const isOpen = m.style.display !== 'none';
+      m.style.display = isOpen ? 'none' : 'block';
+      e.currentTarget.setAttribute('aria-expanded', String(!isOpen));
+    });
+    document.addEventListener('click', (e) => {
+      const m = document.getElementById('moreVerticalsMenu');
+      if (m && m.style.display !== 'none' && !m.contains(e.target) && e.target.id !== 'moreVerticalsToggle') {
+        m.style.display = 'none';
+      }
+    });
+
+    document.getElementById('clearPresetBtn')?.addEventListener('click', () => {
+      document.querySelector('[name=verticalPreset]').value = '';
+      document.querySelector('[name=regionPreset]').value = '';
+      document.querySelector('[name=keyword]').value = '';
+      document.querySelector('[name=city]').value = '';
+      document.querySelector('[name=state]').value = '';
+      document.querySelector('[name=ratingMin]').value = '';
+      document.querySelector('[name=ratingMax]').value = '';
+      document.querySelector('[name=maxReviews]').value = '';
+      document.querySelectorAll('input[name=priceTier]').forEach(cb => { cb.checked = false; });
+      const eu = document.querySelector('input[name=excludeUnknownPrice]');
+      if (eu) eu.checked = false;
+      updatePresetUI();
+      refreshPriorityHint();
+      if (typeof estimateCredits === 'function') estimateCredits();
+    });
+
+    // Initialise active state from server-rendered hidden fields (deep-link / cache replay).
+    updatePresetUI();
     document.querySelectorAll('.suggestion-chip').forEach(b => b.addEventListener('click', () => {
       document.querySelector('[name=keyword]').value = b.dataset.keyword;
       document.querySelector('[name=city]').value = b.dataset.city;
@@ -1203,10 +1312,18 @@
         setBool('extractInstagram', prefs.extractInstagram, true);
         setBool('useLayer3',        prefs.useLayer3,        true);
         setBool('enrichInstagramApify', prefs.enrichInstagramApify, true);
+        // Restore preset state + price tier checkboxes
+        if (prefs.verticalPreset) document.querySelector('[name=verticalPreset]').value = prefs.verticalPreset;
+        if (prefs.regionPreset)   document.querySelector('[name=regionPreset]').value   = prefs.regionPreset;
+        const savedTiers = String(prefs.priceTier || '').split(',').map(t => t.trim()).filter(Boolean);
+        document.querySelectorAll('input[name=priceTier]').forEach(cb => { cb.checked = savedTiers.includes(cb.value); });
+        const eu = document.querySelector('input[name=excludeUnknownPrice]');
+        if (eu) eu.checked = prefs.excludeUnknownPrice === 'on';
+        updatePresetUI();
       }
       // Restore column visibility
       const cols = (prefs.columns || {});
-      ['outreach', 'booking', 'hours', 'price'].forEach(col => {
+      ['outreach', 'booking', 'hours'].forEach(col => {
         const visible = !!cols[col];
         document.querySelectorAll(`.col-${col}`).forEach(el => el.classList.toggle('col-hidden', !visible));
         const cb = document.querySelector(`[data-col="${col}"]`);
@@ -1216,26 +1333,33 @@
     })();
 
     // ——— Live cost estimator ———
-    // Recomputes whenever any toggle / Results dropdown changes.
-    // Cost = Apify Compass (base Maps scrape) + Apify Instagram Profile Scraper (optional).
+    // Recomputes whenever any toggle / Results dropdown / preset / city / keyword changes.
+    // Cost = Apify Compass (cities × keywords × perKwCap places × ~$0.005/place)
+    //      + Apify Instagram Profile Scraper (optional, ~$0.005 per IG-having lead).
+    // perKwCap = 10 for preset-driven searches, else the Results dropdown value (matches server).
     function estimateCredits() {
       const maxResults = parseInt(document.querySelector('[name=maxResults]')?.value || '100', 10) || 100;
       const apifyIg    = document.getElementById('enrichInstagramApify')?.checked;
-      // Compass: ~$0.004–$0.007 per place.
-      const apifyMapsLo = +(maxResults * 0.004).toFixed(2);
-      const apifyMapsHi = +(maxResults * 0.007).toFixed(2);
-      // Apify IG: ~$0.005 per IG-having lead, expected 40-60% of leads
-      const igLo = apifyIg ? +(maxResults * 0.40 * 0.005).toFixed(2) : 0;
-      const igHi = apifyIg ? +(maxResults * 0.60 * 0.005).toFixed(2) : 0;
+      const cityCount = Math.max(1, (document.querySelector('[name=city]')?.value || '').split('|').map(c => c.trim()).filter(Boolean).length);
+      const kwCount   = Math.max(1, (document.querySelector('[name=keyword]')?.value || '').split(',').map(k => k.trim()).filter(Boolean).length);
+      const isPresetDriven = !!(document.querySelector('[name=verticalPreset]')?.value || document.querySelector('[name=regionPreset]')?.value);
+      const perKwCap  = isPresetDriven ? 10 : maxResults;
+      const totalPlaces = cityCount * kwCount * perKwCap;
+      const apifyMapsLo = +(totalPlaces * 0.004).toFixed(2);
+      const apifyMapsHi = +(totalPlaces * 0.007).toFixed(2);
+      const igLo = apifyIg ? +(totalPlaces * 0.40 * 0.005).toFixed(2) : 0;
+      const igHi = apifyIg ? +(totalPlaces * 0.60 * 0.005).toFixed(2) : 0;
       const valEl = document.getElementById('creditEstimateValue');
       const breakEl = document.getElementById('creditEstimateBreakdown');
       if (!valEl) return;
+      const scope = cityCount > 1 ? `${cityCount} cities × ${kwCount} kw × ${perKwCap} places` : `${kwCount} kw × ${perKwCap} places`;
       const parts = [`Apify Maps: $${apifyMapsLo.toFixed(2)}–$${apifyMapsHi.toFixed(2)}`];
       if (apifyIg) parts.push(`Apify IG: $${igLo.toFixed(2)}–$${igHi.toFixed(2)}`);
       valEl.textContent = parts[0];
-      if (breakEl) breakEl.textContent = parts.length > 1 ? ' · ' + parts.slice(1).join(' · ') : '';
+      if (breakEl) breakEl.textContent = ` · ${scope}` + (parts.length > 1 ? ' · ' + parts.slice(1).join(' · ') : '');
     }
-    document.querySelectorAll('#enrichInstagramApify, [name=maxResults], #extractEmails, #extractInstagram, #extractPhones, #useLayer3').forEach(el => {
+    document.querySelectorAll('#enrichInstagramApify, [name=maxResults], [name=keyword], [name=city], #extractEmails, #extractInstagram, #extractPhones, #useLayer3').forEach(el => {
+      el.addEventListener('input', estimateCredits);
       el.addEventListener('change', estimateCredits);
     });
     estimateCredits();
@@ -1253,19 +1377,33 @@
     document.getElementById('searchForm').addEventListener('submit', function(e) {
       const fd = new FormData(e.target);
       // ——— Pre-flight cost gate ———
-      // Apify Compass cost estimate. Two thresholds:
-      //   > $0.50  → confirm dialog ("This will cost ~$X.XX, continue?")
-      //   > $2.00  → block, require an extra confirmation
+      // Match the server's combined-cost math: cityCount × keywordCount × perKeywordCap × $0.003/place.
+      // Server uses $0.0025 for its hard cap; the client uses $0.003 for the modal estimate so the
+      // displayed number is slightly conservative (always rounds up vs actual Apify charge).
+      // perKeywordCap = 10 when a preset is active (matches server's preset-driven cap), else maxResults.
+      const cityList = (fd.get('city') || '').split('|').map(c => c.trim()).filter(Boolean);
+      const keywordList = (fd.get('keyword') || '').split(',').map(k => k.trim()).filter(Boolean);
+      const isPresetDriven = !!(fd.get('verticalPreset') || fd.get('regionPreset'));
       const requestedPlaces = parseInt(fd.get('maxResults') || '20', 10) || 20;
-      const estCost = requestedPlaces * 0.0025;   // reviews=0, base only
+      const perKwCap = isPresetDriven ? 10 : requestedPlaces;
+      const compassCalls = Math.max(1, cityList.length) * Math.max(1, keywordList.length);
+      const estCost = compassCalls * perKwCap * 0.003;
+
+      // > 5 cities: regional batch confirmation, with exact numbers (no sanitised estimate).
+      if (cityList.length > 5) {
+        const ok = confirm(`This regional search will run ${compassCalls} separate Compass calls across ${cityList.length} cities (${keywordList.length} keyword${keywordList.length === 1 ? '' : 's'} × ${perKwCap} places/keyword × ${cityList.length} cities).\n\nEstimated total cost: ~$${estCost.toFixed(2)}.\n\nProceed?`);
+        if (!ok) { e.preventDefault(); return; }
+      }
+
+      // > $2: hard cap confirmation (also adds allowExpensive=1 to override server cap).
       if (estCost > 2.0) {
         const ok = confirm(`This search will use approximately $${estCost.toFixed(2)} of Apify credits — that's above the $2.00 per-search cap.\n\nAre you absolutely sure? Click OK to override the cap and submit anyway.`);
         if (!ok) { e.preventDefault(); return; }
-        // Add allowExpensive=1 to override the server-side cap too
         const hidden = document.createElement('input');
         hidden.type = 'hidden'; hidden.name = 'allowExpensive'; hidden.value = '1';
         e.target.appendChild(hidden);
-      } else if (estCost > 0.5) {
+      } else if (estCost > 0.5 && cityList.length <= 5) {
+        // Single-city / small-multi soft warn (skipped if we already showed the >5-city modal).
         const ok = confirm(`This search will use approximately $${estCost.toFixed(2)} of Apify credits.\n\nProceed?`);
         if (!ok) { e.preventDefault(); return; }
       }
@@ -1275,6 +1413,10 @@
         ratingMin: fd.get('ratingMin'), ratingMax: fd.get('ratingMax'),
         maxReviews: fd.get('maxReviews'), maxResults: fd.get('maxResults'),
         targetSegment: fd.get('targetSegment'),
+        priceTier: Array.from(document.querySelectorAll('input[name=priceTier]:checked')).map(c => c.value).join(','),
+        excludeUnknownPrice: fd.get('excludeUnknownPrice') ? 'on' : 'off',
+        verticalPreset: fd.get('verticalPreset') || '',
+        regionPreset:   fd.get('regionPreset')   || '',
         extractPhones:        fd.get('extractPhones')        ? 'on' : 'off',
         extractEmails:        fd.get('extractEmails')        ? 'on' : 'off',
         extractInstagram:     fd.get('extractInstagram')     ? 'on' : 'off',
@@ -1635,7 +1777,7 @@
           <td>${contactCellEmail(r)}</td>
           <td class="col-booking col-hidden"><span style="font-size: 12px; color: var(--body);">${r.booking ? escapeHTML(r.booking) : '<span class="empty-dash">—</span>'}</span></td>
           <td class="col-hours col-hidden"><span style="font-size: 12px; color: var(--body);">${r.hours ? escapeHTML(r.hours) : '<span class="empty-dash">—</span>'}</span></td>
-          <td class="col-price col-hidden"><span style="font-weight: 500; color: var(--near-black);">${r.priceTier ? escapeHTML(r.priceTier) : '<span class="empty-dash">—</span>'}</span></td>
+          <td class="col-price"><span style="font-weight: 500; color: var(--near-black);">${r.priceTier ? escapeHTML(r.priceTier) : '<span class="empty-dash">—</span>'}</span></td>
           <td style="text-align: center;">${qualityPill(r.qualityScore)}</td>
           <td>${r.url ? `<a href="${escapeAttr(r.url)}" target="_blank" onclick="event.stopPropagation()" style="display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 5px; color: var(--muted);" title="Open in Google Maps"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg></a>` : ''}</td>
         `;
@@ -1671,7 +1813,7 @@
     function applyColumnVisibility() {
       const prefs = loadPrefs();
       const cols = prefs.columns || {};
-      ['outreach', 'booking', 'hours', 'price'].forEach(col => {
+      ['outreach', 'booking', 'hours'].forEach(col => {
         const visible = !!cols[col];
         document.querySelectorAll(`.col-${col}`).forEach(el => el.classList.toggle('col-hidden', !visible));
       });
