@@ -327,11 +327,16 @@ async function handleSearch(src, res) {
     // --- Price tier filter (Part 1) ---
     // Applied AFTER Compass returns. Leads with no priceTier data pass through unless
     // excludeUnknown is set (Compass populates price unreliably for SMBs).
+    // IMPORTANT: Google returns $-style tiers only in some locales. Elsewhere (GCC, UK, EU)
+    // it returns currency ranges like "QAR 50–100" / "£10–20". Those can't be tier-matched,
+    // so they PASS the tier filter (they have price data — just not in tier form). The
+    // 2026-06-10 GCC test lost all 47 Doha leads to exact-matching against "QAR …" strings.
     if (priceTiers.length || excludeUnknown) {
       const before = filteredResults.length;
       filteredResults = filteredResults.filter(r => {
         const tier = (r.priceTier || '').trim();
-        if (!tier) return !excludeUnknown;                            // unknown — pass unless excluding
+        if (!tier) return !excludeUnknown;                            // no price data — pass unless excluding
+        if (!/^\$+$/.test(tier)) return true;                         // currency-range string — not tier-mappable, pass
         if (!priceTiers.length) return true;                          // no tier filter active
         return priceTiers.includes(tier);
       });

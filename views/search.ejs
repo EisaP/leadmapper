@@ -654,7 +654,7 @@
           <!-- Price tier filter — multi-select. Empty = Any. Leads with no priceTier data pass through unless excluded. -->
           <div style="margin-top: 20px;">
             <label class="ui-label" style="display: flex; align-items: center; margin-bottom: 6px;">Price tier
-              <button type="button" class="info-tip" aria-label="More info about Price tier" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Price tier</strong> filters leads by Google Maps' $/$$/$$$/$$$$ rating. Multi-select.</p><p>Compass populates this unreliably for SMBs — many leads have no price data. By default those pass through; toggle <em>Hide leads with no price data</em> to exclude them.</p><p>The "Premium restaurants" preset pre-selects $$, $$$, $$$$.</p></span></button>
+              <button type="button" class="info-tip" aria-label="More info about Price tier" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Price tier</strong> filters leads by Google Maps' $/$$/$$$/$$$$ rating. Multi-select.</p><p>Note: outside the US, Google often reports prices as currency ranges (e.g. <em>QAR 50–100</em>, <em>£10–20</em>) instead of $-tiers. Those leads always pass this filter — the range is shown in the Price column so you can judge manually.</p><p>Leads with no price data pass through too; toggle <em>Hide leads with no price data</em> to exclude them.</p><p>The "Premium restaurants" preset pre-selects $$, $$$, $$$$.</p></span></button>
             </label>
             <div id="priceTierGroup" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
               <% const selectedTiers = String(query?.priceTier || '').split(',').map(t => t.trim()).filter(Boolean); %>
