@@ -138,10 +138,6 @@
     .info-tip.tip-left .tip-content { left: -8px; right: auto; transform: none; }
 
     .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: var(--radius-pill); white-space: nowrap; letter-spacing: 0.02em; }
-    /* Segment badges — black with red underline (B), red filled (C), gray outline (Other) */
-    .badge-seg-b { background: var(--black); color: var(--white); border-bottom: 2px solid var(--red); border-radius: 4px 4px 0 0; }
-    .badge-seg-c { background: var(--red); color: var(--white); }
-    .badge-seg-other { background: var(--white); color: var(--text-secondary); border: 1px solid var(--border-strong); }
     /* Contact/outreach badges — Instagram black, Call outlined, Email red */
     .badge-ig { background: var(--black); color: var(--white); position: relative; padding-right: 14px; }
     .badge-ig::after { content: ''; position: absolute; top: 50%; right: 6px; width: 4px; height: 4px; border-radius: 50%; background: var(--red); transform: translateY(-50%); }
@@ -154,28 +150,6 @@
     .email-role-badge.role-named, .email-role-badge.role-owner, .email-role-badge.role-manager { background: var(--white); color: var(--text-secondary); border: 1px solid var(--border); }
     .email-role-badge.role-marketing, .email-role-badge.role-general, .email-role-badge.role-transactional, .email-role-badge.role-other { background: var(--surface); color: var(--text-tertiary); }
     .email-role-badge.role-low-value, .email-role-badge.role-customer-service { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-soft); }
-    /* ——— Segment editor modal ——— */
-    .seg-modal-backdrop { position: fixed; inset: 0; background: rgba(10,10,10,0.45); z-index: 200; display: none; align-items: flex-start; justify-content: center; padding: 64px 20px; overflow: auto; }
-    .seg-modal-backdrop.open { display: flex; }
-    .seg-modal { background: var(--white); border-radius: 10px; box-shadow: 0 20px 50px rgba(10,10,10,0.2); padding: 28px; max-width: 640px; width: 100%; }
-    .seg-modal h2 { font-size: 20px; font-weight: 500; margin: 0 0 6px; }
-    .seg-modal .seg-modal-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
-    .seg-card { border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px; position: relative; }
-    .seg-card.custom { border-left: 3px solid var(--red); }
-    .seg-card .seg-card-title { font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-    .seg-card .seg-defn { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; }
-    .seg-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-    .seg-grid label { display: block; font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
-    .seg-grid input { font-family: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; width: 100%; }
-    .seg-grid input:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 3px rgba(225,29,46,0.12); }
-    .seg-name-row { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 12px; }
-    .seg-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
-    .seg-add-btn { width: 100%; padding: 10px; background: var(--surface); border: 1px dashed var(--border-strong); border-radius: 8px; color: var(--text-secondary); font-family: inherit; font-size: 13px; cursor: pointer; transition: all 0.15s; }
-    .seg-add-btn:hover { color: var(--red); border-color: var(--red); background: var(--white); }
-    .seg-modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
-    .seg-definition-hint { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
-    .seg-delete-btn { background: none; border: none; color: var(--text-tertiary); font-size: 12px; cursor: pointer; padding: 4px 6px; border-radius: 4px; margin-left: auto; }
-    .seg-delete-btn:hover { color: var(--red); background: var(--surface); }
 
     /* Source + confidence marks (Layer 3) */
     .email-source-label { font-size: 11px; color: var(--text-tertiary); margin-left: 6px; white-space: nowrap; }
@@ -415,6 +389,9 @@
       .data-table { min-width: 900px; }
       /* Filter bar wraps already via flex-wrap — just reduce gaps */
       .filter-pill, .copy-chip { font-size: 12px; padding: 5px 10px; }
+      /* Touch targets — min 44px tap height on mobile (WCAG 2.5.5) */
+      .btn, .chip, .filter-pill, .copy-chip, .select, .input, .info-tip { min-height: 44px; }
+      .chip { padding: 0 14px; }
     }
     @media (max-width: 480px) {
       #statsGrid { grid-template-columns: 1fr !important; }
@@ -475,7 +452,7 @@
       <!-- Dismissible intro banner — shown once, persisted in localStorage -->
       <div id="introBanner" class="intro-banner" style="display: none;">
         <div class="intro-banner-body">
-          <strong>Welcome to LeadHunter.</strong> Scrape Google Maps across multiple keywords, enrich contact info, and segment by opportunity. Separate keywords with commas to broaden coverage.
+          <strong>Welcome to LeadHunter.</strong> Scrape Google Maps across multiple keywords, enrich contact info, and target your ICP with presets and filters. Separate keywords with commas to broaden coverage.
         </div>
         <button type="button" class="intro-banner-close" onclick="dismissIntro()" aria-label="Dismiss intro">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -499,7 +476,6 @@
                   keyword: query?.keyword || '', city: query?.city || '', state: query?.state || '',
                   ratingMin: query?.ratingMin || '', ratingMax: query?.ratingMax || '',
                   maxReviews: query?.maxReviews || '', maxResults: query?.maxResults || 100,
-                  targetSegment: query?.targetSegment || 'all',
                   outreachPriority: query?.outreachPriority || 'phone-first',
                   ...extras
                 });
@@ -520,7 +496,6 @@
               keyword: query?.keyword || '', city: query?.city || '', state: query?.state || '',
               ratingMin: query?.ratingMin || '', ratingMax: query?.ratingMax || '',
               maxReviews: query?.maxReviews || '', maxResults: query?.maxResults || 100,
-              targetSegment: query?.targetSegment || 'all',
               outreachPriority: query?.outreachPriority || 'phone-first',
               forceFresh: '1'
             });
@@ -542,7 +517,7 @@
       <!-- Vertical preset row — ICP-aligned bundles up front; legacy single-vertical chips under "More verticals" -->
       <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 32px;">
         <span class="ui-label" style="margin-right: 8px;">Vertical</span>
-        <button type="button" class="chip" data-vertical="premium-restaurants" title="Mid-to-upscale independent restaurants — the primary ICP for review tools.">Premium restaurants</button>
+        <button type="button" class="chip" data-vertical="casual-dining" title="Casual-to-mid-tier independent restaurants with steady cover volume — the core ICP.">Casual dining</button>
         <button type="button" class="chip" data-vertical="boutique-hotels" title="Independent and family-run hotels with 15–100 rooms.">Boutique hotels</button>
         <button type="button" class="chip" data-vertical="private-clinics" title="Private healthcare clinics in EU/GCC. Note: US locations may have HIPAA constraints.">Private clinics</button>
         <button type="button" class="chip" data-vertical="upscale-groups" title="Multi-location upscale restaurant groups (3–10 locations).">Upscale groups</button>
@@ -573,7 +548,7 @@
             <div>
               <label class="ui-label" style="display: flex; align-items: center; margin-bottom: 6px;">
                 Keyword(s)
-                <button type="button" class="info-tip" aria-label="More info about keywords" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Keywords</strong> are the Google Maps search terms you want to scrape.</p><p>Separate multiple keywords with <strong>commas</strong> to run several searches and dedupe the results — e.g. <em>cafes, coffee shops, espresso bars</em>.</p><p>LeadHunter then enriches each unique business with contact info and segments by opportunity.</p></span></button>
+                <button type="button" class="info-tip" aria-label="More info about keywords" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Keywords</strong> are the Google Maps search terms you want to scrape.</p><p>Separate multiple keywords with <strong>commas</strong> to run several searches and dedupe the results — e.g. <em>cafes, coffee shops, espresso bars</em>.</p><p>LeadHunter then enriches each unique business with contact info.</p></span></button>
               </label>
               <input class="input" type="text" name="keyword" id="keywordInput" placeholder="cafes, coffee shops, espresso bars" value="<%= query?.keyword || '' %>" required>
               <div class="helper-text">Comma-separate to run multiple searches and dedupe by Google Place ID.</div>
@@ -612,10 +587,10 @@
 
         <div style="border-top: 1px solid var(--border); padding-top: 32px; margin-bottom: 32px;">
           <span class="section-label">Refine search</span>
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; align-items: start;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
             <div>
               <label class="ui-label" style="display: flex; align-items: center; margin-bottom: 6px;">Rating range
-                <button type="button" class="info-tip" aria-label="More info about Rating range" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Rating range</strong> filters businesses by their Google Maps rating.</p><p>4.1–4.7 ★ is the sweet spot for <strong>Segment B</strong>: the business is well-rated but not saturated, so small rating improvements still move the needle.</p><p>Below 4.0 ★ is <strong>Segment C</strong> — reputation recovery territory.</p></span></button>
+                <button type="button" class="info-tip" aria-label="More info about Rating range" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Rating range</strong> filters businesses by their Google Maps rating.</p><p>For the core ICP, 4.0–5.0 ★ keeps well-regarded independents in view while filtering out poorly-rated venues.</p></span></button>
               </label>
               <div style="display: flex; gap: 6px; align-items: center;">
                 <input class="input" type="number" name="ratingMin" step="0.1" min="0" max="5" placeholder="Min" value="<%= query?.ratingMin || '' %>" style="text-align: center;">
@@ -633,21 +608,6 @@
                   <option value="<%= v %>" <%= String(query?.maxReviews) === String(v) ? 'selected' : '' %>>Under <%= v %></option>
                 <% }) %>
               </select>
-            </div>
-            <div>
-              <label class="ui-label" style="display: flex; align-items: center; margin-bottom: 6px;">Target segment
-                <button type="button" class="info-tip" aria-label="More info about Target segment" tabindex="0">?<span class="tip-content" role="tooltip"><p><strong>Segment B</strong> — good rating, under-reviewed. Easy upside from more reviews.</p><p><strong>Segment C</strong> — low rating, needs help. Reputation recovery target.</p><p>Thresholds are editable — click <em>Manage segments</em> below the dropdown.</p></span></button>
-              </label>
-              <select class="select" name="targetSegment" id="targetSegmentSelect">
-                <option value="all" <%= (!query?.targetSegment || query?.targetSegment === 'all') ? 'selected' : '' %>>All candidates</option>
-                <option value="B" <%= query?.targetSegment === 'B' ? 'selected' : '' %>>Segment B</option>
-                <option value="C" <%= query?.targetSegment === 'C' ? 'selected' : '' %>>Segment C</option>
-                <option value="BC" <%= query?.targetSegment === 'BC' ? 'selected' : '' %>>Both B and C</option>
-              </select>
-              <div style="margin-top: 4px; display: flex; align-items: center; gap: 8px; font-size: 12px;">
-                <a href="#" onclick="event.preventDefault(); openSegmentModal();" style="color: var(--red); font-weight: 500;">Manage segments →</a>
-                <span id="activeSegDefn" style="color: var(--text-tertiary); font-size: 11px;"></span>
-              </div>
             </div>
           </div>
 
@@ -732,7 +692,10 @@
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <span id="searchBtnText">Find leads</span>
           </button>
-          <span style="font-size: 12px; color: var(--muted);" id="searchHint">Contact enrichment (email, phone, Instagram) is on by default.</span>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 13px; color: var(--text-secondary);">Est. cost <strong id="costNearButton" style="color: var(--text-primary); font-weight: 500;">—</strong></span>
+            <span style="font-size: 12px; color: var(--muted);" id="searchHint">Contact enrichment (email, phone, Instagram) is on by default.</span>
+          </div>
         </div>
       </form>
 
@@ -752,16 +715,11 @@
             This search used approximately <strong style="color: var(--text-primary); font-weight: 500;">$<%= apifyCostUsd.toFixed(4) %></strong> of Apify credits<% if (typeof dataSourceUsed !== 'undefined') { %> <span style="color: var(--text-tertiary);">· data source: <%= dataSourceUsed %></span><% } %>.
           </div>
         <% } %>
-        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 32px;" id="statsGrid"></div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px;" id="statsGrid"></div>
 
         <div style="padding: 0 0 16px; margin-bottom: 16px; border-top: 1px solid var(--border); padding-top: 20px;">
           <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;">
-            <span class="ui-label" style="margin-right: 4px;">Segment</span>
-            <button class="filter-pill active" data-filter="segment" data-value="all" type="button">All <span class="count" id="cntSegAll">0</span></button>
-            <button class="filter-pill" data-filter="segment" data-value="B" type="button">B <span class="count" id="cntSegB">0</span></button>
-            <button class="filter-pill" data-filter="segment" data-value="C" type="button">C <span class="count" id="cntSegC">0</span></button>
-            <button class="filter-pill" data-filter="segment" data-value="-" type="button">Other <span class="count" id="cntSegOther">0</span></button>
-            <span style="width: 1px; height: 24px; background: var(--border); margin: 0 8px;"></span>
+            <span class="ui-label" style="margin-right: 4px;">Filter</span>
             <button class="filter-pill" data-filter="saved" data-value="true" type="button">⭐ Saved only</button>
             <button class="filter-pill" data-filter="decisionMaker" data-value="true" type="button" title="Show only leads with a priority-70+ email (named person, owner, manager, or marketing/partnerships)">Decision-maker emails <span class="count" id="cntDecisionMaker">0</span></button>
             <button class="filter-pill" data-filter="chainOnly" data-value="true" type="button" title="Show only leads detected as a chain or franchise (any tier — local through global)">Chain <span class="count" id="cntChain">0</span></button>
@@ -835,12 +793,6 @@
                   <th class="sortable" data-sort="reviewCount" style="width: 104px; text-align: right;">
                     <span class="th-inner" style="justify-content: flex-end; float: right;">Reviews
                       <button type="button" class="info-tip" aria-label="About the Reviews column" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p><strong>Reviews</strong> is the total number of Google reviews this business has received.</p><p>Used with rating to identify under-reviewed or over-reviewed businesses.</p></span></button>
-                      <span class="sort-indicator" aria-hidden="true"></span>
-                    </span>
-                  </th>
-                  <th class="sortable" data-sort="segmentCode" style="width: 128px;">
-                    <span class="th-inner">Segment
-                      <button type="button" class="info-tip" aria-label="About the Segment column" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p><strong>Segment</strong> classifies each lead based on rating and review patterns.</p><p>Default segments: <strong>B</strong> (high rating, low reviews) · <strong>C</strong> (low rating, high reviews). Customisable via <em>Manage segments</em> in the search form.</p></span></button>
                       <span class="sort-indicator" aria-hidden="true"></span>
                     </span>
                   </th>
@@ -926,28 +878,12 @@
 
   <div class="toast" id="toast"></div>
 
-  <!-- Segment management modal — edit B/C thresholds, add custom segments -->
-  <div class="seg-modal-backdrop" id="segModal" role="dialog" aria-labelledby="segModalTitle" aria-modal="true">
-    <div class="seg-modal">
-      <h2 id="segModalTitle">Manage segments</h2>
-      <div class="seg-modal-sub">Tune the B/C thresholds for your target market, or build your own segment. Saved locally in your browser — never leaves this device.</div>
-      <div id="segList"></div>
-      <button type="button" class="seg-add-btn" onclick="addCustomSegment()">+ Add custom segment</button>
-      <div class="seg-modal-footer">
-        <button type="button" class="btn" onclick="resetSegmentsToDefaults()">Reset to defaults</button>
-        <div style="flex: 1;"></div>
-        <button type="button" class="btn" onclick="closeSegmentModal()">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="saveSegmentsFromModal()">Save</button>
-      </div>
-    </div>
-  </div>
-
   <script>
     const allResults = <%- JSON.stringify(results || []) %>;
     let savedLeads = {};
     const state = {
       channels: { email: true, phone: true, instagram: true },
-      filters: { segment: 'all', saved: false, decisionMaker: false, chainOnly: false, followerBand: 'any', followerCustomMin: null, followerCustomMax: null, text: '' },
+      filters: { saved: false, decisionMaker: false, chainOnly: false, followerBand: 'any', followerCustomMin: null, followerCustomMax: null, text: '' },
       sort: { key: null, dir: 'asc' },
       expanded: new Set(),
       selected: new Set()
@@ -984,7 +920,7 @@
     // the hidden `verticalPreset` field). Editing the keyword field afterward keeps the preset
     // "sticky" — only clicking "Clear preset" returns the user to manual-search mode.
     const ICP_PRESETS = {
-      'premium-restaurants': { keyword: 'restaurants, fine dining, gastropub, brasserie, bistro', ratingMin: 4.0, ratingMax: 5.0, maxReviews: '', priceTier: ['$$','$$$','$$$$'] },
+      'casual-dining': { keyword: 'casual dining, restaurant, bistro, trattoria, brasserie, gastropub', ratingMin: 4.0, ratingMax: 5.0, maxReviews: '', priceTier: ['$$'] },
       'boutique-hotels':     { keyword: 'boutique hotel, independent hotel, guesthouse, B&B, inn', ratingMin: 4.0, ratingMax: 5.0, maxReviews: '', priceTier: [] },
       'private-clinics':     { keyword: 'dental clinic, cosmetic dentist, dermatologist, aesthetic clinic, medical spa, plastic surgery', ratingMin: 4.0, ratingMax: 5.0, maxReviews: '', priceTier: [] },
       'upscale-groups':      { keyword: 'restaurant group, restaurant collection, hospitality group', ratingMin: 4.0, ratingMax: 5.0, maxReviews: '', priceTier: ['$$$','$$$$'] },
@@ -1137,157 +1073,6 @@
     const loadPrefs = () => { try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; } };
     const savePrefs = (p) => localStorage.setItem(LS_KEY, JSON.stringify({ ...loadPrefs(), ...p }));
 
-    // ——— Configurable segments ———
-    // Stored under `leadhunter_segments_v1`. Holds B/C defaults + any user-added custom segments.
-    // Each segment: { id, name, minRating, maxRating, minReviews, maxReviews, keyword }
-    const SEG_KEY = 'leadhunter_segments_v1';
-    const DEFAULT_SEGMENTS = {
-      B: { id: 'B', name: 'Segment B', minRating: 4.1, maxRating: 4.7, minReviews: 0,  maxReviews: 300, keyword: '' },
-      C: { id: 'C', name: 'Segment C', minRating: 0,   maxRating: 4.0, minReviews: 80, maxReviews: null, keyword: '' },
-      custom: []
-    };
-    function loadSegments() {
-      try {
-        const raw = localStorage.getItem(SEG_KEY);
-        if (!raw) return JSON.parse(JSON.stringify(DEFAULT_SEGMENTS));
-        const parsed = JSON.parse(raw);
-        // Hydrate missing pieces with defaults
-        return {
-          B: { ...DEFAULT_SEGMENTS.B, ...(parsed.B || {}) },
-          C: { ...DEFAULT_SEGMENTS.C, ...(parsed.C || {}) },
-          custom: Array.isArray(parsed.custom) ? parsed.custom : []
-        };
-      } catch { return JSON.parse(JSON.stringify(DEFAULT_SEGMENTS)); }
-    }
-    function saveSegments(segs) {
-      try { localStorage.setItem(SEG_KEY, JSON.stringify(segs)); } catch {}
-    }
-    function segmentMatches(lead, seg) {
-      if (!seg) return false;
-      const rating = lead.rating;
-      const reviews = lead.reviewCount == null ? 0 : lead.reviewCount;
-      if (seg.minRating != null && seg.minRating !== '' && (rating == null || rating < +seg.minRating)) return false;
-      if (seg.maxRating != null && seg.maxRating !== '' && (rating == null || rating > +seg.maxRating)) return false;
-      if (seg.minReviews != null && seg.minReviews !== '' && reviews < +seg.minReviews) return false;
-      if (seg.maxReviews != null && seg.maxReviews !== '' && reviews > +seg.maxReviews) return false;
-      if (seg.keyword && seg.keyword.trim()) {
-        const kw = seg.keyword.trim().toLowerCase();
-        const hay = `${lead.title || ''} ${lead.category || ''}`.toLowerCase();
-        if (!hay.includes(kw)) return false;
-      }
-      return true;
-    }
-    // Reclassify every result based on the user's current saved segments.
-    // Priority order: B first, then C, then custom in saved order. First match wins.
-    function reclassifyAllResults() {
-      const segs = loadSegments();
-      for (const r of allResults) {
-        if (segmentMatches(r, segs.B))      { r.segmentCode = 'B'; r.segmentName = segs.B.name; }
-        else if (segmentMatches(r, segs.C)) { r.segmentCode = 'C'; r.segmentName = segs.C.name; }
-        else {
-          r.segmentCode = '-'; r.segmentName = 'Other';
-          for (const cs of segs.custom) {
-            if (segmentMatches(r, cs)) { r.segmentCode = cs.id; r.segmentName = cs.name; break; }
-          }
-        }
-      }
-    }
-    function segThresholdText(seg) {
-      const bits = [];
-      const ratingBits = [];
-      if (seg.minRating != null && seg.minRating !== '') ratingBits.push(String(seg.minRating));
-      if (seg.maxRating != null && seg.maxRating !== '') ratingBits.push(String(seg.maxRating));
-      if (ratingBits.length) bits.push(`${ratingBits.join('–')} ★`);
-      if (seg.minReviews != null && seg.minReviews !== '' && +seg.minReviews > 0) bits.push(`≥${seg.minReviews} reviews`);
-      if (seg.maxReviews != null && seg.maxReviews !== '') bits.push(`≤${seg.maxReviews} reviews`);
-      if (seg.keyword && seg.keyword.trim()) bits.push(`contains "${seg.keyword.trim()}"`);
-      return bits.join(' · ') || 'any rating / any reviews';
-    }
-
-    // Modal: render, edit, save
-    function segCardHTML(seg, kind) {
-      const isCustom = kind === 'custom';
-      const badge = isCustom ? '<span style="font-size:10px;color:var(--red);text-transform:uppercase;letter-spacing:0.06em;">Custom</span>' : '';
-      return `
-        <div class="seg-card ${isCustom ? 'custom' : ''}" data-seg-id="${seg.id}" data-seg-kind="${kind}">
-          <div class="seg-card-title">${seg.id === 'B' || seg.id === 'C' ? 'Segment ' + seg.id : 'Custom'} ${badge}${isCustom ? `<button type="button" class="seg-delete-btn" onclick="deleteSegmentRow(this)">Delete</button>` : ''}</div>
-          <div class="seg-name-row">
-            <div>
-              <label style="font-size:11px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:4px;">Name</label>
-              <input type="text" class="seg-name" maxlength="30" value="${escapeAttr(seg.name || '')}" placeholder="e.g. Manchester premium" style="font-family:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;width:100%;">
-            </div>
-          </div>
-          <div class="seg-grid">
-            <div><label>Min rating</label><input type="number" class="seg-minRating" step="0.1" min="0" max="5" value="${seg.minRating == null ? '' : seg.minRating}"></div>
-            <div><label>Max rating</label><input type="number" class="seg-maxRating" step="0.1" min="0" max="5" value="${seg.maxRating == null ? '' : seg.maxRating}"></div>
-            <div><label>Min reviews</label><input type="number" class="seg-minReviews" min="0" value="${seg.minReviews == null ? '' : seg.minReviews}"></div>
-            <div><label>Max reviews</label><input type="number" class="seg-maxReviews" min="0" value="${seg.maxReviews == null ? '' : seg.maxReviews}"></div>
-          </div>
-          ${isCustom ? `
-          <div><label style="font-size:11px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;display:block;margin-bottom:4px;">Keyword filter <span style="text-transform:none;letter-spacing:0;color:var(--text-tertiary);">— matches name OR category (optional)</span></label>
-            <input type="text" class="seg-keyword" value="${escapeAttr(seg.keyword || '')}" style="font-family:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;width:100%;" placeholder="e.g. specialty"></div>
-          ` : ''}
-        </div>
-      `;
-    }
-    function renderSegmentModal() {
-      const segs = loadSegments();
-      const list = document.getElementById('segList');
-      if (!list) return;
-      list.innerHTML = segCardHTML(segs.B, 'B') + segCardHTML(segs.C, 'C') + segs.custom.map(c => segCardHTML(c, 'custom')).join('');
-    }
-    window.openSegmentModal = () => { renderSegmentModal(); document.getElementById('segModal').classList.add('open'); };
-    window.closeSegmentModal = () => { document.getElementById('segModal').classList.remove('open'); };
-    window.addCustomSegment = () => {
-      const list = document.getElementById('segList');
-      const id = 'cs_' + Date.now().toString(36);
-      list.insertAdjacentHTML('beforeend', segCardHTML({ id, name: '', minRating: '', maxRating: '', minReviews: '', maxReviews: '', keyword: '' }, 'custom'));
-    };
-    window.deleteSegmentRow = (btn) => { btn.closest('.seg-card').remove(); };
-    window.resetSegmentsToDefaults = () => {
-      if (!confirm('Reset Segment B and C to their original thresholds and remove all custom segments?')) return;
-      saveSegments(JSON.parse(JSON.stringify(DEFAULT_SEGMENTS)));
-      renderSegmentModal();
-    };
-    window.saveSegmentsFromModal = () => {
-      const cards = document.querySelectorAll('#segList .seg-card');
-      const next = { B: { ...DEFAULT_SEGMENTS.B }, C: { ...DEFAULT_SEGMENTS.C }, custom: [] };
-      cards.forEach(card => {
-        const kind = card.dataset.segKind;
-        const id = card.dataset.segId;
-        const nameEl = card.querySelector('.seg-name');
-        const getVal = (cls, parser) => {
-          const el = card.querySelector(cls);
-          if (!el) return '';
-          const v = el.value;
-          if (v === '' || v == null) return '';
-          const n = parser ? parser(v) : v;
-          return Number.isFinite(n) ? n : (parser ? '' : v);
-        };
-        const entry = {
-          id,
-          name: (nameEl?.value || '').trim() || (kind === 'B' ? 'Segment B' : kind === 'C' ? 'Segment C' : 'Custom'),
-          minRating: getVal('.seg-minRating', parseFloat),
-          maxRating: getVal('.seg-maxRating', parseFloat),
-          minReviews: getVal('.seg-minReviews', parseInt),
-          maxReviews: getVal('.seg-maxReviews', parseInt),
-          keyword: card.querySelector('.seg-keyword')?.value || ''
-        };
-        if (kind === 'B') next.B = entry;
-        else if (kind === 'C') next.C = entry;
-        else if (kind === 'custom' && entry.name.trim()) next.custom.push(entry);
-      });
-      saveSegments(next);
-      closeSegmentModal();
-      // Reclassify + re-render without refetching
-      reclassifyAllResults();
-      render();
-      showToast('Segments saved');
-    };
-    // Close on backdrop click
-    document.getElementById('segModal')?.addEventListener('click', (e) => {
-      if (e.target.id === 'segModal') closeSegmentModal();
-    });
     (function restorePrefs() {
       const prefs = loadPrefs();
       if (!<%= !!query ? 'true' : 'false' %>) {
@@ -1296,7 +1081,6 @@
         set('excludeKeywords', prefs.excludeKeywords);
         set('ratingMin', prefs.ratingMin); set('ratingMax', prefs.ratingMax);
         set('maxReviews', prefs.maxReviews); set('maxResults', prefs.maxResults);
-        set('targetSegment', prefs.targetSegment);
         // Restore enrichment-toggle state from prefs.
         // Defaults baked into the form markup: phone/email/IG/Layer3 = ON, igFallback/followers = OFF
         // (paid options stay OFF unless the user has explicitly turned them on at least once).
@@ -1351,14 +1135,42 @@
       const igHi = apifyIg ? +(totalPlaces * 0.60 * 0.005).toFixed(2) : 0;
       const valEl = document.getElementById('creditEstimateValue');
       const breakEl = document.getElementById('creditEstimateBreakdown');
-      if (!valEl) return;
       const scope = cityCount > 1 ? `${cityCount} cities × ${kwCount} kw × ${perKwCap} places` : `${kwCount} kw × ${perKwCap} places`;
       const parts = [`Apify Maps: $${apifyMapsLo.toFixed(2)}–$${apifyMapsHi.toFixed(2)}`];
       if (apifyIg) parts.push(`Apify IG: $${igLo.toFixed(2)}–$${igHi.toFixed(2)}`);
-      valEl.textContent = parts[0];
+      if (valEl) valEl.textContent = parts[0];
       if (breakEl) breakEl.textContent = ` · ${scope}` + (parts.length > 1 ? ' · ' + parts.slice(1).join(' · ') : '');
+      // Mirror a combined estimate next to the Find leads button (single range, all-in)
+      const nearBtn = document.getElementById('costNearButton');
+      if (nearBtn) {
+        const allLo = apifyMapsLo + igLo, allHi = apifyMapsHi + igHi;
+        nearBtn.textContent = `$${allLo.toFixed(2)}–$${allHi.toFixed(2)}`;
+      }
+      validateRequired();
     }
-    document.querySelectorAll('#enrichInstagramApify, [name=maxResults], [name=keyword], [name=city], #extractEmails, #extractInstagram, #extractPhones, #useLayer3').forEach(el => {
+    // ——— Required-field gating ———
+    // Disable Find leads until keyword + city + country are all filled, and say why.
+    function validateRequired() {
+      const btn = document.getElementById('searchBtn');
+      const hint = document.getElementById('searchHint');
+      if (!btn) return;
+      const missing = [];
+      if (!(document.querySelector('[name=keyword]')?.value || '').trim()) missing.push('keyword');
+      if (!(document.querySelector('[name=city]')?.value || '').trim()) missing.push('city');
+      if (!(document.querySelector('[name=state]')?.value || '').trim()) missing.push('country');
+      if (missing.length) {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+        if (hint) hint.textContent = `Add ${missing.join(', ')} to search.`;
+      } else {
+        btn.disabled = false;
+        btn.style.opacity = '';
+        btn.style.cursor = '';
+        if (hint) hint.textContent = 'Contact enrichment (email, phone, Instagram) is on by default.';
+      }
+    }
+    document.querySelectorAll('#enrichInstagramApify, [name=maxResults], [name=keyword], [name=city], [name=state], #extractEmails, #extractInstagram, #extractPhones, #useLayer3').forEach(el => {
       el.addEventListener('input', estimateCredits);
       el.addEventListener('change', estimateCredits);
     });
@@ -1412,7 +1224,6 @@
         city: fd.get('city'), state: fd.get('state'),
         ratingMin: fd.get('ratingMin'), ratingMax: fd.get('ratingMax'),
         maxReviews: fd.get('maxReviews'), maxResults: fd.get('maxResults'),
-        targetSegment: fd.get('targetSegment'),
         priceTier: Array.from(document.querySelectorAll('input[name=priceTier]:checked')).map(c => c.value).join(','),
         excludeUnknownPrice: fd.get('excludeUnknownPrice') ? 'on' : 'off',
         verticalPreset: fd.get('verticalPreset') || '',
@@ -1446,8 +1257,6 @@
       const igFromSite = allResults.filter(r => r.instagram && r.instagramSource === 'website').length;
       const igFromMaps = allResults.filter(r => r.instagram && r.instagramSource === 'maps').length;
       const igFromFallback = allResults.filter(r => r.instagram && r.instagramSource === 'google_fallback').length;
-      const segB = allResults.filter(r => r.segmentCode === 'B').length;
-      const segC = allResults.filter(r => r.segmentCode === 'C').length;
       const avgQuality = total ? Math.round(allResults.reduce((s, r) => s + (r.qualityScore || 0), 0) / total) : 0;
       const ig = allResults.filter(r => r.outreach === 'DM').length;
       const call = allResults.filter(r => r.outreach === 'Call').length;
@@ -1455,9 +1264,6 @@
       const none = allResults.filter(r => r.outreach === 'None').length;
       const pct = (n) => total ? Math.round((n / total) * 100) : 0;
       // Every card has: LABEL · big number · sub-line · optional micro-bar (4px)
-      const segTotal = segB + segC;
-      const bPct = segTotal ? (segB / segTotal) * 100 : 0;
-      const cPct = segTotal ? (segC / segTotal) * 100 : 0;
       grid.innerHTML = `
         <div class="stat-card">
           <div class="stat-label" style="display: flex; align-items: center;">
@@ -1466,18 +1272,6 @@
           </div>
           <div class="stat-value">${total}</div>
           <div class="stat-sub">businesses matched your filters</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label" style="display: flex; align-items: center;">Segmented
-            <button type="button" class="info-tip" aria-label="Segment definitions" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p><strong>${loadSegments().B.name}</strong> — ${segThresholdText(loadSegments().B)}</p><p><strong>${loadSegments().C.name}</strong> — ${segThresholdText(loadSegments().C)}</p><p>Click <em>Manage segments</em> in the search form to edit these thresholds or add your own.</p></span></button>
-          </div>
-          <div class="stat-value">${segTotal}</div>
-          <div class="stat-sub">${segB} in ${loadSegments().B.name} · ${segC} in ${loadSegments().C.name}</div>
-          <div class="stat-microbar" title="${loadSegments().B.name} (black) vs ${loadSegments().C.name} (red)"><div style="width: ${bPct}%; background: var(--black);"></div><div style="width: ${cPct}%; background: var(--red);"></div></div>
-          <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 6px; line-height: 1.35;">
-            <div>${loadSegments().B.name}: ${segThresholdText(loadSegments().B)}</div>
-            <div>${loadSegments().C.name}: ${segThresholdText(loadSegments().C)}</div>
-          </div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Outreach mix</div>
@@ -1525,16 +1319,6 @@
       document.getElementById('cntEmail').textContent = allResults.filter(r => r.email).length;
       document.getElementById('cntPhone').textContent = allResults.filter(r => r.phone).length;
       document.getElementById('cntInstagram').textContent = allResults.filter(r => r.instagram).length;
-      document.getElementById('cntSegAll').textContent = allResults.length;
-      document.getElementById('cntSegB').textContent = allResults.filter(r => r.segmentCode === 'B').length;
-      document.getElementById('cntSegC').textContent = allResults.filter(r => r.segmentCode === 'C').length;
-      document.getElementById('cntSegOther').textContent = allResults.filter(r => r.segmentCode === '-').length;
-      // Relabel Segment B/C pills using the saved segment names (e.g. "Manchester premium")
-      const segs = loadSegments();
-      const pillB = document.querySelector('[data-filter="segment"][data-value="B"]');
-      const pillC = document.querySelector('[data-filter="segment"][data-value="C"]');
-      if (pillB) pillB.childNodes[0].nodeValue = segs.B.name + ' ';
-      if (pillC) pillC.childNodes[0].nodeValue = segs.C.name + ' ';
       const dmEl = document.getElementById('cntDecisionMaker');
       if (dmEl) dmEl.textContent = allResults.filter(isDecisionMakerLead).length;
       const chainEl = document.getElementById('cntChain');
@@ -1580,11 +1364,10 @@
       return true;
     }
     function applyFilters() {
-      const { segment, saved, decisionMaker, chainOnly, followerBand, followerCustomMin, followerCustomMax, text } = state.filters;
+      const { saved, decisionMaker, chainOnly, followerBand, followerCustomMin, followerCustomMax, text } = state.filters;
       const q = text.trim().toLowerCase();
       let rows = allResults.filter(r => {
         if (!passesChannels(r)) return false;
-        if (segment !== 'all' && r.segmentCode !== segment) return false;
         if (saved && !savedLeads[r.title]) return false;
         if (decisionMaker && !isDecisionMakerLead(r)) return false;
         if (chainOnly && !r.is_chain_candidate) return false;
@@ -1627,11 +1410,6 @@
     }
     function igHandle(handle) { return (handle || '').replace(/^[@\/]+/, ''); }
 
-    const badgeSegment = c => c === 'B'
-      ? '<span class="badge badge-seg-b" title="Segment B: good rating (4.1–4.7 ★) with ≤300 reviews. Under-exposed — easy upside from more reviews.">Segment B</span>'
-      : c === 'C'
-      ? '<span class="badge badge-seg-c" title="Segment C: rating below 4.1 ★ with ≥80 reviews. Reputation recovery target.">Segment C</span>'
-      : '<span class="badge badge-seg-other" title="Not a target segment — either rating too high, too few reviews, or between B and C thresholds.">Other</span>';
     const badgeOutreach = o => o === 'DM' ? '<span class="badge badge-ig">Instagram</span>' : o === 'Call' ? '<span class="badge badge-call">Call</span>' : o === 'Email' ? '<span class="badge badge-email">Email</span>' : '<span class="badge badge-none">None</span>';
     function qualityPill(score) {
       const s = typeof score === 'number' ? score : 0;
@@ -1769,7 +1547,6 @@
           </td>
           <td>${r.rating != null ? `<span style="color: var(--amber); font-weight: 500;">★ ${r.rating}</span>` : '<span class="empty-dash">—</span>'}</td>
           <td style="text-align: right; color: var(--body);">${r.reviewCount != null ? r.reviewCount : '—'}</td>
-          <td>${badgeSegment(r.segmentCode)}</td>
           <td class="col-outreach col-hidden">${badgeOutreach(r.outreach)}</td>
           <td>${contactCellIG(r)}</td>
           <td style="text-align: right; color: var(--text-secondary); font-size: 13px;" title="${r.instagram_followers != null ? r.instagram_followers.toLocaleString() + ' followers' : 'Follower count not available'}">${r.instagram_followers != null ? formatFollowers(r.instagram_followers) : '<span class="empty-dash">—</span>'}</td>
@@ -1948,7 +1725,7 @@
     });
     window.clearAllFilters = () => {
       state.channels = { email: true, phone: true, instagram: true };
-      state.filters = { segment: 'all', saved: false, decisionMaker: false, chainOnly: false, followerBand: 'any', followerCustomMin: null, followerCustomMax: null, text: '' };
+      state.filters = { saved: false, decisionMaker: false, chainOnly: false, followerBand: 'any', followerCustomMin: null, followerCustomMax: null, text: '' };
       const tf = document.getElementById('textFilter'); if (tf) tf.value = '';
       const fs = document.getElementById('followerBandSelect'); if (fs) fs.value = 'any';
       const fc = document.getElementById('followerCustomRange'); if (fc) fc.style.display = 'none';
@@ -1973,7 +1750,6 @@
       f.querySelector('[name=ratingMin]').value = '';
       f.querySelector('[name=ratingMax]').value = '';
       f.querySelector('[name=maxReviews]').value = '';
-      f.querySelector('[name=targetSegment]').value = 'all';
       f.querySelector('[name=excludeKeywords]').value = '';
       f.submit();
     };
@@ -2115,12 +1891,12 @@
       copyList(rows.filter(r => r.phone).map(r => r.phone), 'No phones in current filter', 'Phones copied');
     });
     function exportCSV(rows, filename) {
-      const headers = ['Name','Phone','Email','EmailSource','EmailConfidence','EmailRole','Instagram','Followers','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','Segment','Outreach','QualityScore','IsChainCandidate','ChainTier','ChainSignals','Google Maps URL'];
+      const headers = ['Name','Phone','Email','EmailSource','EmailConfidence','EmailRole','Instagram','Followers','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','Outreach','QualityScore','IsChainCandidate','ChainTier','ChainSignals','Google Maps URL'];
       const csvRows = rows.map(r => [
         r.title, r.phone, r.email, r.email_source || '', r.email_confidence || '', r.emailRole || '',
         r.instagram || '', r.instagram_followers != null ? r.instagram_followers : '',
         r.booking || '', r.hours || '', r.priceTier || '',
-        r.website, r.category, r.address, r.rating, r.reviewCount, r.segment || '', r.outreach || '', r.qualityScore || '',
+        r.website, r.category, r.address, r.rating, r.reviewCount, r.outreach || '', r.qualityScore || '',
         r.is_chain_candidate ? 'true' : 'false',
         r.chain_tier || 'independent',
         Array.isArray(r.chain_signals_fired) ? r.chain_signals_fired.join('|') : '',
@@ -2149,26 +1925,8 @@
       showToast(`Exported ${rows.length} rows as JSON`);
     });
 
-    function render() { renderStats(); updateFilterCounts(); renderRows(); renderActiveSegDefn(); }
-    // Reclassify every result with the user's saved segment thresholds before the first paint,
-    // so custom segments and edited B/C behave immediately (no refetch needed).
-    try { reclassifyAllResults(); } catch {}
+    function render() { renderStats(); updateFilterCounts(); renderRows(); }
     render();
-
-    // Show the active target-segment's threshold under the dropdown (e.g. "4.1–4.7 ★ · ≤300 reviews")
-    function renderActiveSegDefn() {
-      const el = document.getElementById('activeSegDefn');
-      if (!el) return;
-      const sel = document.getElementById('targetSegmentSelect');
-      const segs = loadSegments();
-      const val = sel ? sel.value : 'all';
-      if (val === 'all') { el.textContent = 'All leads, no filter'; return; }
-      if (val === 'B') { el.textContent = `${segs.B.name} · ${segThresholdText(segs.B)}`; return; }
-      if (val === 'C') { el.textContent = `${segs.C.name} · ${segThresholdText(segs.C)}`; return; }
-      if (val === 'BC') { el.textContent = `Both · ${segs.B.name} or ${segs.C.name}`; return; }
-      el.textContent = '';
-    }
-    document.getElementById('targetSegmentSelect')?.addEventListener('change', renderActiveSegDefn);
 
     // Sticky summary bar — fire when the sentinel (just below the heading) leaves the viewport
     (function wireStickySummary() {

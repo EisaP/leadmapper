@@ -101,7 +101,7 @@ app.get('/search', async (req, res) => handleSearch(req.query, res));
 app.post('/search', async (req, res) => handleSearch(req.body, res));
 
 async function handleSearch(src, res) {
-  const { keyword, excludeKeywords, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, targetSegment, useIgFallback, priceTier, excludeUnknownPrice, regionPreset, verticalPreset } = src;
+  const { keyword, excludeKeywords, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, useIgFallback, priceTier, excludeUnknownPrice, regionPreset, verticalPreset } = src;
 
   // --- Enrichment toggles ---
   // Each one *gates real work* — it doesn't just hide results. Defaults match the form markup:
@@ -176,7 +176,7 @@ async function handleSearch(src, res) {
   const cacheParams = {
     keyword,
     cities: [...new Set(cities.map(c => c.toLowerCase()))].sort().join('|'),
-    state, ratingMin, ratingMax, maxReviews, maxResults: limit, targetSegment, outreachPriority,
+    state, ratingMin, ratingMax, maxReviews, maxResults: limit, outreachPriority,
     priceTier: [...priceTiers].sort().join('|'),
     excludeUnknownPrice: excludeUnknown,
     extractPhones, extractEmails, extractInstagram,
@@ -196,7 +196,7 @@ async function handleSearch(src, res) {
         const results = JSON.parse(cached.results_json || '[]');
         return res.render('search', {
           results, totalScraped: results.length,
-          query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, targetSegment, priceTier: priceTiers.join(','), excludeUnknownPrice: excludeUnknown ? 'on' : 'off', regionPreset: regionPreset || '', verticalPreset: verticalPreset || '', searchString: cached.keyword + ' in ' + cached.city + ', ' + cached.country },
+          query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, priceTier: priceTiers.join(','), excludeUnknownPrice: excludeUnknown ? 'on' : 'off', regionPreset: regionPreset || '', verticalPreset: verticalPreset || '', searchString: cached.keyword + ' in ' + cached.city + ', ' + cached.country },
           error: null,
           cachedFrom: { ageDays: Math.round(cached.age_days), createdAt: cached.created_at, hash: paramsHash },
           recentSearches: getRecentSearches(), ...getSidebarCounts()
@@ -205,7 +205,7 @@ async function handleSearch(src, res) {
       // Default mode — show the prompt banner, no Compass call yet
       return res.render('search', {
         results: null, totalScraped: 0,
-        query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, targetSegment, priceTier: priceTiers.join(','), excludeUnknownPrice: excludeUnknown ? 'on' : 'off', regionPreset: regionPreset || '', verticalPreset: verticalPreset || '' },
+        query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, priceTier: priceTiers.join(','), excludeUnknownPrice: excludeUnknown ? 'on' : 'off', regionPreset: regionPreset || '', verticalPreset: verticalPreset || '' },
         error: null,
         cachePrompt: {
           ageDays: Math.round(cached.age_days),
@@ -403,20 +403,8 @@ async function handleSearch(src, res) {
       }
     }
 
-    // Tag segments and contact method
+    // Tag contact method
     filteredResults.forEach(r => {
-      // Segment tagging
-      if (r.rating !== null && r.rating < 4.1 && r.reviewCount >= 80) {
-        r.segment = 'Low Rating';
-        r.segmentCode = 'C';
-      } else if (r.rating !== null && r.rating >= 4.1 && r.rating <= 4.7 && r.reviewCount <= 300) {
-        r.segment = 'Good Rating, Low Volume';
-        r.segmentCode = 'B';
-      } else {
-        r.segment = 'Other';
-        r.segmentCode = '-';
-      }
-
       // Contact method — first available channel in the user-selected priority order.
       // Follower count does not influence routing; that's up to the user to decide.
       const priority = outreachPriority || 'phone-first';
@@ -508,15 +496,12 @@ async function handleSearch(src, res) {
       }
     }
 
-    // Target segment filter (server-side; applied AFTER segment tagging)
-    let segmentFiltered = filteredResults;
-    const segFilter = (targetSegment || 'all').toUpperCase();
-    if (segFilter === 'B') segmentFiltered = filteredResults.filter(r => r.segmentCode === 'B');
-    else if (segFilter === 'C') segmentFiltered = filteredResults.filter(r => r.segmentCode === 'C');
-    else if (segFilter === 'BC') segmentFiltered = filteredResults.filter(r => r.segmentCode === 'B' || r.segmentCode === 'C');
-    console.log(`[search] After target-segment filter (${segFilter}): ${segmentFiltered.length}`);
+    // Opportunity-segmentation (B/C/Other) removed — ICP targeting now lives in the
+    // preset bundles + price-tier filter. Chain detection above is unaffected.
+    const finalResults = filteredResults;
 
-    // Save to search history (SQLite — persistent across container restarts)
+    // Save to search history (SQLite — persistent across container restarts).
+    // segment_target column kept (no migration) but no longer meaningful — written ''.
     store.recordSearch({
       hash: paramsHash,
       keyword: keywords.join(', '),
@@ -526,22 +511,22 @@ async function handleSearch(src, res) {
       rating_max: maxVal,
       max_reviews: maxReviewsVal,
       results_limit: limit,
-      segment_target: segFilter.toLowerCase(),
+      segment_target: '',
       outreach_priority: outreachPriority || 'phone-first',
-      total_leads: segmentFiltered.length,
-      email_count: segmentFiltered.filter(r => r.email).length,
-      phone_count: segmentFiltered.filter(r => r.phone).length,
-      instagram_count: segmentFiltered.filter(r => r.instagram).length,
+      total_leads: finalResults.length,
+      email_count: finalResults.filter(r => r.email).length,
+      phone_count: finalResults.filter(r => r.phone).length,
+      instagram_count: finalResults.filter(r => r.instagram).length,
       serpapi_credits_used: 0,
-      results_json: JSON.stringify(segmentFiltered),
+      results_json: JSON.stringify(finalResults),
     });
 
     res.render('search', {
-      results: segmentFiltered,
-      totalScraped: mappedResults ? mappedResults.length : segmentFiltered.length,
+      results: finalResults,
+      totalScraped: mappedResults ? mappedResults.length : finalResults.length,
       apifyCostUsd,
       dataSourceUsed: 'apify',
-      query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, outreachPriority, targetSegment,
+      query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, outreachPriority,
         priceTier: priceTiers.join(','),
         excludeUnknownPrice: excludeUnknown ? 'on' : 'off',
         regionPreset: regionPreset || '',
@@ -590,11 +575,8 @@ app.get('/recover-apify-run', async (req, res) => {
     });
   }
   console.log(`[recover] Recovered ${out.leads.length} leads from ${out.raw} raw places · run cost $${(out.costUsd || 0).toFixed(4)}`);
-  // Tag every lead with a minimal segment + score so the UI doesn't blank out
+  // Tag minimal outreach + score so the UI doesn't blank out
   for (const r of out.leads) {
-    if (r.rating !== null && r.rating < 4.1 && r.reviewCount >= 80) { r.segment = 'Low Rating'; r.segmentCode = 'C'; }
-    else if (r.rating !== null && r.rating >= 4.1 && r.rating <= 4.7 && r.reviewCount <= 300) { r.segment = 'Good Rating, Low Volume'; r.segmentCode = 'B'; }
-    else { r.segment = 'Other'; r.segmentCode = '-'; }
     r.outreach = r.phone ? 'Call' : (r.email ? 'Email' : (r.instagram ? 'DM' : 'None'));
     r.qualityScore = (r.phone ? 25 : 0) + (r.instagram ? 25 : 0) + (r.website ? 15 : 0);
     r.is_chain_candidate = false;
@@ -659,7 +641,6 @@ app.get('/history/run/:id', (req, res) => {
     keyword: row.keyword, city: row.city, state: row.country,
     ratingMin: row.rating_min ?? '', ratingMax: row.rating_max ?? '',
     maxReviews: row.max_reviews ?? '', maxResults: row.results_limit ?? 100,
-    targetSegment: row.segment_target ?? 'all',
     outreachPriority: row.outreach_priority ?? 'phone-first',
     forceFresh: '1'
   });
