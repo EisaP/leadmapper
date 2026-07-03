@@ -19,6 +19,37 @@ const { enrichInstagramViaApify } = require('./enrichment/layer-instagram-apify'
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const BOOT_TIME = new Date().toISOString();
+
+// --- Build/version marker ---
+// Confirms exactly which commit is live (we've had silent deploy failures where Republish
+// shipped stale code). Resolution priority is deliberate:
+//   1. APP_VERSION env  — explicit override (Replit Secret), always wins.
+//   2. version.json     — written by the deploy step (the Agent writes it with the SHA it
+//                         raw-downloads into ~/workspace/). This is the trustworthy production
+//                         source, since production has no .git.
+//   3. .git/HEAD        — LOCAL DEV ONLY. Never trusted in production: the Replit workspace's
+//                         .git (if any) can be stale and misreport, so it's the last resort.
+//   4. 'unknown'        — nothing available.
+function resolveVersion() {
+  if (process.env.APP_VERSION) return { commit: String(process.env.APP_VERSION).trim(), source: 'env' };
+  try {
+    const v = JSON.parse(fs.readFileSync(path.join(__dirname, 'version.json'), 'utf8'));
+    if (v && v.commit) return { commit: String(v.commit), builtAt: v.builtAt || null, source: 'version.json' };
+  } catch {}
+  try {
+    const head = fs.readFileSync(path.join(__dirname, '.git', 'HEAD'), 'utf8').trim();
+    if (head.startsWith('ref:')) {
+      const ref = head.slice(4).trim();
+      const sha = fs.readFileSync(path.join(__dirname, '.git', ref), 'utf8').trim();
+      return { commit: sha.slice(0, 7), source: 'git' };
+    }
+    if (head) return { commit: head.slice(0, 7), source: 'git' };
+  } catch {}
+  return { commit: 'unknown', source: 'none' };
+}
+const APP_VERSION = resolveVersion();
+
 // Phase D placeholders — reserved for paid APIs.
 // process.env.PROSPEO_API_KEY, process.env.MILLIONVERIFIER_API_KEY
 // process.env.LEADHUNTER_VERIFY_FROM   — Layer 3 SMTP HELO/MAIL FROM identity
@@ -686,6 +717,13 @@ app.post('/export', (req, res) => {
   res.send(csv);
 });
 
+// Deploy-verification endpoint — returns the live commit + boot time. Compare against the
+// SHA you told the Agent to pull to confirm Republish actually shipped the new code.
+app.get('/version', (req, res) => {
+  res.json({ commit: APP_VERSION.commit, source: APP_VERSION.source, builtAt: APP_VERSION.builtAt || null, startedAt: BOOT_TIME });
+});
+
 app.listen(PORT, () => {
   console.log(`LeadHunter running on http://localhost:${PORT}`);
+  console.log(`[boot] commit ${APP_VERSION.commit} (source: ${APP_VERSION.source}) · started ${BOOT_TIME}`);
 });
