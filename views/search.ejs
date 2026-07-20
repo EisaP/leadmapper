@@ -488,6 +488,12 @@
         </div>
       <% } %>
 
+      <% if (typeof reviewSignalsSkippedReason !== 'undefined' && reviewSignalsSkippedReason) { %>
+        <div style="border: 1px solid var(--warn); background: rgba(255,176,32,0.08); border-radius: 8px; padding: 12px 14px; margin-bottom: 18px; font-size: 13px;">
+          <strong>Review signals not fetched.</strong> <%= reviewSignalsSkippedReason %>
+          <div style="margin-top: 4px; color: var(--text-secondary);">These results are <strong>not</strong> filtered by the review-signal trigger you selected — every matching lead is shown.</div>
+        </div>
+      <% } %>
       <% if (typeof cachedFrom !== 'undefined' && cachedFrom) { %>
         <div class="cache-badge" role="status">
           <span>Showing cached results from <%= cachedFrom.ageDays === 0 ? 'today' : cachedFrom.ageDays === 1 ? 'yesterday' : cachedFrom.ageDays + ' days ago' %></span>
@@ -669,6 +675,13 @@
               <input type="checkbox" name="useLayer3" id="useLayer3" value="on" <%= (!query || query?.useLayer3 !== 'off') ? 'checked' : '' %>>
               <span><strong>Pattern-guess missing emails</strong> <span class="enrich-cost">free · Layer 3 (only runs if Layer 2 returned nothing)</span></span>
             </label>
+            <!-- Layer 5 — OFF by default and unchecked unless explicitly asked for. The Low
+                 velocity / Newly opened triggers switch it on implicitly; this box is for
+                 fetching the signals without filtering on them. -->
+            <label class="enrich-toggle">
+              <input type="checkbox" name="enableReviewSignals" id="enableReviewSignals" value="on" <%= query?.enableReviewSignals === 'on' ? 'checked' : '' %>>
+              <span><strong>Review-date signals</strong> <span class="enrich-cost">paid · Layer 5 — velocity, recency, sentiment (~$0.017/lead max)</span></span>
+            </label>
             <label class="enrich-toggle">
               <input type="checkbox" name="enrichInstagramApify" id="enrichInstagramApify" value="on" <%= (!query || query?.enrichInstagramApify !== 'off') ? 'checked' : '' %>>
               <span><strong>Enrich Instagram profiles via Apify</strong> <span class="enrich-cost paid">~$0.005 per IG-having lead · validates handle ownership + populates follower count</span></span>
@@ -768,6 +781,7 @@
                 <label><input type="checkbox" data-col="outreach"> Outreach primary</label>
                 <label><input type="checkbox" data-col="booking"> Booking platform</label>
                 <label><input type="checkbox" data-col="hours"> Hours</label>
+                <label><input type="checkbox" data-col="signals"> Why now (review signals)</label>
               </div>
             </div>
           </div>
@@ -807,6 +821,14 @@
                   <th class="sortable" data-sort="reviewCount" style="width: 104px; text-align: right;">
                     <span class="th-inner" style="justify-content: flex-end; float: right;">Reviews
                       <button type="button" class="info-tip" aria-label="About the Reviews column" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p><strong>Reviews</strong> is the total number of Google reviews this business has received.</p><p>Used with rating to identify under-reviewed or over-reviewed businesses.</p></span></button>
+                      <span class="sort-indicator" aria-hidden="true"></span>
+                    </span>
+                  </th>
+                  <!-- Layer 5 "why now" column. Hidden by default like the other optional
+                       columns; auto-revealed when a search actually returns review signals. -->
+                  <th class="sortable col-signals col-hidden" data-sort="reviewsLast60d" style="width: 150px;">
+                    <span class="th-inner">Why now
+                      <button type="button" class="info-tip" aria-label="About the Why now column" tabindex="0" onclick="event.stopPropagation()">?<span class="tip-content" role="tooltip"><p><strong>Why now</strong> shows the Layer 5 review-date signals: how many reviews landed in the last 60 days, the recent star trend, and whether the place looks newly opened.</p><p>Sentiment compares the last 5 reviews against the lifetime rating, with a &plusmn;0.3 deadband so rounding noise doesn't read as a trend. A small sample size is shown explicitly — <em>n=1</em> is not a trend.</p><p>Blank means review signals weren't fetched for this search.</p></span></button>
                       <span class="sort-indicator" aria-hidden="true"></span>
                     </span>
                   </th>
@@ -1193,12 +1215,20 @@
       }
       // Restore column visibility
       const cols = (prefs.columns || {});
-      ['outreach', 'booking', 'hours'].forEach(col => {
+      ['outreach', 'booking', 'hours', 'signals'].forEach(col => {
         const visible = !!cols[col];
         document.querySelectorAll(`.col-${col}`).forEach(el => el.classList.toggle('col-hidden', !visible));
         const cb = document.querySelector(`[data-col="${col}"]`);
         if (cb) cb.checked = visible;
       });
+      // The "Why now" column is worthless when empty and essential when populated, so reveal it
+      // automatically whenever this result set actually carries review signals — regardless of
+      // the saved preference, which was set before the user had any signals to look at.
+      if (Array.isArray(allResults) && allResults.some(r => r && r.reviewsLast60d != null)) {
+        document.querySelectorAll('.col-signals').forEach(el => el.classList.remove('col-hidden'));
+        const cb = document.querySelector('[data-col="signals"]');
+        if (cb) cb.checked = true;
+      }
       refreshPriorityHint();
     })();
 
@@ -1497,6 +1527,28 @@
     function igHandle(handle) { return (handle || '').replace(/^[@\/]+/, ''); }
 
     const badgeOutreach = o => o === 'DM' ? '<span class="badge badge-ig">Instagram</span>' : o === 'Call' ? '<span class="badge badge-call">Call</span>' : o === 'Email' ? '<span class="badge badge-email">Email</span>' : '<span class="badge badge-none">None</span>';
+
+    // Layer 5 "why now" cell: primary trigger, 60-day velocity, and recent star trend.
+    // Renders a dash when signals weren't fetched — deliberately distinguishing "not measured"
+    // from a measured zero, since 0 reviews in 60 days is itself the strongest stall signal.
+    const TRIGGER_LABELS = { 'newly-opened': 'Newly opened', 'low-volume': 'Low volume', 'low-velocity': 'Low velocity' };
+    function whyNowCell(r) {
+      if (r.reviewsLast60d == null) return '<span class="empty-dash">—</span>';
+      const bits = [];
+      if (r.primaryTrigger) {
+        bits.push(`<span class="badge badge-call" title="Primary trigger — one bucket per lead, resolved by priority">${TRIGGER_LABELS[r.primaryTrigger] || escapeHTML(r.primaryTrigger)}</span>`);
+      }
+      bits.push(`<span title="Reviews in the last 60 days" style="font-size: 12px; color: var(--text-secondary);">${r.reviewsLast60d}/60d</span>`);
+      if (r.sentimentTrend) {
+        const arrow = r.sentimentTrend === 'improving' ? '▲' : r.sentimentTrend === 'declining' ? '▼' : '▬';
+        const colour = r.sentimentTrend === 'improving' ? 'var(--green, #2e7d32)' : r.sentimentTrend === 'declining' ? 'var(--red)' : 'var(--text-tertiary)';
+        const n = r.recentSentimentSampleSize;
+        // Surface the sample size so a 1-review "trend" is visibly weak rather than authoritative.
+        const weak = n != null && n < 3 ? ` (n=${n})` : '';
+        bits.push(`<span style="font-size: 12px; color: ${colour};" title="Last ${n} review(s) average ${r.recentSentimentAvg} vs lifetime ${r.rating} — ±0.3 deadband">${arrow} ${r.sentimentTrend}${weak}</span>`);
+      }
+      return `<div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-start;">${bits.join('')}</div>`;
+    }
     function qualityPill(score) {
       const s = typeof score === 'number' ? score : 0;
       const cls = s >= 70 ? 'high' : s >= 40 ? 'mid' : 'low';
@@ -1633,6 +1685,7 @@
           </td>
           <td>${r.rating != null ? `<span style="color: var(--amber); font-weight: 500;">★ ${r.rating}</span>` : '<span class="empty-dash">—</span>'}</td>
           <td style="text-align: right; color: var(--body);">${r.reviewCount != null ? r.reviewCount : '—'}</td>
+          <td class="col-signals col-hidden">${whyNowCell(r)}</td>
           <td class="col-outreach col-hidden">${badgeOutreach(r.outreach)}</td>
           <td>${contactCellIG(r)}</td>
           <td style="text-align: right; color: var(--text-secondary); font-size: 13px;" title="${r.instagram_followers != null ? r.instagram_followers.toLocaleString() + ' followers' : 'Follower count not available'}">${r.instagram_followers != null ? formatFollowers(r.instagram_followers) : '<span class="empty-dash">—</span>'}</td>
@@ -1977,12 +2030,22 @@
       copyList(rows.filter(r => r.phone).map(r => r.phone), 'No phones in current filter', 'Phones copied');
     });
     function exportCSV(rows, filename) {
-      const headers = ['Name','Phone','Email','EmailSource','EmailConfidence','EmailRole','Instagram','Followers','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','Outreach','QualityScore','IsChainCandidate','ChainTier','ChainSignals','Google Maps URL'];
+      // Layer 5 columns are always present in the header so the CSV shape is stable whether or
+      // not review signals ran; they're simply blank when the fetch didn't happen.
+      const headers = ['Name','Phone','Email','EmailSource','EmailConfidence','EmailRole','Instagram','Followers','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','ReviewsLast60d','FirstReviewDate','IsNewlyOpened','RecentSentimentAvg','RecentSentimentSampleSize','SentimentTrend','PrimaryTrigger','Outreach','QualityScore','IsChainCandidate','ChainTier','ChainSignals','Google Maps URL'];
       const csvRows = rows.map(r => [
         r.title, r.phone, r.email, r.email_source || '', r.email_confidence || '', r.emailRole || '',
         r.instagram || '', r.instagram_followers != null ? r.instagram_followers : '',
         r.booking || '', r.hours || '', r.priceTier || '',
-        r.website, r.category, r.address, r.rating, r.reviewCount, r.outreach || '', r.qualityScore || '',
+        r.website, r.category, r.address, r.rating, r.reviewCount,
+        r.reviewsLast60d != null ? r.reviewsLast60d : '',
+        r.firstReviewDate ? String(r.firstReviewDate).slice(0, 10) : '',
+        r.isNewlyOpened ? 'true' : (r.reviewsLast60d != null ? 'false' : ''),
+        r.recentSentimentAvg != null ? r.recentSentimentAvg : '',
+        r.recentSentimentSampleSize != null ? r.recentSentimentSampleSize : '',
+        r.sentimentTrend || '',
+        r.primaryTrigger || '',
+        r.outreach || '', r.qualityScore || '',
         r.is_chain_candidate ? 'true' : 'false',
         r.chain_tier || 'independent',
         Array.isArray(r.chain_signals_fired) ? r.chain_signals_fired.join('|') : '',

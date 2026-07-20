@@ -14,10 +14,47 @@ const COMPASS_ACTOR_ID = 'compass/crawler-google-places';
 // rather than a single key — Phase 2 needs "low rating + low velocity" to co-fire.
 //
 // TUNABLE TRIGGER THRESHOLDS — calibrate against real search results.
-// These four numbers are expected to move once we see what they actually surface.
+// Every number here is expected to move once we see what it actually surfaces. Phase 1
+// (lowRating, lowVolume) needs no data beyond Compass; Phase 2 (lowVelocity, newlyOpened,
+// sentiment) needs the review dates that Layer 5 fetches.
 const TRIGGER_THRESHOLDS = {
   lowRating: { ratingMin: 3.3, ratingMax: 4.2 },  // below 3.3 = product problem, not a review-capture problem
   lowVolume: { reviewsMin: 5,  reviewsMax: 40 },  // min excludes near-empty new places; max flags under-capturing
+
+  // --- Phase 2 ---
+  lowVelocity: {
+    windowDays: 60,
+    // Tiered by review base so the signal doesn't misfire on quiet-but-normal small places.
+    // Evaluated top-down; first tier whose minTotalReviews is met wins.
+    tiers: [
+      { minTotalReviews: 200, flagIfRecentBelow: 5 },   // 200+ total  → stalled if <5 in window
+      { minTotalReviews: 50,  flagIfRecentBelow: 3 },   // 50–200      → stalled if <3 in window
+    ],
+    // Under this many total reviews the velocity signal is too noisy to mean anything —
+    // those places belong to Low volume or Newly opened instead.
+    appliesAboveTotalReviews: 50,
+  },
+  newlyOpened: {
+    firstReviewWithinDays: 120,   // ~4 months
+    maxTotalReviews: 20,
+  },
+  sentiment: {
+    sampleSize: 5,   // "last 5 reviews"
+    // Deadband around the overall rating. Google rounds the overall rating to one decimal and
+    // a 5-review average is coarse, so without this the trend would flip on rounding noise.
+    deadband: 0.3,
+  },
+  // Fetch shaping for Layer 5 — these bound cost, not signal quality.
+  fetch: {
+    // Safety cap per place on the date-windowed pull. Any place with 50+ reviews inside the
+    // window is emphatically not "low velocity", so truncating there cannot change a verdict.
+    maxReviewsPerPlace: 50,
+    // Places with fewer than this get their FULL review history pulled instead of a windowed
+    // one, because firstReviewDate needs the oldest review and the API has no oldest-first sort.
+    fullHistoryBelowTotalReviews: 20,
+    batchSize: 25,   // placeIds per Reviews Scraper run
+    usdPerReview: 0.00034,   // measured 2026-07-20: $0.00405 for 12 reviews
+  },
 };
 
 const TRIGGER_PRESETS = {
@@ -33,7 +70,25 @@ const TRIGGER_PRESETS = {
     reviewsMin: TRIGGER_THRESHOLDS.lowVolume.reviewsMin,
     reviewsMax: TRIGGER_THRESHOLDS.lowVolume.reviewsMax,
   },
+  // --- Phase 2 --- these need review DATES, which Compass does not return in the cheap config,
+  // so selecting one turns on the Layer 5 fetch and its extra cost. See needsReviewSignals().
+  'low-velocity': {
+    label: 'Low velocity',
+    tooltip: 'Used to generate reviews, now stalled — something changed.',
+    requiresReviewSignals: true,
+  },
+  'newly-opened': {
+    label: 'Newly opened',
+    tooltip: 'Recently opened — pitch getting ahead of reviews from day one.',
+    requiresReviewSignals: true,
+  },
 };
+
+// True when any active trigger depends on Layer 5 review-date signals. Drives BOTH the cost
+// gate and whether the fetch runs at all — Layer 5 must never run by default.
+function needsReviewSignals(triggers) {
+  return parseTriggers(triggers).some(k => TRIGGER_PRESETS[k].requiresReviewSignals);
+}
 
 // Normalise whatever the form/query string sent into an array of valid trigger keys.
 // Accepts a single string, a comma-joined string (cache replay), or an array (Express qs
@@ -370,4 +425,5 @@ module.exports = {
   TRIGGER_PRESETS,
   parseTriggers,
   resolveTriggerFilters,
+  needsReviewSignals,
 };

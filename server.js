@@ -14,7 +14,8 @@ const { hashSearchParams } = require('./db/hash');
 const { detectChains, classifyTier } = require('./enrichment/chains');
 
 // Apify-based scrapers (Layer 1 Maps + IG enrichment)
-const { scrapeMapsViaCompass, fetchCompassRunDataset, estimateCompassCostUsd, APIFY_HARD_CAP_USD, APIFY_SOFT_WARN_USD, TRIGGER_PRESETS, parseTriggers, resolveTriggerFilters } = require('./enrichment/layer1-compass-maps');
+const { scrapeMapsViaCompass, fetchCompassRunDataset, estimateCompassCostUsd, APIFY_HARD_CAP_USD, APIFY_SOFT_WARN_USD, TRIGGER_PRESETS, parseTriggers, resolveTriggerFilters, needsReviewSignals } = require('./enrichment/layer1-compass-maps');
+const { enrichWithReviewSignals, estimateReviewSignalsCostUsd, filterByReviewTriggers } = require('./enrichment/layer5-review-signals');
 const { enrichInstagramViaApify } = require('./enrichment/layer-instagram-apify');
 
 const app = express();
@@ -229,6 +230,8 @@ async function handleSearch(src, res) {
     // must never reuse an untriggered row that happened to share the manual rating inputs.
     ratingMin: effRatingMin, ratingMax: effRatingMax, reviewsMin, reviewsMax,
     trigger: triggerParam,
+    // Layer 5 changes both the fields present and the row set, so it must be part of the key.
+    reviewSignals: String(src.enableReviewSignals || '') === 'on',
     maxReviews, maxResults: limit, outreachPriority,
     priceTier: [...priceTiers].sort().join('|'),
     excludeUnknownPrice: excludeUnknown,
@@ -558,7 +561,40 @@ async function handleSearch(src, res) {
 
     // Opportunity-segmentation (B/C/Other) removed — ICP targeting now lives in the
     // preset bundles + price-tier filter. Chain detection above is unaffected.
-    const finalResults = filteredResults;
+    // --- Layer 5: review-date signals (velocity / recency / sentiment) ---
+    // Gated hard. This actor bills per review scraped, so it runs ONLY when a review-signal
+    // trigger is active or the user explicitly toggled Layer 5 on — never on a default search.
+    const layer5Toggled = String(src.enableReviewSignals || '') === 'on';
+    const wantsReviewSignals = needsReviewSignals(activeTriggers) || layer5Toggled;
+    let reviewSignalsRan = false;
+    let reviewSignalsSkippedReason = null;
+
+    if (wantsReviewSignals && filteredResults.length) {
+      const l5Est = estimateReviewSignalsCostUsd(filteredResults.length);
+      // Same $2 ceiling as the Compass path, applied to the COMBINED spend so Layer 5 can't
+      // sneak the total past the cap on top of what the scrape already cost.
+      if (apifyCostUsd + l5Est > APIFY_HARD_CAP_USD && !allowExpensive) {
+        reviewSignalsSkippedReason =
+          `Layer 5 skipped: estimated $${l5Est.toFixed(2)} on top of $${apifyCostUsd.toFixed(2)} already spent would exceed the $${APIFY_HARD_CAP_USD.toFixed(2)} cap. Narrow the search, or add &allowExpensive=1.`;
+        console.warn(`[search] ${reviewSignalsSkippedReason}`);
+      } else {
+        console.log(`[search] Layer 5 running on ${filteredResults.length} leads · est $${l5Est.toFixed(4)}`);
+        const l5 = await enrichWithReviewSignals(filteredResults);
+        apifyCostUsd += l5.costUsd || 0;
+        if (l5.costProvisional) anyCostProvisional = true;
+        reviewSignalsRan = !l5.error;
+        if (l5.error) console.error(`[search] Layer 5 error: ${l5.error}`);
+      }
+    }
+
+    // Narrow to leads matching an active review-signal trigger. Only applies when Layer 5
+    // actually ran — otherwise the signals are absent and every lead would be filtered out.
+    const finalResults = reviewSignalsRan
+      ? filterByReviewTriggers(filteredResults, activeTriggers)
+      : filteredResults;
+    if (reviewSignalsRan && finalResults.length !== filteredResults.length) {
+      console.log(`[search] Review-trigger filter: ${filteredResults.length} → ${finalResults.length}`);
+    }
 
     // Save to search history (SQLite — persistent across container restarts).
     // segment_target column kept (no migration) but no longer meaningful — written ''.
@@ -590,6 +626,10 @@ async function handleSearch(src, res) {
       results: finalResults,
       totalScraped: mappedResults ? mappedResults.length : finalResults.length,
       apifyCostUsd,
+      // Non-null when a review-signal trigger was active but Layer 5 was skipped on cost. The
+      // results are then UNFILTERED by that trigger, which the user has to be told — silently
+      // showing every lead under a "Low velocity" search would be actively misleading.
+      reviewSignalsSkippedReason,
       dataSourceUsed: 'apify',
       query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin: effRatingMin, ratingMax: effRatingMax, maxReviews, skipEnrichment, outreachPriority,
         priceTier: priceTiers.join(','),
@@ -597,6 +637,7 @@ async function handleSearch(src, res) {
         regionPreset: regionPreset || '',
         verticalPreset: verticalPreset || '',
         trigger: triggerParam,
+        enableReviewSignals: layer5Toggled ? 'on' : 'off',
         extractPhones:    extractPhones    ? 'on' : 'off',
         extractEmails:    extractEmails    ? 'on' : 'off',
         extractInstagram: extractInstagram ? 'on' : 'off',
@@ -741,10 +782,24 @@ app.post('/export', (req, res) => {
   const { results } = req.body;
   if (!results || !results.length) return res.status(400).json({ error: 'No results to export.' });
 
-  const headers = ['Name', 'Phone', 'Email', 'Instagram', 'Website', 'Category', 'Address', 'Rating', 'Reviews', 'Google Maps URL'];
+  const headers = ['Name', 'Phone', 'Email', 'Instagram', 'Website', 'Category', 'Address', 'Rating', 'Reviews',
+    'ReviewsLast60d', 'FirstReviewDate', 'IsNewlyOpened', 'RecentSentimentAvg', 'RecentSentimentSampleSize',
+    'SentimentTrend', 'PrimaryTrigger', 'Google Maps URL'];
   const rows = results.map(r => [
-    r.title, r.phone, r.email, r.instagram || '', r.website, r.category, r.address, r.rating, r.reviewCount, r.url
-  ].map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(','));
+    r.title, r.phone, r.email, r.instagram || '', r.website, r.category, r.address, r.rating, r.reviewCount,
+    // Layer 5 fields — blank rather than 0/false when the fetch didn't run, so a missing signal
+    // is distinguishable from a real zero.
+    r.reviewsLast60d != null ? r.reviewsLast60d : '',
+    r.firstReviewDate ? String(r.firstReviewDate).slice(0, 10) : '',
+    r.isNewlyOpened ? 'true' : (r.reviewsLast60d != null ? 'false' : ''),
+    r.recentSentimentAvg != null ? r.recentSentimentAvg : '',
+    r.recentSentimentSampleSize != null ? r.recentSentimentSampleSize : '',
+    r.sentimentTrend || '',
+    r.primaryTrigger || '',
+    r.url
+    // NB: `v || ''` would turn a legitimate 0 (e.g. reviewsLast60d = 0, the strongest stall
+    // signal there is) into an empty cell, so null/undefined are checked explicitly.
+  ].map(v => `"${(v === null || v === undefined ? '' : v).toString().replace(/"/g, '""')}"`).join(','));
 
   const csv = [headers.join(','), ...rows].join('\n');
   res.setHeader('Content-Type', 'text/csv');
