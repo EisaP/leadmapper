@@ -156,11 +156,49 @@ function applyFilters(items, { ratingMin, ratingMax, maxReviews, reviewsMin, rev
 }
 
 // Cost-cap helpers — both estimation (before the call) and enforcement (during).
-// Compass pricing (rule of thumb): ~$0.0025 per place baseline + ~$0.005 per review scraped.
+//
+// CALIBRATION (measured 2026-07-20, "cafes" in Bath UK, two live probes):
+//   20 places, maxReviews 0  → $0.05505 settled over 13.6s  = $0.00275/place
+//    5 places, maxReviews 5  → $0.03055 settled over 102.8s = $0.00611/place
+//   Subtracting the places term from probe B leaves ~$0.00067 per review scraped.
+//
+// The old review coefficient was $0.005 — roughly 7.5× the measured rate — which made the
+// $2 cap and the $0.50 confirm refuse searches that were actually cheap. The constants below
+// are rounded UP from the measurements so the estimate still errs high (that's the safe
+// direction for a spend gate) without over-blocking by an order of magnitude.
+//
+// Caveat: Apify bills compute time, not units of work, so cost is not strictly linear in
+// review count — review scraping cost ~20s/place vs ~0.7s/place without. Treat this as a
+// calibrated approximation, and re-measure if Compass changes its pricing model.
+const COMPASS_USD_PER_PLACE  = 0.003;   // measured $0.00275
+const COMPASS_USD_PER_REVIEW = 0.001;   // measured ~$0.00067
 function estimateCompassCostUsd(placesLimit, reviewsPerPlace) {
   const places = Math.max(0, parseInt(placesLimit, 10) || 0);
   const reviews = Math.max(0, parseInt(reviewsPerPlace, 10) || 0);
-  return (places * 0.0025) + (places * reviews * 0.005);
+  return (places * COMPASS_USD_PER_PLACE) + (places * reviews * COMPASS_USD_PER_REVIEW);
+}
+
+// `run.usageTotalUsd` on the object returned by `.call()` is NOT the final figure — Apify
+// settles billing shortly after the run terminates. Reading it inline under-reports badly:
+// measured $0.00005 inline vs $0.05505 settled on the same run, a ~1100× understatement.
+// That number is shown to the user after every search and persisted to search history, so
+// it has to be the settled one. Re-read the run record until the value stops changing.
+async function fetchSettledCostUsd(runId, { attempts = 5, delayMs = 900 } = {}) {
+  let last = 0;
+  for (let i = 0; i < attempts; i++) {
+    let v = 0;
+    try {
+      const r = await client.run(runId).get();
+      v = (r && r.usageTotalUsd != null) ? r.usageTotalUsd : 0;
+    } catch (err) {
+      console.error(`[apify-compass] usage re-fetch failed: ${err.message}`);
+      return last;   // network trouble — report the best figure we have rather than throwing
+    }
+    if (i > 0 && v === last) return v;   // stable across two consecutive reads → settled
+    last = v;
+    await new Promise(res => setTimeout(res, delayMs));
+  }
+  return last;
 }
 const APIFY_HARD_CAP_USD = 2.0;       // Refuse any search whose estimate exceeds this (without explicit override)
 const APIFY_SOFT_WARN_USD = 0.5;      // Above this, the UI shows a confirm-or-cancel modal before submitting
@@ -214,8 +252,9 @@ async function scrapeMapsViaCompass({ keyword, city, country, resultsLimit, rati
     return { leads: null, costUsd: 0, runId: null, error: err.message };
   }
 
-  const actualCost = run.usageTotalUsd != null ? run.usageTotalUsd : 0;
-  console.log(`[apify-compass] Run ${run.id} completed · actual cost $${actualCost.toFixed(4)}`);
+  const inlineCost = run.usageTotalUsd != null ? run.usageTotalUsd : 0;
+  const actualCost = await fetchSettledCostUsd(run.id);
+  console.log(`[apify-compass] Run ${run.id} completed · settled cost $${actualCost.toFixed(5)} (inline read was $${inlineCost.toFixed(5)})`);
 
   let datasetItems = [];
   try {
@@ -302,6 +341,7 @@ module.exports = {
   fetchCompassRunDataset,
   APIFY_HARD_CAP_USD,
   APIFY_SOFT_WARN_USD,
+  fetchSettledCostUsd,
   TRIGGER_THRESHOLDS,
   TRIGGER_PRESETS,
   parseTriggers,
