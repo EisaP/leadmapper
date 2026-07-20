@@ -178,27 +178,40 @@ function estimateCompassCostUsd(placesLimit, reviewsPerPlace) {
   return (places * COMPASS_USD_PER_PLACE) + (places * reviews * COMPASS_USD_PER_REVIEW);
 }
 
-// `run.usageTotalUsd` on the object returned by `.call()` is NOT the final figure — Apify
-// settles billing shortly after the run terminates. Reading it inline under-reports badly:
-// measured $0.00005 inline vs $0.05505 settled on the same run, a ~1100× understatement.
-// That number is shown to the user after every search and persisted to search history, so
-// it has to be the settled one. Re-read the run record until the value stops changing.
-async function fetchSettledCostUsd(runId, { attempts = 5, delayMs = 900 } = {}) {
+// `run.usageTotalUsd` on the object returned by `.call()` is NOT reliably the final figure.
+// Apify settles billing asynchronously, and until it does the field holds a fixed placeholder
+// of exactly $0.00005. That number is shown to the user after every search and persisted to
+// search history, so publishing it means reporting a cost ~1000× under the truth.
+//
+// MEASURED 2026-07-20 (three runs):
+//   run 7qJDHRn9...  inline $0.00005  → settled $0.05505   (unsettled at read time)
+//   run BxE2YVlc...  inline $0.00005  → settled $0.01380   (still placeholder at +2s, settled by +60s)
+//   run (bakery/5pl) inline $0.01380  → settled $0.01380 at +0.2s  (settled immediately)
+//
+// So the staleness is INTERMITTENT — sometimes the inline read is already correct. Detecting
+// it by "value stopped changing" does not work, because the placeholder is itself stable for
+// tens of seconds. Detect it by plausibility instead: the placeholder is far below what any
+// real run costs (the cheapest observed real run, 5 places, was $0.0138).
+const APIFY_UNSETTLED_PLACEHOLDER_USD = 0.0001;  // placeholder is exactly $0.00005; real runs are >= ~$0.0138
+
+// Returns { costUsd, settled }. When it can't settle within the budget the caller should
+// prefer its own estimate over `costUsd` — reporting an estimate is wrong by tens of percent,
+// reporting the placeholder is wrong by three orders of magnitude.
+async function fetchSettledCostUsd(runId, { timeoutMs = 12000, delayMs = 1500 } = {}) {
+  const deadline = Date.now() + timeoutMs;
   let last = 0;
-  for (let i = 0; i < attempts; i++) {
-    let v = 0;
+  while (Date.now() < deadline) {
     try {
       const r = await client.run(runId).get();
-      v = (r && r.usageTotalUsd != null) ? r.usageTotalUsd : 0;
+      last = (r && r.usageTotalUsd != null) ? r.usageTotalUsd : 0;
     } catch (err) {
       console.error(`[apify-compass] usage re-fetch failed: ${err.message}`);
-      return last;   // network trouble — report the best figure we have rather than throwing
+      return { costUsd: last, settled: false };
     }
-    if (i > 0 && v === last) return v;   // stable across two consecutive reads → settled
-    last = v;
+    if (last > APIFY_UNSETTLED_PLACEHOLDER_USD) return { costUsd: last, settled: true };
     await new Promise(res => setTimeout(res, delayMs));
   }
-  return last;
+  return { costUsd: last, settled: false };
 }
 const APIFY_HARD_CAP_USD = 2.0;       // Refuse any search whose estimate exceeds this (without explicit override)
 const APIFY_SOFT_WARN_USD = 0.5;      // Above this, the UI shows a confirm-or-cancel modal before submitting
@@ -252,9 +265,17 @@ async function scrapeMapsViaCompass({ keyword, city, country, resultsLimit, rati
     return { leads: null, costUsd: 0, runId: null, error: err.message };
   }
 
+  // Cost reporting: prefer the settled figure; fall back to our own estimate if Apify hasn't
+  // settled in time. Never report the placeholder — see fetchSettledCostUsd above.
   const inlineCost = run.usageTotalUsd != null ? run.usageTotalUsd : 0;
-  const actualCost = await fetchSettledCostUsd(run.id);
-  console.log(`[apify-compass] Run ${run.id} completed · settled cost $${actualCost.toFixed(5)} (inline read was $${inlineCost.toFixed(5)})`);
+  const settledResult = await fetchSettledCostUsd(run.id);
+  const costProvisional = !settledResult.settled;
+  const actualCost = costProvisional ? estCost : settledResult.costUsd;
+  console.log(
+    costProvisional
+      ? `[apify-compass] Run ${run.id} completed · cost UNSETTLED after 12s (Apify still reporting $${settledResult.costUsd.toFixed(5)}) · reporting estimate $${estCost.toFixed(5)} instead — reconcile later via runId`
+      : `[apify-compass] Run ${run.id} completed · settled cost $${actualCost.toFixed(5)} (inline read was $${inlineCost.toFixed(5)})`
+  );
 
   let datasetItems = [];
   try {
@@ -304,7 +325,10 @@ async function scrapeMapsViaCompass({ keyword, city, country, resultsLimit, rati
 
   console.log(`[apify-compass] Final: $${actualCost.toFixed(4)} · ${datasetItems.length} raw → ${filtered.length} after all filters`);
 
-  return { leads: filtered, costUsd: actualCost, runId: run.id, raw: datasetItems.length };
+  // costProvisional=true means costUsd is our estimate, not Apify's settled figure. Callers
+  // that display or persist the cost should mark it as approximate; the runId is kept so a
+  // later reconciliation pass can replace it with the real number.
+  return { leads: filtered, costUsd: actualCost, costProvisional, runId: run.id, raw: datasetItems.length };
 }
 
 // --- Recovery: pull leads from an already-completed Apify run by run ID ---
