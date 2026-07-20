@@ -7,6 +7,74 @@ const { isAggregatorDomain } = require('./utils/domain-utils');
 
 const COMPASS_ACTOR_ID = 'compass/crawler-google-places';
 
+// ——— Trigger presets (Phase 1) ———
+// A "trigger" is the buying signal that makes a lead warm *now*. Phase 1 ships the two that
+// need no data beyond what Compass already returns. Two more (low velocity, newly opened)
+// arrive with Layer 5, which is why the resolver below takes an ARRAY of active triggers
+// rather than a single key — Phase 2 needs "low rating + low velocity" to co-fire.
+//
+// TUNABLE TRIGGER THRESHOLDS — calibrate against real search results.
+// These four numbers are expected to move once we see what they actually surface.
+const TRIGGER_THRESHOLDS = {
+  lowRating: { ratingMin: 3.3, ratingMax: 4.2 },  // below 3.3 = product problem, not a review-capture problem
+  lowVolume: { reviewsMin: 5,  reviewsMax: 40 },  // min excludes near-empty new places; max flags under-capturing
+};
+
+const TRIGGER_PRESETS = {
+  'low-rating': {
+    label: 'Low rating',
+    tooltip: 'Good enough to save, bad enough to lose bookings. Below 3.3 is usually a product problem, not a review-capture problem.',
+    ratingMin: TRIGGER_THRESHOLDS.lowRating.ratingMin,
+    ratingMax: TRIGGER_THRESHOLDS.lowRating.ratingMax,
+  },
+  'low-volume': {
+    label: 'Low volume',
+    tooltip: 'Established but under-capturing reviews — the core Starise wedge.',
+    reviewsMin: TRIGGER_THRESHOLDS.lowVolume.reviewsMin,
+    reviewsMax: TRIGGER_THRESHOLDS.lowVolume.reviewsMax,
+  },
+};
+
+// Normalise whatever the form/query string sent into an array of valid trigger keys.
+// Accepts a single string, a comma-joined string (cache replay), or an array (Express qs
+// parses repeated `?trigger=a&trigger=b` into one). Unknown keys are dropped.
+function parseTriggers(trigger) {
+  const raw = Array.isArray(trigger)
+    ? trigger
+    : String(trigger || '').split(',');
+  return [...new Set(raw.map(t => String(t).trim()).filter(k => TRIGGER_PRESETS[k]))];
+}
+
+// Fold the active triggers into concrete filter values.
+//
+// A rating-bearing trigger REPLACES the manual/vertical-preset rating range rather than
+// intersecting with it. That matters because every vertical preset sets ratingMin 4.0 —
+// intersecting would leave "Low rating + Casual dining" with a 4.0–4.2 sliver, which is the
+// opposite of what the trigger means. Where several triggers each carry a rating range
+// (Phase 2), those intersect with each other so combinations tighten rather than conflict.
+function resolveTriggerFilters(triggers, { ratingMin, ratingMax } = {}) {
+  const active = parseTriggers(triggers);
+  const out = { ratingMin, ratingMax, reviewsMin: null, reviewsMax: null, activeTriggers: active };
+  let ratingOwnedByTrigger = false;
+  for (const key of active) {
+    const p = TRIGGER_PRESETS[key];
+    if (p.ratingMin != null || p.ratingMax != null) {
+      if (!ratingOwnedByTrigger) {
+        // First rating-bearing trigger wipes the manual range, then owns it.
+        out.ratingMin = p.ratingMin ?? null;
+        out.ratingMax = p.ratingMax ?? null;
+        ratingOwnedByTrigger = true;
+      } else {
+        if (p.ratingMin != null) out.ratingMin = Math.max(out.ratingMin ?? 0, p.ratingMin);
+        if (p.ratingMax != null) out.ratingMax = Math.min(out.ratingMax ?? 5, p.ratingMax);
+      }
+    }
+    if (p.reviewsMin != null) out.reviewsMin = Math.max(out.reviewsMin ?? 0, p.reviewsMin);
+    if (p.reviewsMax != null) out.reviewsMax = Math.min(out.reviewsMax ?? Infinity, p.reviewsMax);
+  }
+  return out;
+}
+
 // Map Compass output → existing lead schema. Field names match what server.js's mappedResults
 // produces today; new fields (recentReviews, permanentlyClosed) are appended but never replace
 // existing ones.
@@ -64,15 +132,25 @@ function formatHours(openingHours) {
   return '';
 }
 
-// Apply post-scrape filters that Compass doesn't natively support (rating range, max reviews).
-function applyFilters(items, { ratingMin, ratingMax, maxReviews } = {}) {
-  const minVal = (ratingMin !== undefined && ratingMin !== '' && ratingMin !== null) ? parseFloat(ratingMin) : null;
-  const maxVal = (ratingMax !== undefined && ratingMax !== '' && ratingMax !== null) ? parseFloat(ratingMax) : null;
-  const maxR   = (maxReviews !== undefined && maxReviews !== '' && maxReviews !== null) ? parseInt(maxReviews, 10) : null;
+// Apply post-scrape filters that Compass doesn't natively support (rating range, max reviews,
+// trigger review-count band).
+//
+// Note the two different review-count semantics, kept deliberately separate:
+//   maxReviews             — the manual "Under N" dropdown. EXCLUSIVE (< N), pre-existing behaviour.
+//   reviewsMin/reviewsMax  — the trigger band (e.g. Low volume 5–40). INCLUSIVE on both ends.
+function applyFilters(items, { ratingMin, ratingMax, maxReviews, reviewsMin, reviewsMax } = {}) {
+  const num = (v) => (v !== undefined && v !== '' && v !== null) ? Number(v) : null;
+  const minVal = num(ratingMin);
+  const maxVal = num(ratingMax);
+  const maxR   = num(maxReviews);
+  const revMin = num(reviewsMin);
+  const revMax = num(reviewsMax);
   return items.filter(item => {
     if (minVal != null && (item.rating == null || item.rating < minVal)) return false;
     if (maxVal != null && (item.rating == null || item.rating > maxVal)) return false;
     if (maxR  != null && (item.reviewCount || 0) >= maxR) return false;
+    if (revMin != null && (item.reviewCount || 0) < revMin) return false;
+    if (revMax != null && (item.reviewCount || 0) > revMax) return false;
     return true;
   });
 }
@@ -88,7 +166,7 @@ const APIFY_HARD_CAP_USD = 2.0;       // Refuse any search whose estimate exceed
 const APIFY_SOFT_WARN_USD = 0.5;      // Above this, the UI shows a confirm-or-cancel modal before submitting
 
 // Main entry point. Returns { leads, costUsd, runId } — never throws; callers handle errors.
-async function scrapeMapsViaCompass({ keyword, city, country, resultsLimit, ratingMin, ratingMax, maxReviews, excludeKeywords, allowExpensive }) {
+async function scrapeMapsViaCompass({ keyword, city, country, resultsLimit, ratingMin, ratingMax, maxReviews, reviewsMin, reviewsMax, excludeKeywords, allowExpensive }) {
   if (!hasToken) {
     return { leads: null, costUsd: 0, runId: null, error: 'APIFY_API_TOKEN not configured' };
   }
@@ -179,10 +257,10 @@ async function scrapeMapsViaCompass({ keyword, city, country, resultsLimit, rati
     console.log(`[apify-compass] After exclude-keywords filter: ${afterExclude.length} (dropped ${titled.length - afterExclude.length})`);
   }
 
-  // Rating + max-reviews filter
-  const filtered = applyFilters(afterExclude, { ratingMin, ratingMax, maxReviews });
+  // Rating + max-reviews + trigger review-band filter
+  const filtered = applyFilters(afterExclude, { ratingMin, ratingMax, maxReviews, reviewsMin, reviewsMax });
   if (filtered.length < afterExclude.length) {
-    console.log(`[apify-compass] After rating/maxReviews filter: ${filtered.length} (dropped ${afterExclude.length - filtered.length})`);
+    console.log(`[apify-compass] After rating/maxReviews/trigger filter: ${filtered.length} (dropped ${afterExclude.length - filtered.length}) · rating ${ratingMin ?? '–'}–${ratingMax ?? '–'} · reviews ${reviewsMin ?? '–'}–${reviewsMax ?? '–'}`);
   }
 
   console.log(`[apify-compass] Final: $${actualCost.toFixed(4)} · ${datasetItems.length} raw → ${filtered.length} after all filters`);
@@ -224,4 +302,8 @@ module.exports = {
   fetchCompassRunDataset,
   APIFY_HARD_CAP_USD,
   APIFY_SOFT_WARN_USD,
+  TRIGGER_THRESHOLDS,
+  TRIGGER_PRESETS,
+  parseTriggers,
+  resolveTriggerFilters,
 };

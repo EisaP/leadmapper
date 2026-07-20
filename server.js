@@ -14,7 +14,7 @@ const { hashSearchParams } = require('./db/hash');
 const { detectChains, classifyTier } = require('./enrichment/chains');
 
 // Apify-based scrapers (Layer 1 Maps + IG enrichment)
-const { scrapeMapsViaCompass, fetchCompassRunDataset, estimateCompassCostUsd, APIFY_HARD_CAP_USD, APIFY_SOFT_WARN_USD } = require('./enrichment/layer1-compass-maps');
+const { scrapeMapsViaCompass, fetchCompassRunDataset, estimateCompassCostUsd, APIFY_HARD_CAP_USD, APIFY_SOFT_WARN_USD, TRIGGER_PRESETS, parseTriggers, resolveTriggerFilters } = require('./enrichment/layer1-compass-maps');
 const { enrichInstagramViaApify } = require('./enrichment/layer-instagram-apify');
 
 const app = express();
@@ -95,6 +95,9 @@ try {
 // --- Express setup ---
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+// Trigger presets are defined once in layer1-compass-maps.js and exposed to every template,
+// so the chip row's thresholds and the server-side filter can never drift apart.
+app.locals.TRIGGER_PRESETS = TRIGGER_PRESETS;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -132,7 +135,21 @@ app.get('/search', async (req, res) => handleSearch(req.query, res));
 app.post('/search', async (req, res) => handleSearch(req.body, res));
 
 async function handleSearch(src, res) {
-  const { keyword, excludeKeywords, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, useIgFallback, priceTier, excludeUnknownPrice, regionPreset, verticalPreset } = src;
+  const { keyword, excludeKeywords, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, useIgFallback, priceTier, excludeUnknownPrice, regionPreset, verticalPreset, trigger } = src;
+
+  // --- Trigger presets (Phase 1) ---
+  // `trigger` may be a single key, a comma-joined string (cache replay), or an array — the
+  // resolver normalises all three. Phase 1's UI is single-select, but everything downstream
+  // handles a list so Phase 2's "low rating + low velocity" needs no reshaping here.
+  // Rating-bearing triggers override ratingMin/ratingMax; review-band triggers add
+  // reviewsMin/reviewsMax (inclusive), which the manual "Under N" dropdown doesn't express.
+  const activeTriggers = parseTriggers(trigger);
+  const triggerFilters = resolveTriggerFilters(activeTriggers, { ratingMin, ratingMax });
+  const effRatingMin = triggerFilters.ratingMin;
+  const effRatingMax = triggerFilters.ratingMax;
+  const reviewsMin   = triggerFilters.reviewsMin;
+  const reviewsMax   = triggerFilters.reviewsMax;
+  const triggerParam = activeTriggers.join(',');
 
   // --- Enrichment toggles ---
   // Each one *gates real work* — it doesn't just hide results. Defaults match the form markup:
@@ -207,7 +224,12 @@ async function handleSearch(src, res) {
   const cacheParams = {
     keyword,
     cities: [...new Set(cities.map(c => c.toLowerCase()))].sort().join('|'),
-    state, ratingMin, ratingMax, maxReviews, maxResults: limit, outreachPriority,
+    state,
+    // Cache on the RESOLVED filter values plus the trigger key itself — a triggered search
+    // must never reuse an untriggered row that happened to share the manual rating inputs.
+    ratingMin: effRatingMin, ratingMax: effRatingMax, reviewsMin, reviewsMax,
+    trigger: triggerParam,
+    maxReviews, maxResults: limit, outreachPriority,
     priceTier: [...priceTiers].sort().join('|'),
     excludeUnknownPrice: excludeUnknown,
     extractPhones, extractEmails, extractInstagram,
@@ -227,7 +249,7 @@ async function handleSearch(src, res) {
         const results = JSON.parse(cached.results_json || '[]');
         return res.render('search', {
           results, totalScraped: results.length,
-          query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, priceTier: priceTiers.join(','), excludeUnknownPrice: excludeUnknown ? 'on' : 'off', regionPreset: regionPreset || '', verticalPreset: verticalPreset || '', searchString: cached.keyword + ' in ' + cached.city + ', ' + cached.country },
+          query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin: effRatingMin, ratingMax: effRatingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, priceTier: priceTiers.join(','), excludeUnknownPrice: excludeUnknown ? 'on' : 'off', regionPreset: regionPreset || '', verticalPreset: verticalPreset || '', trigger: triggerParam, searchString: cached.keyword + ' in ' + cached.city + ', ' + cached.country },
           error: null,
           cachedFrom: { ageDays: Math.round(cached.age_days), createdAt: cached.created_at, hash: paramsHash },
           recentSearches: getRecentSearches(), ...getSidebarCounts()
@@ -236,7 +258,7 @@ async function handleSearch(src, res) {
       // Default mode — show the prompt banner, no Compass call yet
       return res.render('search', {
         results: null, totalScraped: 0,
-        query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, priceTier: priceTiers.join(','), excludeUnknownPrice: excludeUnknown ? 'on' : 'off', regionPreset: regionPreset || '', verticalPreset: verticalPreset || '' },
+        query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin: effRatingMin, ratingMax: effRatingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, priceTier: priceTiers.join(','), excludeUnknownPrice: excludeUnknown ? 'on' : 'off', regionPreset: regionPreset || '', verticalPreset: verticalPreset || '', trigger: triggerParam },
         error: null,
         cachePrompt: {
           ageDays: Math.round(cached.age_days),
@@ -261,16 +283,17 @@ async function handleSearch(src, res) {
   const perKeywordLimit = Math.max(20, Math.ceil(limit / keywords.length));
 
   console.log(`[search] Keywords: ${JSON.stringify(keywords)} in ${city}, ${state} · limit ${limit} (≈${perKeywordLimit}/keyword)`);
-  console.log(`[search] Exclude: ${JSON.stringify(excludeTerms)} · rating ${ratingMin}–${ratingMax} · maxReviews ${maxReviews}`);
+  console.log(`[search] Exclude: ${JSON.stringify(excludeTerms)} · rating ${effRatingMin}–${effRatingMax} (requested ${ratingMin}–${ratingMax}) · maxReviews ${maxReviews}`);
 
   try {
     // --- Filter values, parsed once at function scope ---
     // Persisted on the search_history row. Compass applies them itself via
     // applyFilters in layer1-compass-maps.js.
-    const minVal        = (ratingMin   !== undefined && ratingMin   !== '') ? parseFloat(ratingMin)   : null;
-    const maxVal        = (ratingMax   !== undefined && ratingMax   !== '') ? parseFloat(ratingMax)   : null;
-    const maxReviewsVal = (maxReviews  !== undefined && maxReviews  !== '') ? parseInt(maxReviews, 10) : null;
-    console.log(`[search] Parsed filters — minVal: ${minVal}, maxVal: ${maxVal}, maxReviewsVal: ${maxReviewsVal}`);
+    // Rating values are the trigger-resolved ones, so history rows reflect what actually ran.
+    const minVal        = (effRatingMin !== undefined && effRatingMin !== '' && effRatingMin !== null) ? parseFloat(effRatingMin) : null;
+    const maxVal        = (effRatingMax !== undefined && effRatingMax !== '' && effRatingMax !== null) ? parseFloat(effRatingMax) : null;
+    const maxReviewsVal = (maxReviews   !== undefined && maxReviews   !== '') ? parseInt(maxReviews, 10) : null;
+    console.log(`[search] Parsed filters — minVal: ${minVal}, maxVal: ${maxVal}, maxReviewsVal: ${maxReviewsVal}, reviews band: ${reviewsMin ?? '–'}–${reviewsMax ?? '–'}, triggers: ${triggerParam || 'none'}`);
 
     let mappedResults = null;
     let filteredResults = null;
@@ -316,7 +339,9 @@ async function handleSearch(src, res) {
     for (const { city: c, country: ctr } of cityList) {
       const compass = await scrapeMapsViaCompass({
         keyword, city: c, country: ctr,
-        resultsLimit: perKeywordCap, ratingMin, ratingMax, maxReviews, excludeKeywords,
+        resultsLimit: perKeywordCap,
+        ratingMin: effRatingMin, ratingMax: effRatingMax, maxReviews, reviewsMin, reviewsMax,
+        excludeKeywords,
         allowExpensive,
       });
       if (compass.error || compass.leads == null) {
@@ -557,11 +582,12 @@ async function handleSearch(src, res) {
       totalScraped: mappedResults ? mappedResults.length : finalResults.length,
       apifyCostUsd,
       dataSourceUsed: 'apify',
-      query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin, ratingMax, maxReviews, skipEnrichment, outreachPriority,
+      query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin: effRatingMin, ratingMax: effRatingMax, maxReviews, skipEnrichment, outreachPriority,
         priceTier: priceTiers.join(','),
         excludeUnknownPrice: excludeUnknown ? 'on' : 'off',
         regionPreset: regionPreset || '',
         verticalPreset: verticalPreset || '',
+        trigger: triggerParam,
         extractPhones:    extractPhones    ? 'on' : 'off',
         extractEmails:    extractEmails    ? 'on' : 'off',
         extractInstagram: extractInstagram ? 'on' : 'off',

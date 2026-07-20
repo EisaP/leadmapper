@@ -515,7 +515,7 @@
       </div>
 
       <!-- Vertical preset row — ICP-aligned bundles up front; legacy single-vertical chips under "More verticals" -->
-      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 32px;">
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px;">
         <span class="ui-label" style="margin-right: 8px;">Vertical</span>
         <button type="button" class="chip" data-vertical="casual-dining" title="Casual-to-mid-tier independent restaurants with steady cover volume — the core ICP.">Casual dining</button>
         <button type="button" class="chip" data-vertical="boutique-hotels" title="Independent and family-run hotels with 15–100 rooms.">Boutique hotels</button>
@@ -532,7 +532,19 @@
             <button type="button" class="chip" data-vertical="bars" style="display: block; border: none; width: 100%; text-align: left; margin: 2px 0;">Bars</button>
           </div>
         </div>
-        <!-- Clear preset — only appears when a region or vertical is active -->
+      </div>
+
+      <!-- Trigger preset row — the buying signal that makes a lead warm *now*.
+           Single-select in Phase 1; the hidden field carries a comma-joined list because the
+           server already handles multiple active triggers (Phase 2 needs low rating + low
+           velocity to co-fire). Labels/tooltips/thresholds come from TRIGGER_PRESETS in
+           enrichment/layer1-compass-maps.js — one source of truth for UI and filter. -->
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 32px;">
+        <span class="ui-label" style="margin-right: 8px;">Trigger <span style="color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0;">(why now)</span></span>
+        <% Object.entries(TRIGGER_PRESETS).forEach(([key, t]) => { %>
+          <button type="button" class="chip" data-trigger="<%= key %>" title="<%= t.tooltip %>"><%= t.label %></button>
+        <% }) %>
+        <!-- Clear preset — only appears when a region, vertical, or trigger is active -->
         <button type="button" class="chip" id="clearPresetBtn" style="display: none; color: var(--text-secondary); border-style: dashed;">Clear preset</button>
       </div>
 
@@ -542,6 +554,8 @@
              Server uses verticalPreset/regionPreset to decide whether to drop per-keyword cap 20 → 10. -->
         <input type="hidden" name="verticalPreset" value="<%= query?.verticalPreset || '' %>">
         <input type="hidden" name="regionPreset" value="<%= query?.regionPreset || '' %>">
+        <!-- Comma-joined list of active trigger keys. Single value in Phase 1. -->
+        <input type="hidden" name="trigger" value="<%= query?.trigger || '' %>">
         <div style="margin-bottom: 32px;">
           <span class="section-label">What to find</span>
           <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 120px; gap: 20px;">
@@ -943,13 +957,74 @@
       'us-tourist':       { cities: ['Aspen, CO, USA', 'Vail, CO, USA', 'Napa, CA, USA', 'Sedona, AZ, USA', 'Charleston, SC, USA', 'Savannah, GA, USA', 'Key West, FL, USA', 'Carmel, CA, USA'], state: 'USA' },
     };
 
+    // ——— Trigger presets ———
+    // Injected from TRIGGER_PRESETS in enrichment/layer1-compass-maps.js so the client and the
+    // server-side filter read the same thresholds. Never hardcode the numbers here.
+    const TRIGGER_PRESETS = <%- JSON.stringify(TRIGGER_PRESETS) %>;
+
+    // Active triggers are stored comma-joined in the hidden field. Phase 1's UI is single-select
+    // (clicking a chip replaces the selection, clicking the active chip clears it), but these
+    // helpers work on a list so Phase 2 only has to change the click handler.
+    function getActiveTriggers() {
+      const raw = document.querySelector('[name=trigger]')?.value || '';
+      return raw.split(',').map(t => t.trim()).filter(Boolean);
+    }
+    function setActiveTriggers(keys) {
+      const el = document.querySelector('[name=trigger]');
+      if (el) el.value = [...new Set(keys)].filter(k => TRIGGER_PRESETS[k]).join(',');
+    }
+
     function updatePresetUI() {
       const v = document.querySelector('[name=verticalPreset]')?.value || '';
       const r = document.querySelector('[name=regionPreset]')?.value || '';
+      const t = getActiveTriggers();
       document.querySelectorAll('[data-vertical]').forEach(x => x.classList.toggle('active', x.dataset.vertical === v));
       document.querySelectorAll('[data-region]').forEach(x => x.classList.toggle('active', x.dataset.region === r));
+      document.querySelectorAll('[data-trigger]').forEach(x => x.classList.toggle('active', t.includes(x.dataset.trigger)));
       const clearBtn = document.getElementById('clearPresetBtn');
-      if (clearBtn) clearBtn.style.display = (v || r) ? '' : 'none';
+      if (clearBtn) clearBtn.style.display = (v || r || t.length) ? '' : 'none';
+    }
+
+    // Push the active triggers' thresholds into the visible rating inputs, so the user can see
+    // what the trigger actually did. Review-count bands (Low volume) have no matching input —
+    // they're applied server-side only, which is why the chip tooltip states the range.
+    //
+    // When a rating-bearing trigger takes over the inputs it stashes the range it displaced, and
+    // restores it once no rating-bearing trigger is active. Without that, switching Low rating →
+    // Low volume would strand a 3.3–4.2 filter the user never asked for — Low volume would then
+    // quietly return only low-rated leads.
+    function applyTriggerFilters() {
+      const minEl = document.querySelector('[name=ratingMin]');
+      const maxEl = document.querySelector('[name=ratingMax]');
+      if (!minEl || !maxEl) return;
+      const store = document.querySelector('[name=trigger]');
+      const ratingBearing = getActiveTriggers()
+        .map(k => TRIGGER_PRESETS[k])
+        .filter(p => p && p.ratingMin != null);
+
+      if (ratingBearing.length) {
+        if (store.dataset.savedRating === undefined) {
+          store.dataset.savedRating = JSON.stringify([minEl.value, maxEl.value]);
+        }
+        // Trigger ranges override whatever the vertical preset set (verticals all set 4.0+,
+        // which would otherwise cancel out Low rating entirely).
+        minEl.value = Math.max(...ratingBearing.map(p => p.ratingMin));
+        maxEl.value = Math.min(...ratingBearing.map(p => p.ratingMax));
+      } else if (store.dataset.savedRating !== undefined) {
+        const [savedMin, savedMax] = JSON.parse(store.dataset.savedRating);
+        minEl.value = savedMin;
+        maxEl.value = savedMax;
+        delete store.dataset.savedRating;
+      }
+    }
+
+    function toggleTrigger(key) {
+      const active = getActiveTriggers();
+      // Single-select for Phase 1: re-clicking the active chip clears it.
+      setActiveTriggers(active.includes(key) ? [] : [key]);
+      applyTriggerFilters();
+      updatePresetUI();
+      if (typeof estimateCredits === 'function') estimateCredits();
     }
 
     function applyVerticalPreset(key) {
@@ -962,6 +1037,10 @@
       // Sync price tier checkboxes
       document.querySelectorAll('input[name=priceTier]').forEach(cb => { cb.checked = p.priceTier.includes(cb.value); });
       document.querySelector('[name=verticalPreset]').value = key;
+      // This vertical's range becomes the new restore-baseline, then an active trigger
+      // outranks it in the visible inputs.
+      delete document.querySelector('[name=trigger]').dataset.savedRating;
+      applyTriggerFilters();
       updatePresetUI();
       document.getElementById('moreVerticalsMenu').style.display = 'none';
       refreshPriorityHint();
@@ -980,6 +1059,7 @@
 
     document.querySelectorAll('[data-vertical]').forEach(b => b.addEventListener('click', () => applyVerticalPreset(b.dataset.vertical)));
     document.querySelectorAll('[data-region]').forEach(b => b.addEventListener('click', () => applyRegionPreset(b.dataset.region)));
+    document.querySelectorAll('[data-trigger]').forEach(b => b.addEventListener('click', () => toggleTrigger(b.dataset.trigger)));
 
     document.getElementById('moreVerticalsToggle')?.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -998,6 +1078,8 @@
     document.getElementById('clearPresetBtn')?.addEventListener('click', () => {
       document.querySelector('[name=verticalPreset]').value = '';
       document.querySelector('[name=regionPreset]').value = '';
+      setActiveTriggers([]);
+      delete document.querySelector('[name=trigger]').dataset.savedRating;
       document.querySelector('[name=keyword]').value = '';
       document.querySelector('[name=city]').value = '';
       document.querySelector('[name=state]').value = '';
@@ -1013,6 +1095,10 @@
     });
 
     // Initialise active state from server-rendered hidden fields (deep-link / cache replay).
+    // applyTriggerFilters also runs here so a bare `/?trigger=low-rating` deep link shows its
+    // rating range in the inputs — on a results re-render the server already resolved the same
+    // values, so it's a no-op there.
+    applyTriggerFilters();
     updatePresetUI();
     document.querySelectorAll('.suggestion-chip').forEach(b => b.addEventListener('click', () => {
       document.querySelector('[name=keyword]').value = b.dataset.keyword;
