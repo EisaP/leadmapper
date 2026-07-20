@@ -298,6 +298,9 @@ async function handleSearch(src, res) {
     let mappedResults = null;
     let filteredResults = null;
     let apifyCostUsd = 0;       // Cumulative Apify spend for this request (history + UI)
+    // True if ANY city's cost came back unsettled, so the total is part estimate. Tracked
+    // across the multi-city loop because one unsettled leg makes the whole total approximate.
+    let anyCostProvisional = false;
 
     const allowExpensive = String(src.allowExpensive || '') === '1';
 
@@ -351,6 +354,7 @@ async function handleSearch(src, res) {
         continue;
       }
       apifyCostUsd += compass.costUsd || 0;
+      if (compass.costProvisional) anyCostProvisional = true;
       let addedFromCity = 0;
       for (const lead of compass.leads) {
         const dedupKey = lead.placeId || `${(lead.title || '').toLowerCase()}|${(lead.address || '').toLowerCase()}`;
@@ -574,6 +578,11 @@ async function handleSearch(src, res) {
       phone_count: finalResults.filter(r => r.phone).length,
       instagram_count: finalResults.filter(r => r.instagram).length,
       serpapi_credits_used: 0,
+      // Apify spend for this search. Previously computed and rendered but never persisted,
+      // so the history page had no cost at all. costProvisional=1 means this is our estimate
+      // rather than Apify's settled figure (see fetchSettledCostUsd in layer1-compass-maps).
+      apify_cost_usd: apifyCostUsd,
+      cost_provisional: anyCostProvisional,
       results_json: JSON.stringify(finalResults),
     });
 

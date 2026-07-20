@@ -171,6 +171,7 @@
                 <th class="num">Emails</th>
                 <th class="num">IG</th>
                 <th class="num">Phones</th>
+                <th class="num">Apify cost</th>
                 <th style="width: 220px;">Actions</th>
               </tr>
             </thead>
@@ -185,6 +186,18 @@
                   <td class="num" style="color: var(--text-secondary);"><%= s.email_count || 0 %></td>
                   <td class="num" style="color: var(--text-secondary);"><%= s.instagram_count || 0 %></td>
                   <td class="num" style="color: var(--text-secondary);"><%= s.phone_count || 0 %></td>
+                  <%
+                    // Rows written before apify_cost_usd existed (2026-07-20) have NULL, which is
+                    // different from a genuine $0.0000 — show a dash rather than implying it was free.
+                    const costVal = s.apify_cost_usd;
+                    const hasCost = costVal !== null && costVal !== undefined;
+                    // A provisional figure is our own estimate, not Apify's settled number.
+                    const prov = !!s.cost_provisional;
+                  %>
+                  <td class="num" style="color: var(--text-secondary); white-space: nowrap;"
+                      <% if (hasCost && prov) { %>title="Estimated — Apify had not settled billing when this search ran"<% } %>>
+                    <% if (!hasCost) { %>—<% } else { %><%= prov ? '≈' : '' %>$<%= Number(costVal).toFixed(4) %><% } %>
+                  </td>
                   <td>
                     <div class="row-actions">
                       <a href="/history/<%= s.id %>" title="Load cached results, no Apify cost">Reuse</a>

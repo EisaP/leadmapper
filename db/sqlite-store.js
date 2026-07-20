@@ -75,6 +75,8 @@ function createSqliteBackend(dbPath) {
       phone_count            INTEGER,
       instagram_count        INTEGER,
       serpapi_credits_used   INTEGER,
+      apify_cost_usd         REAL,
+      cost_provisional       INTEGER,
       results_json           TEXT,
       created_at             DATETIME DEFAULT CURRENT_TIMESTAMP,
       last_accessed          DATETIME
@@ -99,6 +101,21 @@ function createSqliteBackend(dbPath) {
     );
   `);
 
+  // --- Migrations ---
+  // CREATE TABLE IF NOT EXISTS is a no-op on an existing DB, so new columns have to be added
+  // explicitly. apify_cost_usd / cost_provisional were added 2026-07-20: until then the Apify
+  // spend was rendered on the results page but never persisted, so history showed no cost at all.
+  const searchCols = new Set(db.prepare(`PRAGMA table_info(search_history)`).all().map(c => c.name));
+  if (!searchCols.has('apify_cost_usd')) {
+    db.exec(`ALTER TABLE search_history ADD COLUMN apify_cost_usd REAL`);
+    console.log('[sqlite] migration: added search_history.apify_cost_usd');
+  }
+  if (!searchCols.has('cost_provisional')) {
+    // 1 = the stored cost is our own estimate because Apify had not settled billing in time.
+    db.exec(`ALTER TABLE search_history ADD COLUMN cost_provisional INTEGER`);
+    console.log('[sqlite] migration: added search_history.cost_provisional');
+  }
+
   return {
     recordSearch(row) {
       const info = db.prepare(`
@@ -106,14 +123,16 @@ function createSqliteBackend(dbPath) {
           (search_params_hash, keyword, city, country,
            rating_min, rating_max, max_reviews, results_limit, segment_target, outreach_priority,
            total_leads, email_count, phone_count, instagram_count, serpapi_credits_used,
+           apify_cost_usd, cost_provisional,
            results_json, last_accessed)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `).run(
         row.hash, row.keyword, row.city, row.country,
         row.rating_min ?? null, row.rating_max ?? null, row.max_reviews ?? null,
         row.results_limit ?? null, row.segment_target ?? null, row.outreach_priority ?? null,
         row.total_leads ?? 0, row.email_count ?? 0, row.phone_count ?? 0, row.instagram_count ?? 0,
         row.serpapi_credits_used ?? 0,
+        row.apify_cost_usd ?? 0, row.cost_provisional ? 1 : 0,
         row.results_json
       );
       return info.lastInsertRowid;
@@ -168,6 +187,7 @@ function createSqliteBackend(dbPath) {
         SELECT id, search_params_hash, keyword, city, country, rating_min, rating_max,
                max_reviews, results_limit, segment_target, outreach_priority,
                total_leads, email_count, phone_count, instagram_count, serpapi_credits_used,
+               apify_cost_usd, cost_provisional,
                created_at, last_accessed
         FROM search_history
         ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
@@ -342,6 +362,11 @@ function createMemoryBackend() {
         results_limit:         row.results_limit ?? null,
         segment_target:        row.segment_target ?? null,
         outreach_priority:     row.outreach_priority ?? null,
+        // Keep in step with the SQLite INSERT above — when the native build fails on Replit
+        // this shim is what actually serves history, so a missing field here shows up as a
+        // blank cost column only on the fallback path, which is painful to diagnose.
+        apify_cost_usd:        row.apify_cost_usd ?? 0,
+        cost_provisional:      row.cost_provisional ? 1 : 0,
         total_leads:           row.total_leads ?? 0,
         email_count:           row.email_count ?? 0,
         phone_count:           row.phone_count ?? 0,
