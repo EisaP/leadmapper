@@ -1225,8 +1225,9 @@
       // automatically whenever this result set actually carries review signals — regardless of
       // the saved preference, which was set before the user had any signals to look at.
       // `signalStatus` counts as content: an unverified row NEEDS its marker seen, and leaving
-      // it in a hidden column would defeat the point of marking it.
-      if (Array.isArray(allResults) && allResults.some(r => r && (r.reviewsLast60d != null || r.signalStatus))) {
+      // it in a hidden column would defeat the point of marking it. applyColumnVisibility()
+      // re-asserts this after every render; this pass only syncs the checkbox at load.
+      if (signalsColumnHasContent()) {
         document.querySelectorAll('.col-signals').forEach(el => el.classList.remove('col-hidden'));
         const cb = document.querySelector('[data-col="signals"]');
         if (cb) cb.checked = true;
@@ -1735,6 +1736,13 @@
       updateBulkBar();
     }
 
+    // Row cells are re-created on every render and always start with col-hidden, so column
+    // visibility has to be re-applied AFTER rendering — doing it only at page load leaves the
+    // header visible and every cell hidden.
+    function signalsColumnHasContent() {
+      return Array.isArray(allResults) && allResults.some(r => r && (r.reviewsLast60d != null || r.signalStatus));
+    }
+
     function applyColumnVisibility() {
       const prefs = loadPrefs();
       const cols = prefs.columns || {};
@@ -1742,6 +1750,10 @@
         const visible = !!cols[col];
         document.querySelectorAll(`.col-${col}`).forEach(el => el.classList.toggle('col-hidden', !visible));
       });
+      // "Why now" force-shows whenever the result set carries signals or an unverified marker,
+      // overriding the saved preference — a hidden marker is the same as no marker at all.
+      const signalsVisible = signalsColumnHasContent() || !!cols.signals;
+      document.querySelectorAll('.col-signals').forEach(el => el.classList.toggle('col-hidden', !signalsVisible));
     }
 
     function renderEmailList(r) {
