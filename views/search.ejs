@@ -1224,7 +1224,9 @@
       // The "Why now" column is worthless when empty and essential when populated, so reveal it
       // automatically whenever this result set actually carries review signals — regardless of
       // the saved preference, which was set before the user had any signals to look at.
-      if (Array.isArray(allResults) && allResults.some(r => r && r.reviewsLast60d != null)) {
+      // `signalStatus` counts as content: an unverified row NEEDS its marker seen, and leaving
+      // it in a hidden column would defeat the point of marking it.
+      if (Array.isArray(allResults) && allResults.some(r => r && (r.reviewsLast60d != null || r.signalStatus))) {
         document.querySelectorAll('.col-signals').forEach(el => el.classList.remove('col-hidden'));
         const cb = document.querySelector('[data-col="signals"]');
         if (cb) cb.checked = true;
@@ -1532,7 +1534,14 @@
     // Renders a dash when signals weren't fetched — deliberately distinguishing "not measured"
     // from a measured zero, since 0 reviews in 60 days is itself the strongest stall signal.
     const TRIGGER_LABELS = { 'newly-opened': 'Newly opened', 'low-volume': 'Low volume', 'low-velocity': 'Low velocity' };
+    const SIGNAL_STATUS_LABELS = <%- JSON.stringify(SIGNAL_STATUS_LABELS || {}) %>;
     function whyNowCell(r) {
+      // Unverified beats everything: the row was never measured, so show why rather than a
+      // bare dash that reads like "nothing interesting here".
+      if (r.signalStatus && r.signalStatus !== 'verified') {
+        const why = SIGNAL_STATUS_LABELS[r.signalStatus] || 'signal not verified';
+        return `<span class="badge" style="background: rgba(255,176,32,0.14); color: var(--warn); border: 1px solid var(--warn); white-space: nowrap;" title="${escapeHTML(why)}">⚠ not verified</span>`;
+      }
       if (r.reviewsLast60d == null) return '<span class="empty-dash">—</span>';
       const bits = [];
       if (r.primaryTrigger) {
@@ -2032,7 +2041,7 @@
     function exportCSV(rows, filename) {
       // Layer 5 columns are always present in the header so the CSV shape is stable whether or
       // not review signals ran; they're simply blank when the fetch didn't happen.
-      const headers = ['Name','Phone','Email','EmailSource','EmailConfidence','EmailRole','Instagram','Followers','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','ReviewsLast60d','FirstReviewDate','IsNewlyOpened','RecentSentimentAvg','RecentSentimentSampleSize','SentimentTrend','PrimaryTrigger','Outreach','QualityScore','IsChainCandidate','ChainTier','ChainSignals','Google Maps URL'];
+      const headers = ['Name','Phone','Email','EmailSource','EmailConfidence','EmailRole','Instagram','Followers','Booking','Hours','PriceTier','Website','Category','Address','Rating','Reviews','ReviewsLast60d','FirstReviewDate','IsNewlyOpened','RecentSentimentAvg','RecentSentimentSampleSize','SentimentTrend','PrimaryTrigger','SignalStatus','Outreach','QualityScore','IsChainCandidate','ChainTier','ChainSignals','Google Maps URL'];
       const csvRows = rows.map(r => [
         r.title, r.phone, r.email, r.email_source || '', r.email_confidence || '', r.emailRole || '',
         r.instagram || '', r.instagram_followers != null ? r.instagram_followers : '',
@@ -2045,6 +2054,9 @@
         r.recentSentimentSampleSize != null ? r.recentSentimentSampleSize : '',
         r.sentimentTrend || '',
         r.primaryTrigger || '',
+        // The caveat has to travel with the lead — a salesperson working the CSV never sees
+        // the page banner. Full sentence, not a code, for exactly that reason.
+        r.signalStatus ? (SIGNAL_STATUS_LABELS[r.signalStatus] || r.signalStatus) : '',
         r.outreach || '', r.qualityScore || '',
         r.is_chain_candidate ? 'true' : 'false',
         r.chain_tier || 'independent',

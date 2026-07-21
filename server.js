@@ -15,7 +15,7 @@ const { detectChains, classifyTier } = require('./enrichment/chains');
 
 // Apify-based scrapers (Layer 1 Maps + IG enrichment)
 const { scrapeMapsViaCompass, fetchCompassRunDataset, estimateCompassCostUsd, APIFY_HARD_CAP_USD, APIFY_SOFT_WARN_USD, TRIGGER_PRESETS, parseTriggers, resolveTriggerFilters, needsReviewSignals } = require('./enrichment/layer1-compass-maps');
-const { enrichWithReviewSignals, estimateReviewSignalsCostUsd, filterByReviewTriggers } = require('./enrichment/layer5-review-signals');
+const { enrichWithReviewSignals, estimateReviewSignalsCostUsd, filterByReviewTriggers, markAllUnverified, SIGNAL_STATUS, SIGNAL_STATUS_LABELS } = require('./enrichment/layer5-review-signals');
 const { enrichInstagramViaApify } = require('./enrichment/layer-instagram-apify');
 
 const app = express();
@@ -99,6 +99,8 @@ app.set('views', path.join(__dirname, 'views'));
 // Trigger presets are defined once in layer1-compass-maps.js and exposed to every template,
 // so the chip row's thresholds and the server-side filter can never drift apart.
 app.locals.TRIGGER_PRESETS = TRIGGER_PRESETS;
+// Shared with the client so the row marker, its tooltip, and the CSV all use one wording.
+app.locals.SIGNAL_STATUS_LABELS = SIGNAL_STATUS_LABELS;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -577,13 +579,24 @@ async function handleSearch(src, res) {
         reviewSignalsSkippedReason =
           `Layer 5 skipped: estimated $${l5Est.toFixed(2)} on top of $${apifyCostUsd.toFixed(2)} already spent would exceed the $${APIFY_HARD_CAP_USD.toFixed(2)} cap. Narrow the search, or add &allowExpensive=1.`;
         console.warn(`[search] ${reviewSignalsSkippedReason}`);
+        // Mark every row, not just the page. The banner is easy to scroll past and doesn't
+        // survive into an export — the per-row marker does both.
+        markAllUnverified(filteredResults, SIGNAL_STATUS.COST_CAP);
       } else {
         console.log(`[search] Layer 5 running on ${filteredResults.length} leads · est $${l5Est.toFixed(4)}`);
         const l5 = await enrichWithReviewSignals(filteredResults);
         apifyCostUsd += l5.costUsd || 0;
         if (l5.costProvisional) anyCostProvisional = true;
         reviewSignalsRan = !l5.error;
-        if (l5.error) console.error(`[search] Layer 5 error: ${l5.error}`);
+        if (l5.error) {
+          console.error(`[search] Layer 5 error: ${l5.error}`);
+          reviewSignalsSkippedReason = `Layer 5 failed: ${l5.error}`;
+          markAllUnverified(filteredResults, SIGNAL_STATUS.FETCH_ERROR);
+        } else if (l5.unverifiedCount) {
+          // Partial failure: enrichWithReviewSignals already marked the affected rows.
+          reviewSignalsSkippedReason =
+            `${l5.unverifiedCount} of ${filteredResults.length} leads could not be checked (review fetch failed for those places).`;
+        }
       }
     }
 
@@ -784,7 +797,7 @@ app.post('/export', (req, res) => {
 
   const headers = ['Name', 'Phone', 'Email', 'Instagram', 'Website', 'Category', 'Address', 'Rating', 'Reviews',
     'ReviewsLast60d', 'FirstReviewDate', 'IsNewlyOpened', 'RecentSentimentAvg', 'RecentSentimentSampleSize',
-    'SentimentTrend', 'PrimaryTrigger', 'Google Maps URL'];
+    'SentimentTrend', 'PrimaryTrigger', 'SignalStatus', 'Google Maps URL'];
   const rows = results.map(r => [
     r.title, r.phone, r.email, r.instagram || '', r.website, r.category, r.address, r.rating, r.reviewCount,
     // Layer 5 fields — blank rather than 0/false when the fetch didn't run, so a missing signal
@@ -796,6 +809,9 @@ app.post('/export', (req, res) => {
     r.recentSentimentSampleSize != null ? r.recentSentimentSampleSize : '',
     r.sentimentTrend || '',
     r.primaryTrigger || '',
+    // Spelled out in full so the caveat is legible to whoever works the CSV, who will never
+    // have seen the on-page banner.
+    r.signalStatus ? (SIGNAL_STATUS_LABELS[r.signalStatus] || r.signalStatus) : '',
     r.url
     // NB: `v || ''` would turn a legitimate 0 (e.g. reviewsLast60d = 0, the strongest stall
     // signal there is) into an empty cell, so null/undefined are checked explicitly.

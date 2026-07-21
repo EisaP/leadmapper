@@ -27,6 +27,43 @@ const { TRIGGER_THRESHOLDS, fetchSettledCostUsd } = require('./layer1-compass-ma
 
 const REVIEWS_ACTOR_ID = 'compass/google-maps-reviews-scraper';
 
+// --- Signal verification status ---
+// Every lead on a review-signal search carries one of these, so "we measured zero recent
+// reviews" is never confused with "we failed to measure". That distinction matters more here
+// than almost anywhere else in the app: reviewsLast60d = 0 IS the low-velocity signal, so an
+// unmeasured lead defaulting to 0 would masquerade as the strongest possible match.
+const SIGNAL_STATUS = {
+  VERIFIED:     'verified',
+  COST_CAP:     'unverified-cost-cap',
+  FETCH_ERROR:  'unverified-fetch-error',
+  NO_PLACE_ID:  'unverified-no-place-id',
+};
+
+// Human-readable, used verbatim in exports and as the UI badge tooltip.
+const SIGNAL_STATUS_LABELS = {
+  [SIGNAL_STATUS.VERIFIED]:    'verified',
+  [SIGNAL_STATUS.COST_CAP]:    'signal not verified — cost cap reached, review signals not fetched',
+  [SIGNAL_STATUS.FETCH_ERROR]: 'signal not verified — review fetch failed for this lead',
+  [SIGNAL_STATUS.NO_PLACE_ID]: 'signal not verified — no Google place ID to look up',
+};
+
+const isUnverified = (lead) => !!lead.signalStatus && lead.signalStatus !== SIGNAL_STATUS.VERIFIED;
+
+// Stamp a lead as unmeasured. Signals are explicitly nulled rather than left at defaults so
+// nothing downstream can read a zero that was never observed.
+function markUnverified(lead, status) {
+  lead.signalStatus = status;
+  lead.reviewsLast60d = null;
+  lead.firstReviewDate = null;
+  lead.isNewlyOpened = null;
+  lead.recentSentimentAvg = null;
+  lead.recentSentimentSampleSize = null;
+  lead.sentimentTrend = null;
+  lead.primaryTrigger = null;
+  lead.matchedTriggers = [];
+  return lead;
+}
+
 const daysAgoIso = (days) => new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
 const chunk = (arr, size) => {
   const out = [];
@@ -199,6 +236,14 @@ async function enrichWithReviewSignals(leads, { onProgress } = {}) {
     { leads: full, startDate: null, maxReviews: fullHistoryBelowTotalReviews },
   ];
 
+  // A place that genuinely had no reviews in the window simply doesn't appear in the actor's
+  // output — indistinguishable, from byPlace alone, from a place whose batch blew up. So track
+  // which place IDs a SUCCESSFUL batch covered. Absent-but-covered = a real zero; absent-and-
+  // not-covered = unknown. Without this, one failed batch would silently turn 25 leads into
+  // perfect-looking "0 reviews in 60 days" low-velocity matches.
+  const covered = new Set();
+  const failed = new Set();
+
   for (const job of jobs) {
     if (!job.leads.length) continue;
     for (const batch of chunk(job.leads.map(l => l.placeId), batchSize)) {
@@ -206,41 +251,67 @@ async function enrichWithReviewSignals(leads, { onProgress } = {}) {
         const { byPlace: got, runId } = await fetchReviewBatch(batch, { startDate: job.startDate, maxReviews: job.maxReviews });
         runIds.push(runId);
         for (const [pid, revs] of got) byPlace.set(pid, { revs, fullHistory: !job.startDate });
-        // Reuse the settled-cost logic from Layer 1 rather than trusting the inline figure.
-        const { fetchSettledCostUsd } = require('./layer1-compass-maps');
+        for (const pid of batch) covered.add(pid);
         const settled = await fetchSettledCostUsd(runId);
         if (settled.settled) costUsd += settled.costUsd;
         else { costProvisional = true; costUsd += batch.length * job.maxReviews * TRIGGER_THRESHOLDS.fetch.usdPerReview; }
         if (onProgress) onProgress({ done: byPlace.size, total: leads.length });
       } catch (err) {
         console.error(`[layer5] batch failed (${batch.length} places): ${err.message}`);
-        // A failed batch leaves those leads without signals; they simply won't match the
-        // Phase 2 triggers rather than failing the whole search.
+        // The whole search survives a failed batch, but those leads are marked unverified
+        // below rather than silently reading as zero-velocity.
+        for (const pid of batch) failed.add(pid);
       }
     }
   }
 
+  let verifiedCount = 0, unverifiedCount = 0;
   for (const lead of leads) {
-    const hit = lead.placeId ? byPlace.get(lead.placeId) : null;
+    if (!lead.placeId) {
+      markUnverified(lead, SIGNAL_STATUS.NO_PLACE_ID); unverifiedCount++; continue;
+    }
+    if (!covered.has(lead.placeId)) {
+      markUnverified(lead, SIGNAL_STATUS.FETCH_ERROR); unverifiedCount++; continue;
+    }
+    // Covered by a successful batch. An absent entry here is a genuine "no reviews in the
+    // window", which is exactly what the low-velocity trigger is looking for.
+    const hit = byPlace.get(lead.placeId);
     deriveSignals(lead, hit ? hit.revs : [], { fullHistory: hit ? hit.fullHistory : false });
     classifyTriggers(lead);
+    lead.signalStatus = SIGNAL_STATUS.VERIFIED;
+    verifiedCount++;
   }
 
-  console.log(`[layer5] signals attached · cost $${costUsd.toFixed(5)}${costProvisional ? ' (partly estimated)' : ''} · ${runIds.length} runs`);
-  return { leads, costUsd, costProvisional, runIds };
+  console.log(`[layer5] signals attached · ${verifiedCount} verified · ${unverifiedCount} unverified · cost $${costUsd.toFixed(5)}${costProvisional ? ' (partly estimated)' : ''} · ${runIds.length} runs`);
+  return { leads, costUsd, costProvisional, runIds, verifiedCount, unverifiedCount };
+}
+
+// Stamp an entire result set as unverified without fetching anything. Used when the cost cap
+// trips: the leads are still shown (dropping them would be worse), but every row has to carry
+// the caveat, not just the page-level banner.
+function markAllUnverified(leads, status = SIGNAL_STATUS.COST_CAP) {
+  for (const lead of leads || []) markUnverified(lead, status);
+  return leads;
 }
 
 // Filter a lead set down to those matching an active review-signal trigger.
+// Unverified leads are KEPT. They can't be confirmed to match, but they can't be confirmed
+// not to either, and dropping them would quietly delete leads on the strength of a fetch that
+// failed. They travel through carrying their marker so the caveat is visible instead.
 function filterByReviewTriggers(leads, activeTriggers) {
   const wanted = (activeTriggers || []).filter(t => t === 'low-velocity' || t === 'newly-opened');
   if (!wanted.length) return leads;
-  return leads.filter(l => wanted.includes(l.primaryTrigger));
+  return leads.filter(l => wanted.includes(l.primaryTrigger) || isUnverified(l));
 }
 
 module.exports = {
   enrichWithReviewSignals,
   estimateReviewSignalsCostUsd,
   filterByReviewTriggers,
+  markAllUnverified,
+  isUnverified,
+  SIGNAL_STATUS,
+  SIGNAL_STATUS_LABELS,
   classifyTriggers,
   deriveSignals,
   isLowVelocity,
