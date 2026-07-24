@@ -736,6 +736,39 @@
         <div class="card" style="padding: 14px 18px; border-color: var(--red); background: var(--red-soft); color: var(--red); margin-bottom: 20px;"><%= error %></div>
       <% } %>
 
+      <%# Persistent filter summary — rendered for EVERY completed search, with results or
+          without. A stuck trigger that merely truncates a list produces no other warning, and
+          that silent case is as harmful as an empty one. Sits outside the results/empty branch
+          so both paths get it. -%>
+      <% if (typeof filterSummary !== 'undefined' && filterSummary && results) {
+           const fs = filterSummary;
+           const band = (a, b) => `${a ?? 'any'}–${b ?? 'any'}`;
+           const bits = [];
+           if (fs.ratingMin != null || fs.ratingMax != null) bits.push('rating ' + band(fs.ratingMin, fs.ratingMax));
+           if (fs.reviewsMin != null || fs.reviewsMax != null) bits.push('reviews ' + band(fs.reviewsMin, fs.reviewsMax));
+           if (fs.maxReviews != null) bits.push('under ' + fs.maxReviews + ' reviews');
+           if (fs.priceTiers && fs.priceTiers.length) bits.push('price ' + fs.priceTiers.join('/'));
+      %>
+        <div style="margin: 0 0 14px; padding: 8px 12px; border-radius: 6px; font-size: 12.5px;
+                    background: <%= fs.triggers.length ? 'rgba(255,176,32,0.10)' : '#fafafa' %>;
+                    border: 1px solid <%= fs.triggers.length ? 'var(--warn)' : 'var(--border)' %>;
+                    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+          <% if (fs.triggers.length) { %>
+            <strong style="color: var(--warn);">Trigger: <%= fs.triggers.join(' + ') %></strong>
+          <% } else { %>
+            <span style="color: var(--text-secondary);">No trigger</span>
+          <% } %>
+          <span style="color: var(--text-tertiary);">·</span>
+          <span style="color: var(--text-secondary);"><%= bits.length ? bits.join(' · ') : 'no filters applied' %></span>
+          <% if (fs.ratingOverridden) { %>
+            <span style="color: var(--warn);" title="A trigger replaced the rating range you entered.">· rating set by trigger</span>
+          <% } %>
+          <% if (fs.triggers.length) { %>
+            <a href="#" id="clearTriggerInline" style="margin-left: auto; font-size: 12px;">Clear trigger &amp; re-run</a>
+          <% } %>
+        </div>
+      <% } %>
+
       <% if (results && results.length > 0) { %>
         <% if (typeof apifyCostUsd !== 'undefined' && apifyCostUsd > 0) { %>
           <div style="margin-bottom: 16px; font-size: 12px; color: var(--text-secondary);">
@@ -873,6 +906,44 @@
           <div class="ico-box" style="margin: 0 auto 16px;"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></div>
           <h2 style="font-size: 18px; margin-bottom: 6px; font-weight: 500;">No businesses matched your search.</h2>
           <p style="color: var(--text-secondary); margin: 0 0 18px;">Widen your filters or try broader keywords.</p>
+
+          <%# Stage-by-stage breakdown so an empty result set says WHICH filter emptied it.
+              These counts used to be console.log-only, so diagnosing a zero meant reading
+              deployment logs over a shell. -%>
+          <% if (typeof filterSummary !== 'undefined' && filterSummary && filterSummary.stages) {
+               const st = filterSummary.stages, fs = filterSummary;
+               const steps = [
+                 ['Raw from Google Maps', st.raw, null],
+                 ['After keyword excludes', st.afterExclude, st.raw],
+                 ['After rating / review filters', st.afterFilters, st.afterExclude],
+                 ['After price tier', fs.afterPriceTier, st.afterFilters],
+               ];
+               if (fs.reviewTriggerFilterRan) steps.push(['After trigger filter', fs.afterTriggerFilter, fs.afterPriceTier]);
+               // The first stage that lands on zero is the culprit.
+               const culprit = steps.find(s => s[1] === 0 && s[2] !== 0);
+          %>
+            <div style="max-width: 460px; margin: 0 auto 18px; text-align: left; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; background: var(--white);">
+              <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 8px;">Where the leads went</div>
+              <% steps.forEach(([label, n, prev]) => { const dropped = prev != null ? prev - n : 0; %>
+                <div style="display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; <%= (n === 0 && prev !== 0) ? 'color: var(--red); font-weight: 500;' : 'color: var(--body);' %>">
+                  <span><%= label %></span>
+                  <span><%= n %><% if (dropped > 0) { %> <span style="color: var(--muted);">(−<%= dropped %>)</span><% } %></span>
+                </div>
+              <% }) %>
+              <% if (culprit) { %>
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--red);">
+                  Everything was removed at <strong><%= culprit[0] %></strong>.
+                  <% if (fs.triggers.length && (culprit[0].indexOf('rating') > -1 || culprit[0].indexOf('trigger') > -1)) { %>
+                    The <strong><%= fs.triggers.join(' + ') %></strong> trigger is active
+                    <% if (fs.reviewsMin != null || fs.reviewsMax != null) { %>
+                      and restricts reviews to <%= fs.reviewsMin ?? 'any' %>–<%= fs.reviewsMax ?? 'any' %>.
+                    <% } else { %>.<% } %>
+                    <a href="#" id="clearTriggerZero">Clear the trigger and re-run.</a>
+                  <% } %>
+                </div>
+              <% } %>
+            </div>
+          <% } %>
           <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;">
             <button type="button" class="btn btn-primary" onclick="widenFilters()">Widen filters</button>
             <button type="button" class="btn" onclick="resetFilters()">Reset filters</button>
@@ -1052,6 +1123,18 @@
     function applyVerticalPreset(key) {
       const p = ICP_PRESETS[key];
       if (!p) return;
+      // Re-clicking the active chip deselects it, matching toggleTrigger(). Without this the
+      // vertical row was set-only: once a chip was on, there was no way back to manual mode
+      // short of "Clear preset", which also wipes the keyword/city fields.
+      if (document.querySelector('[name=verticalPreset]').value === key) {
+        document.querySelector('[name=verticalPreset]').value = '';
+        delete document.querySelector('[name=trigger]').dataset.savedRating;
+        applyTriggerFilters();
+        updatePresetUI();
+        document.getElementById('moreVerticalsMenu').style.display = 'none';
+        if (typeof estimateCredits === 'function') estimateCredits();
+        return;
+      }
       document.querySelector('[name=keyword]').value = p.keyword;
       document.querySelector('[name=ratingMin]').value = p.ratingMin;
       document.querySelector('[name=ratingMax]').value = p.ratingMax;
@@ -1072,6 +1155,13 @@
     function applyRegionPreset(key) {
       const p = REGION_PRESETS[key];
       if (!p) return;
+      // Same toggle-off parity as the vertical row.
+      if (document.querySelector('[name=regionPreset]').value === key) {
+        document.querySelector('[name=regionPreset]').value = '';
+        updatePresetUI();
+        if (typeof estimateCredits === 'function') estimateCredits();
+        return;
+      }
       document.querySelector('[name=city]').value = p.cities.join(' | ');
       document.querySelector('[name=state]').value = p.state;
       document.querySelector('[name=regionPreset]').value = key;
@@ -1082,6 +1172,19 @@
     document.querySelectorAll('[data-vertical]').forEach(b => b.addEventListener('click', () => applyVerticalPreset(b.dataset.vertical)));
     document.querySelectorAll('[data-region]').forEach(b => b.addEventListener('click', () => applyRegionPreset(b.dataset.region)));
     document.querySelectorAll('[data-trigger]').forEach(b => b.addEventListener('click', () => toggleTrigger(b.dataset.trigger)));
+
+    // "Clear trigger & re-run" — from the summary line and the zero-result breakdown. Clears
+    // only the trigger (not keywords/city/filters), then resubmits, so the user gets the same
+    // search minus the trigger rather than having to rebuild it by hand.
+    ['clearTriggerInline', 'clearTriggerZero'].forEach(id => {
+      document.getElementById(id)?.addEventListener('click', (e) => {
+        e.preventDefault();
+        setActiveTriggers([]);
+        applyTriggerFilters();
+        updatePresetUI();
+        document.getElementById('searchForm')?.submit();
+      });
+    });
 
     document.getElementById('moreVerticalsToggle')?.addEventListener('click', (e) => {
       e.stopPropagation();

@@ -383,7 +383,25 @@ async function scrapeMapsViaCompass({ keyword, city, country, resultsLimit, rati
   // costProvisional=true means costUsd is our estimate, not Apify's settled figure. Callers
   // that display or persist the cost should mark it as approximate; the runId is kept so a
   // later reconciliation pass can replace it with the real number.
-  return { leads: filtered, costUsd: actualCost, costProvisional, runId: run.id, raw: datasetItems.length };
+  //
+  // `stages` exists so a zero-result search can explain itself. These counts were previously
+  // console.log-only, which meant diagnosing an empty result set required shell access to the
+  // deployment logs. Returning them lets the UI say WHICH filter emptied the list — and the
+  // applied bands make a silently-overriding trigger visible (a stuck `low-volume` rewrites
+  // reviews to 5–40, which alone can zero out a whole city).
+  return {
+    leads: filtered, costUsd: actualCost, costProvisional, runId: run.id, raw: datasetItems.length,
+    stages: {
+      raw:           datasetItems.length,
+      normalized:    normalized.length,
+      titled:        titled.length,
+      afterExclude:  afterExclude.length,
+      afterFilters:  filtered.length,
+      appliedRating:     [ratingMin ?? null, ratingMax ?? null],
+      appliedMaxReviews: maxReviews ?? null,
+      appliedReviewBand: [reviewsMin ?? null, reviewsMax ?? null],
+    },
+  };
 }
 
 // --- Recovery: pull leads from an already-completed Apify run by run ID ---

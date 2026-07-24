@@ -162,7 +162,7 @@ async function handleSearch(src, res) {
   // For inputs the user might never have touched (deep-linked GET), we infer "intended default"
   // from whether ANY enrichment-related field came in: if NONE did, this is a deep-link with
   // no opinions, so apply the safe defaults from the form.
-  const anyEnrichmentParam = ['extractPhones', 'extractEmails', 'extractInstagram', 'useLayer3', 'enrichInstagramApify'].some(k => src[k] !== undefined);
+  const anyEnrichmentParam = ['extractPhones', 'extractEmails', 'extractInstagram', 'useLayer3', 'enrichInstagramApify', 'enableReviewSignals'].some(k => src[k] !== undefined);
   const onByDefault = (val, def) => {
     if (val === 'on') return true;
     if (val === 'off') return false;
@@ -254,6 +254,22 @@ async function handleSearch(src, res) {
         const results = JSON.parse(cached.results_json || '[]');
         return res.render('search', {
           results, totalScraped: results.length,
+          // Cached replays get the summary too — an armed trigger must be just as visible here
+          // as on a fresh search. No `stages`: those describe a scrape that didn't happen now.
+          filterSummary: {
+            triggers: activeTriggers.map(t => TRIGGER_PRESETS[t]?.label || t),
+            triggerKeys: activeTriggers,
+            ratingMin: effRatingMin === '' || effRatingMin == null ? null : Number(effRatingMin),
+            ratingMax: effRatingMax === '' || effRatingMax == null ? null : Number(effRatingMax),
+            maxReviews: (maxReviews !== undefined && maxReviews !== '') ? parseInt(maxReviews, 10) : null,
+            reviewsMin, reviewsMax,
+            ratingOverridden: !!(activeTriggers.length && (
+              String(ratingMin ?? '') !== String(effRatingMin ?? '') ||
+              String(ratingMax ?? '') !== String(effRatingMax ?? ''))),
+            priceTiers, stages: null,
+            afterPriceTier: results.length, afterTriggerFilter: results.length,
+            reviewTriggerFilterRan: false,
+          },
           query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin: effRatingMin, ratingMax: effRatingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, priceTier: priceTiers.join(','), excludeUnknownPrice: excludeUnknown ? 'on' : 'off', regionPreset: regionPreset || '', verticalPreset: verticalPreset || '', trigger: triggerParam, searchString: cached.keyword + ' in ' + cached.city + ', ' + cached.country },
           error: null,
           cachedFrom: { ageDays: Math.round(cached.age_days), createdAt: cached.created_at, hash: paramsHash },
@@ -344,6 +360,11 @@ async function handleSearch(src, res) {
     const allLeads = [];
     const seenPlaces = new Set();
     const cityErrors = [];
+    // Summed scrape-stage counts across cities, so a zero or truncated result set can explain
+    // which filter did the damage. Bands are identical for every city (they come from the same
+    // resolved filters), so the last city's values are representative.
+    const stageTotals = { raw: 0, normalized: 0, titled: 0, afterExclude: 0, afterFilters: 0,
+                          appliedRating: [null, null], appliedMaxReviews: null, appliedReviewBand: [null, null] };
     for (const { city: c, country: ctr } of cityList) {
       const compass = await scrapeMapsViaCompass({
         keyword, city: c, country: ctr,
@@ -360,6 +381,14 @@ async function handleSearch(src, res) {
       }
       apifyCostUsd += compass.costUsd || 0;
       if (compass.costProvisional) anyCostProvisional = true;
+      if (compass.stages) {
+        for (const k of ['raw', 'normalized', 'titled', 'afterExclude', 'afterFilters']) {
+          stageTotals[k] += compass.stages[k] || 0;
+        }
+        stageTotals.appliedRating     = compass.stages.appliedRating;
+        stageTotals.appliedMaxReviews = compass.stages.appliedMaxReviews;
+        stageTotals.appliedReviewBand = compass.stages.appliedReviewBand;
+      }
       let addedFromCity = 0;
       for (const lead of compass.leads) {
         const dedupKey = lead.placeId || `${(lead.title || '').toLowerCase()}|${(lead.address || '').toLowerCase()}`;
@@ -567,9 +596,28 @@ async function handleSearch(src, res) {
     // Gated hard. This actor bills per review scraped, so it runs ONLY when a review-signal
     // trigger is active or the user explicitly toggled Layer 5 on — never on a default search.
     const layer5Toggled = String(src.enableReviewSignals || '') === 'on';
-    const wantsReviewSignals = needsReviewSignals(activeTriggers) || layer5Toggled;
+    // A review-signal trigger NEEDS Layer 5, but it must not silently override an explicit
+    // opt-out. Previously `needsReviewSignals(activeTriggers) || layer5Toggled` meant an armed
+    // trigger forced a paid fetch even with the box unticked, then filtered on the result —
+    // so unchecking the box changed nothing and the user was billed anyway.
+    // Now the checkbox wins when explicitly off, and we say so instead of filtering silently.
+    const triggerNeedsSignals   = needsReviewSignals(activeTriggers);
+    // Browsers omit unchecked boxes entirely, so `enableReviewSignals` arrives as undefined
+    // rather than 'off'. Reuse the file's existing convention: if the request carried ANY
+    // enrichment field, it came from a real form submit, so an absent box means deliberately
+    // unchecked. A bare deep link with no enrichment fields at all expresses no opinion.
+    const signalsExplicitlyOff  = anyEnrichmentParam && String(src.enableReviewSignals || '') !== 'on';
+    const wantsReviewSignals    = layer5Toggled || (triggerNeedsSignals && !signalsExplicitlyOff);
     let reviewSignalsRan = false;
     let reviewSignalsSkippedReason = null;
+
+    if (triggerNeedsSignals && signalsExplicitlyOff) {
+      const names = activeTriggers.filter(t => TRIGGER_PRESETS[t]?.requiresReviewSignals)
+                                  .map(t => TRIGGER_PRESETS[t].label).join(', ');
+      reviewSignalsSkippedReason =
+        `"${names}" needs review-date signals, but Review-date signals is switched off. No review data was fetched, so these results are NOT filtered by that trigger.`;
+      console.warn(`[search] ${reviewSignalsSkippedReason}`);
+    }
 
     if (wantsReviewSignals && filteredResults.length) {
       const l5Est = estimateReviewSignalsCostUsd(filteredResults.length);
@@ -609,6 +657,28 @@ async function handleSearch(src, res) {
       console.log(`[search] Review-trigger filter: ${filteredResults.length} → ${finalResults.length}`);
     }
 
+    // --- Filter summary (shown on EVERY search, not just empty ones) ---
+    // A stuck trigger that truncates a list is as harmful as one that empties it, and only the
+    // empty case produces a banner. This one-liner makes the active trigger and the bands that
+    // were actually applied visible above the results, so a silent override can't hide.
+    const filterSummary = {
+      triggers: activeTriggers.map(t => TRIGGER_PRESETS[t]?.label || t),
+      triggerKeys: activeTriggers,
+      ratingMin: effRatingMin === '' || effRatingMin == null ? null : Number(effRatingMin),
+      ratingMax: effRatingMax === '' || effRatingMax == null ? null : Number(effRatingMax),
+      maxReviews: maxReviewsVal,
+      reviewsMin, reviewsMax,
+      // True when a trigger rewrote the rating range the user typed — the silent-override case.
+      ratingOverridden: !!(activeTriggers.length && (
+        String(ratingMin ?? '') !== String(effRatingMin ?? '') ||
+        String(ratingMax ?? '') !== String(effRatingMax ?? ''))),
+      priceTiers,
+      stages: stageTotals,
+      afterPriceTier: filteredResults.length,
+      afterTriggerFilter: finalResults.length,
+      reviewTriggerFilterRan: reviewSignalsRan,
+    };
+
     // Save to search history (SQLite — persistent across container restarts).
     // segment_target column kept (no migration) but no longer meaningful — written ''.
     store.recordSearch({
@@ -643,6 +713,7 @@ async function handleSearch(src, res) {
       // results are then UNFILTERED by that trigger, which the user has to be told — silently
       // showing every lead under a "Low velocity" search would be actively misleading.
       reviewSignalsSkippedReason,
+      filterSummary,
       dataSourceUsed: 'apify',
       query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin: effRatingMin, ratingMax: effRatingMax, maxReviews, skipEnrichment, outreachPriority,
         priceTier: priceTiers.join(','),
@@ -741,6 +812,18 @@ app.get('/history/:id', (req, res) => {
     results,
     totalScraped: results.length,
     query: { keyword: row.keyword, city: row.city, state: row.country, outreachPriority: row.outreach_priority || 'phone-first', searchString: `${row.keyword} in ${row.city}, ${row.country}` },
+    // Stored history rows predate the trigger column, so the trigger itself can't be recovered —
+    // but the rating/review bands that were actually applied can, and those are what a stuck
+    // trigger distorts. Showing them keeps this view honest rather than silently filter-free.
+    filterSummary: {
+      triggers: [], triggerKeys: [],
+      ratingMin: row.rating_min ?? null, ratingMax: row.rating_max ?? null,
+      maxReviews: row.max_reviews ?? null,
+      reviewsMin: null, reviewsMax: null,
+      ratingOverridden: false, priceTiers: [], stages: null,
+      afterPriceTier: results.length, afterTriggerFilter: results.length,
+      reviewTriggerFilterRan: false,
+    },
     error: null,
     cachedFrom: { ageDays: Math.max(0, Math.round((Date.now() - new Date(row.created_at).getTime()) / 86400000)), createdAt: row.created_at, hash: row.search_params_hash },
     recentSearches: getRecentSearches(), ...getSidebarCounts()
