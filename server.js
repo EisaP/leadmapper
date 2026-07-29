@@ -17,6 +17,29 @@ const { detectChains, classifyTier } = require('./enrichment/chains');
 const { scrapeMapsViaCompass, fetchCompassRunDataset, estimateCompassCostUsd, APIFY_HARD_CAP_USD, APIFY_SOFT_WARN_USD, TRIGGER_PRESETS, parseTriggers, resolveTriggerFilters, needsReviewSignals } = require('./enrichment/layer1-compass-maps');
 const { enrichWithReviewSignals, estimateReviewSignalsCostUsd, filterByReviewTriggers, markAllUnverified, SIGNAL_STATUS, SIGNAL_STATUS_LABELS } = require('./enrichment/layer5-review-signals');
 const { enrichInstagramViaApify } = require('./enrichment/layer-instagram-apify');
+const { client: apifyClient } = require('./enrichment/apify-client');
+
+// Bounded-concurrency map: runs `fn` over `items` with at most `concurrency` in flight, preserving
+// order in the returned array. Used for the scrape fan-out (cap 8 across the WHOLE city×keyword
+// grid) and for enrichment (pool of 20). Replaces the old sequential-batches approach.
+async function poolMap(items, concurrency, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i], i);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrency, items.length)) }, worker));
+  return results;
+}
+
+// Fan-out concurrency for Apify scrape runs. Capped at 8 TOTAL across the entire city×keyword
+// grid — NOT per city — so an 8-city regional preset × 6 keywords (48 jobs) never launches more
+// than 8 Apify runs at once. Guards against rate-limiting and cost spikes on large presets.
+const SCRAPE_CONCURRENCY = 8;
+const ENRICH_CONCURRENCY = 20;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -139,6 +162,28 @@ app.post('/search', async (req, res) => handleSearch(req.body, res));
 
 async function handleSearch(src, res) {
   const { keyword, excludeKeywords, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, useIgFallback, priceTier, excludeUnknownPrice, regionPreset, verticalPreset, trigger } = src;
+
+  // --- Step 4: orphaned-run abort ---
+  // Every in-flight Apify run registers its ID here. If the browser disconnects or the request
+  // times out (Replit's proxy closes the socket at ~6 min), we abort them so they stop charging.
+  // res.writableFinished distinguishes a normal completed response (all bytes flushed) from a
+  // premature close — only the latter aborts. Fired once via a guard flag.
+  const activeRuns = new Set();
+  let abortFired = false;
+  const abortActiveRuns = (reason) => {
+    if (abortFired) return;
+    abortFired = true;
+    if (!activeRuns.size) return;
+    console.warn(`[abort] ${reason} — aborting ${activeRuns.size} in-flight Apify run(s): ${[...activeRuns].join(', ')}`);
+    for (const id of activeRuns) {
+      // Fire-and-forget: the client is already gone, and an already-finished run just 404s.
+      apifyClient.run(id).abort().catch(err => console.warn(`[abort] run ${id}: ${err.message}`));
+    }
+  };
+  res.on('close', () => {
+    if (res.writableFinished) return;   // normal completion — nothing to abort
+    abortActiveRuns('client disconnect / request timeout');
+  });
 
   // --- Trigger presets (Phase 1) ---
   // `trigger` may be a single key, a comma-joined string (cache replay), or an array — the
@@ -353,31 +398,42 @@ async function handleSearch(src, res) {
 
     console.log(`[search] Using Apify Compass · ${cityList.length} cit${cityList.length === 1 ? 'y' : 'ies'} · ${perKeywordCap}/keyword (preset-driven: ${isPresetDriven}) · est combined cost $${combinedEst.toFixed(4)}`);
 
-    // --- Loop Compass per city ---
-    // Single-city is the trivial 1-iteration case. Multi-city sums costs, dedupes by placeId.
-    // A failed city is logged + skipped; the search keeps going (resilient). If ALL cities fail
-    // for the same reason (token issue), we surface that error verbatim.
+    // --- Concurrent Compass fan-out ---
+    // One Apify run per (city, keyword) pair, dispatched through a pool capped at
+    // SCRAPE_CONCURRENCY (8) across the ENTIRE grid — an 8-city × 6-keyword preset is 48 jobs
+    // but never more than 8 runs in flight. Previously this was a sequential per-city loop with
+    // all keywords bundled into one call; splitting per keyword + running concurrently is the
+    // Step 2 speedup. Results still merge and dedupe by Place ID exactly as before.
     const allLeads = [];
     const seenPlaces = new Set();
     const cityErrors = [];
-    // Summed scrape-stage counts across cities, so a zero or truncated result set can explain
-    // which filter did the damage. Bands are identical for every city (they come from the same
-    // resolved filters), so the last city's values are representative.
+    // Summed scrape-stage counts across every job, so a zero or truncated result set can explain
+    // which filter did the damage. Bands are identical across jobs (same resolved filters).
     const stageTotals = { raw: 0, normalized: 0, titled: 0, afterExclude: 0, afterFilters: 0,
                           appliedRating: [null, null], appliedMaxReviews: null, appliedReviewBand: [null, null] };
+
+    const scrapeJobs = [];
     for (const { city: c, country: ctr } of cityList) {
-      const compass = await scrapeMapsViaCompass({
-        keyword, city: c, country: ctr,
+      for (const kw of keywords) scrapeJobs.push({ city: c, country: ctr, keyword: kw });
+    }
+    console.log(`[search] Dispatching ${scrapeJobs.length} scrape job(s) (${cityList.length} cit${cityList.length === 1 ? 'y' : 'ies'} × ${keywords.length} kw) · concurrency ${SCRAPE_CONCURRENCY}`);
+
+    const jobResults = await poolMap(scrapeJobs, SCRAPE_CONCURRENCY, (job) =>
+      scrapeMapsViaCompass({
+        keyword: job.keyword, city: job.city, country: job.country,
         resultsLimit: perKeywordCap,
         ratingMin: effRatingMin, ratingMax: effRatingMax, maxReviews, reviewsMin, reviewsMax,
-        excludeKeywords,
-        allowExpensive,
-      });
-      if (compass.error || compass.leads == null) {
-        const reason = compass.error || 'unknown error';
-        cityErrors.push({ city: c, reason });
-        console.error(`[search] Compass failed for "${c}, ${ctr}": ${reason}`);
-        continue;
+        excludeKeywords, allowExpensive,
+        activeRuns,   // Step 4 — register this run's ID so it can be aborted on disconnect
+      })
+    );
+
+    jobResults.forEach((compass, i) => {
+      const job = scrapeJobs[i];
+      if (!compass || compass.error || compass.leads == null) {
+        cityErrors.push({ city: job.city, keyword: job.keyword, reason: (compass && compass.error) || 'unknown error' });
+        console.error(`[search] Compass failed for "${job.keyword}" in "${job.city}, ${job.country}": ${(compass && compass.error) || 'unknown'}`);
+        return;
       }
       apifyCostUsd += compass.costUsd || 0;
       if (compass.costProvisional) anyCostProvisional = true;
@@ -389,19 +445,17 @@ async function handleSearch(src, res) {
         stageTotals.appliedMaxReviews = compass.stages.appliedMaxReviews;
         stageTotals.appliedReviewBand = compass.stages.appliedReviewBand;
       }
-      let addedFromCity = 0;
       for (const lead of compass.leads) {
         const dedupKey = lead.placeId || `${(lead.title || '').toLowerCase()}|${(lead.address || '').toLowerCase()}`;
         if (seenPlaces.has(dedupKey)) continue;
         seenPlaces.add(dedupKey);
         allLeads.push(lead);
-        addedFromCity++;
       }
-      console.log(`[search] "${c}, ${ctr}": +${addedFromCity} new (Compass returned ${compass.leads.length}) · $${(compass.costUsd || 0).toFixed(4)}`);
-    }
+    });
+    console.log(`[search] Fan-out merged → ${allLeads.length} unique leads · $${apifyCostUsd.toFixed(4)}`);
 
-    // If EVERY city failed, surface the first error (likely shared root cause, e.g. token).
-    if (allLeads.length === 0 && cityErrors.length === cityList.length) {
+    // If EVERY job failed, surface the first error (likely shared root cause, e.g. token).
+    if (allLeads.length === 0 && cityErrors.length === scrapeJobs.length) {
       const first = cityErrors[0];
       const isTokenIssue = /APIFY_API_TOKEN/i.test(first.reason) || /401|unauthorized|forbidden/i.test(first.reason);
       const friendly = isTokenIssue
@@ -416,7 +470,6 @@ async function handleSearch(src, res) {
 
     mappedResults   = allLeads;
     filteredResults = allLeads;
-    console.log(`[search] Multi-city merged → ${filteredResults.length} unique leads · $${apifyCostUsd.toFixed(4)}`);
 
     // --- Price tier filter (Part 1) ---
     // Applied AFTER Compass returns. Leads with no priceTier data pass through unless
@@ -439,35 +492,30 @@ async function handleSearch(src, res) {
 
     // Enrich contacts (skips the website scrape entirely if both email and IG toggles are OFF)
     if (enrich) {
-      console.log(`[enrich] Enriching ${filteredResults.length} leads · L2-emails=${extractEmails} L2-IG=${extractInstagram} L3=${useLayer3Enabled}`);
-      const BATCH_SIZE = 5;
-      for (let i = 0; i < filteredResults.length; i += BATCH_SIZE) {
-        const batch = filteredResults.slice(i, i + BATCH_SIZE);
-        const enrichments = await Promise.all(
-          batch.map(r => enrichLead(r.website, r.title, {
-            useLayer3: wantsLayer3,
-            extractEmails,
-            extractInstagram,
-          }))
-        );
-        enrichments.forEach((enriched, j) => {
-          const idx = i + j;
-          if (enriched.isAggregator) filteredResults[idx].isAggregator = true;
-          if (enriched.email) filteredResults[idx].email = enriched.email;
-          if (enriched.emailRole) filteredResults[idx].emailRole = enriched.emailRole;
-          if (enriched.emailPriority != null) filteredResults[idx].emailPriority = enriched.emailPriority;
-          if (enriched.emails && enriched.emails.length) filteredResults[idx].emails = enriched.emails;
-          if (enriched.email_source) filteredResults[idx].email_source = enriched.email_source;
-          if (enriched.email_confidence) filteredResults[idx].email_confidence = enriched.email_confidence;
-          if (enriched.phone && !filteredResults[idx].phone) filteredResults[idx].phone = enriched.phone;
-          if (enriched.instagram && !filteredResults[idx].instagram) {
-            filteredResults[idx].instagram = enriched.instagram;
-            filteredResults[idx].instagramSource = 'website';
-          }
-          if (enriched.booking) filteredResults[idx].booking = enriched.booking;
+      console.log(`[enrich] Enriching ${filteredResults.length} leads · L2-emails=${extractEmails} L2-IG=${extractInstagram} L3=${useLayer3Enabled} · concurrency ${ENRICH_CONCURRENCY}`);
+      // Pool of ENRICH_CONCURRENCY (20) instead of the old sequential batches of 5. The batch
+      // approach stalled the whole run on the slowest lead in each batch; a pool keeps the
+      // concurrency saturated. Layer 3's own global SMTP semaphore still bounds mail-server load.
+      await poolMap(filteredResults, ENRICH_CONCURRENCY, async (r, idx) => {
+        const enriched = await enrichLead(r.website, r.title, {
+          useLayer3: wantsLayer3,
+          extractEmails,
+          extractInstagram,
         });
-        console.log(`[enrich] Batch ${Math.floor(i / BATCH_SIZE) + 1} done (${Math.min(i + BATCH_SIZE, filteredResults.length)}/${filteredResults.length})`);
-      }
+        if (enriched.isAggregator) filteredResults[idx].isAggregator = true;
+        if (enriched.email) filteredResults[idx].email = enriched.email;
+        if (enriched.emailRole) filteredResults[idx].emailRole = enriched.emailRole;
+        if (enriched.emailPriority != null) filteredResults[idx].emailPriority = enriched.emailPriority;
+        if (enriched.emails && enriched.emails.length) filteredResults[idx].emails = enriched.emails;
+        if (enriched.email_source) filteredResults[idx].email_source = enriched.email_source;
+        if (enriched.email_confidence) filteredResults[idx].email_confidence = enriched.email_confidence;
+        if (enriched.phone && !filteredResults[idx].phone) filteredResults[idx].phone = enriched.phone;
+        if (enriched.instagram && !filteredResults[idx].instagram) {
+          filteredResults[idx].instagram = enriched.instagram;
+          filteredResults[idx].instagramSource = 'website';
+        }
+        if (enriched.booking) filteredResults[idx].booking = enriched.booking;
+      });
       const emailCount = filteredResults.filter(r => r.email).length;
       const guessCount = filteredResults.filter(r => r.email_source === 'guessed').length;
       const siteCount = filteredResults.filter(r => r.email_source === 'website').length;
@@ -487,7 +535,7 @@ async function handleSearch(src, res) {
       if (candidates.length > 0) {
         console.log(`[apify-ig] Validating + enriching ${candidates.length} IG handles via apify/instagram-profile-scraper`);
         try {
-          const igOut = await enrichInstagramViaApify(candidates);
+          const igOut = await enrichInstagramViaApify(candidates, { activeRuns });
           apifyCostUsd += igOut.costUsd || 0;
           console.log(`[apify-ig] $${(igOut.costUsd || 0).toFixed(4)} · ${igOut.populated || 0} populated · ${igOut.rejected || 0} rejected · ${igOut.missing || 0} missing`);
         } catch (e) {
@@ -632,7 +680,7 @@ async function handleSearch(src, res) {
         markAllUnverified(filteredResults, SIGNAL_STATUS.COST_CAP);
       } else {
         console.log(`[search] Layer 5 running on ${filteredResults.length} leads · est $${l5Est.toFixed(4)}`);
-        const l5 = await enrichWithReviewSignals(filteredResults);
+        const l5 = await enrichWithReviewSignals(filteredResults, { activeRuns });
         apifyCostUsd += l5.costUsd || 0;
         if (l5.costProvisional) anyCostProvisional = true;
         reviewSignalsRan = !l5.error;

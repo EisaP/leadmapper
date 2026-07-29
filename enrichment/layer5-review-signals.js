@@ -91,7 +91,9 @@ function planFetches(leads) {
 }
 
 // One Reviews Scraper run over a batch of place IDs. Returns Map<placeId, review[]>.
-async function fetchReviewBatch(placeIds, { startDate, maxReviews }) {
+// `activeRuns` (optional Set): register the run ID for abort — these are the slowest, costliest
+// runs in the app (60–113s each), so aborting an abandoned one saves the most.
+async function fetchReviewBatch(placeIds, { startDate, maxReviews, activeRuns }) {
   const input = {
     placeIds,
     reviewsSort: 'newest',
@@ -101,7 +103,16 @@ async function fetchReviewBatch(placeIds, { startDate, maxReviews }) {
   };
   if (startDate) input.reviewsStartDate = startDate;
 
-  const run = await client.actor(REVIEWS_ACTOR_ID).call(input, { timeout: 300, memory: 1024 });
+  const run = await client.actor(REVIEWS_ACTOR_ID).start(input, { timeout: 300, memory: 1024 });
+  if (activeRuns) activeRuns.add(run.id);
+  try {
+    const finished = await client.run(run.id).waitForFinish();
+    if (finished && finished.status && finished.status !== 'SUCCEEDED') {
+      throw new Error(`reviews run ${finished.status}`);
+    }
+  } finally {
+    if (activeRuns) activeRuns.delete(run.id);
+  }
   const { items } = await client.dataset(run.defaultDatasetId).listItems();
 
   const byPlace = new Map();
@@ -212,7 +223,7 @@ function classifyTriggers(lead) {
 
 // Main entry point. Mutates and returns the leads with signals attached.
 // Returns { leads, costUsd, costProvisional, runIds, error }.
-async function enrichWithReviewSignals(leads, { onProgress } = {}) {
+async function enrichWithReviewSignals(leads, { onProgress, activeRuns } = {}) {
   if (!hasToken) return { leads, costUsd: 0, costProvisional: false, runIds: [], error: 'APIFY_API_TOKEN not configured' };
   if (!Array.isArray(leads) || !leads.length) return { leads: leads || [], costUsd: 0, costProvisional: false, runIds: [] };
 
@@ -248,7 +259,7 @@ async function enrichWithReviewSignals(leads, { onProgress } = {}) {
     if (!job.leads.length) continue;
     for (const batch of chunk(job.leads.map(l => l.placeId), batchSize)) {
       try {
-        const { byPlace: got, runId } = await fetchReviewBatch(batch, { startDate: job.startDate, maxReviews: job.maxReviews });
+        const { byPlace: got, runId } = await fetchReviewBatch(batch, { startDate: job.startDate, maxReviews: job.maxReviews, activeRuns });
         runIds.push(runId);
         for (const [pid, revs] of got) byPlace.set(pid, { revs, fullHistory: !job.startDate });
         for (const pid of batch) covered.add(pid);

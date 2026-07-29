@@ -5,6 +5,7 @@
 // Whitebird Coffee → trentsvineyard class of bug).
 
 const { client, hasToken } = require('./apify-client');
+const { fetchSettledCostUsd } = require('./layer1-compass-maps');  // no cycle: layer1 doesn't import this
 
 const INSTAGRAM_ACTOR_ID = 'apify/instagram-profile-scraper';
 
@@ -42,7 +43,9 @@ function nameOverlaps(businessName, profileFullName) {
 
 // Main entry. Mutates `leads` in place AND returns { costUsd, runId, ... } for cost surfacing.
 // Never throws — on failure, leaves leads' instagram fields untouched.
-async function enrichInstagramViaApify(leads) {
+// `activeRuns` (optional Set): same abort contract as scrapeMapsViaCompass — register the run
+// ID while in flight so the caller can abort it on client disconnect/timeout (Step 4).
+async function enrichInstagramViaApify(leads, { activeRuns } = {}) {
   if (!hasToken) {
     return { costUsd: 0, runId: null, populated: 0, rejected: 0, error: 'APIFY_API_TOKEN not configured' };
   }
@@ -69,12 +72,27 @@ async function enrichInstagramViaApify(leads) {
     addParentData: false,
   };
 
+  // .start() + waitForFinish() so the run ID is known while the run is in flight and can be
+  // registered for abort (see scrapeMapsViaCompass for the rationale).
   let run;
   try {
-    run = await client.actor(INSTAGRAM_ACTOR_ID).call(input, { timeout: 180, memory: 512 });
+    run = await client.actor(INSTAGRAM_ACTOR_ID).start(input, { timeout: 180, memory: 512 });
   } catch (err) {
-    console.error(`[apify-ig] Actor call failed: ${err.message}`);
+    console.error(`[apify-ig] Actor start failed: ${err.message}`);
     return { costUsd: 0, runId: null, populated: 0, rejected: 0, error: err.message };
+  }
+  if (activeRuns) activeRuns.add(run.id);
+  try {
+    const finished = await client.run(run.id).waitForFinish();
+    if (finished && finished.status && finished.status !== 'SUCCEEDED') {
+      console.warn(`[apify-ig] Run ${run.id} ended ${finished.status}`);
+      return { costUsd: 0, runId: run.id, populated: 0, rejected: 0, error: `run ${finished.status}`, aborted: finished.status === 'ABORTED' };
+    }
+  } catch (err) {
+    console.error(`[apify-ig] waitForFinish failed for ${run.id}: ${err.message}`);
+    return { costUsd: 0, runId: run.id, populated: 0, rejected: 0, error: err.message };
+  } finally {
+    if (activeRuns) activeRuns.delete(run.id);
   }
 
   let datasetItems = [];
@@ -123,7 +141,10 @@ async function enrichInstagramViaApify(leads) {
     }
   }
 
-  const costUsd = run.usageTotalUsd != null ? run.usageTotalUsd : 0;
+  // run.usageTotalUsd from the .start() response is unpopulated; re-fetch the settled figure
+  // (same placeholder-avoidance as the scrape path).
+  const settled = await fetchSettledCostUsd(run.id);
+  const costUsd = settled.costUsd || 0;
   console.log(`[apify-ig] Run ${run.id} · $${(costUsd || 0).toFixed(4)} · ${uniqueHandles.length} handles · ${populated} populated · ${rejected} rejected (name mismatch) · ${missing} missing`);
   return { costUsd, runId: run.id, populated, rejected, missing, handles: uniqueHandles.length };
 }

@@ -272,7 +272,10 @@ const APIFY_HARD_CAP_USD = 2.0;       // Refuse any search whose estimate exceed
 const APIFY_SOFT_WARN_USD = 0.5;      // Above this, the UI shows a confirm-or-cancel modal before submitting
 
 // Main entry point. Returns { leads, costUsd, runId } — never throws; callers handle errors.
-async function scrapeMapsViaCompass({ keyword, city, country, resultsLimit, ratingMin, ratingMax, maxReviews, reviewsMin, reviewsMax, excludeKeywords, allowExpensive }) {
+// `activeRuns` (optional Set): when provided, the Apify run ID is added while the run is in
+// flight and removed when it settles. The caller aborts everything in the Set on client
+// disconnect/timeout so abandoned runs stop charging (Step 4).
+async function scrapeMapsViaCompass({ keyword, city, country, resultsLimit, ratingMin, ratingMax, maxReviews, reviewsMin, reviewsMax, excludeKeywords, allowExpensive, activeRuns }) {
   if (!hasToken) {
     return { leads: null, costUsd: 0, runId: null, error: 'APIFY_API_TOKEN not configured' };
   }
@@ -312,12 +315,30 @@ async function scrapeMapsViaCompass({ keyword, city, country, resultsLimit, rati
 
   console.log(`[apify-compass] About to call ${COMPASS_ACTOR_ID} · est cost $${estCost.toFixed(4)} · ${requestedPlaces} places · ${searchStringsArray.length} keywords`);
 
+  // .start() returns immediately with the run ID (unlike .call(), which blocks until the run
+  // finishes and only then exposes the ID). Capturing the ID up front is what makes abort
+  // possible: register it before waiting, so a disconnect mid-run has something to abort.
   let run;
   try {
-    run = await client.actor(COMPASS_ACTOR_ID).call(input, { timeout: 300, memory: 1024 });
+    run = await client.actor(COMPASS_ACTOR_ID).start(input, { timeout: 300, memory: 1024 });
   } catch (err) {
-    console.error(`[apify-compass] Actor call failed: ${err.message}`);
+    console.error(`[apify-compass] Actor start failed: ${err.message}`);
     return { leads: null, costUsd: 0, runId: null, error: err.message };
+  }
+  if (activeRuns) activeRuns.add(run.id);
+  try {
+    const finished = await client.run(run.id).waitForFinish();
+    if (finished && finished.status && finished.status !== 'SUCCEEDED') {
+      // ABORTED / FAILED / TIMED-OUT — treat as no data. Abort is the expected path when the
+      // client disconnected; nobody is listening for this return anyway.
+      console.warn(`[apify-compass] Run ${run.id} ended ${finished.status}`);
+      return { leads: null, costUsd: 0, runId: run.id, error: `run ${finished.status}`, aborted: finished.status === 'ABORTED' };
+    }
+  } catch (err) {
+    console.error(`[apify-compass] waitForFinish failed for ${run.id}: ${err.message}`);
+    return { leads: null, costUsd: 0, runId: run.id, error: err.message };
+  } finally {
+    if (activeRuns) activeRuns.delete(run.id);
   }
 
   // Cost reporting: prefer the settled figure; fall back to our own estimate if Apify hasn't

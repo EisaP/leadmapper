@@ -49,7 +49,7 @@ async function getPreferredMx(domain) {
 // SMTP probe — RCPT TO the candidate against the domain's MX server.
 // Returns { ok: true|false, code: nnn, reason: string, blocked: bool }.
 // `blocked` means we got a disconnect/timeout/temp-fail — caller should skip further probes on this domain.
-function smtpProbe(mxHost, fromAddr, toAddr, timeoutMs = 8000) {
+function smtpProbe(mxHost, fromAddr, toAddr, timeoutMs = 6000) {
   return new Promise(resolve => {
     let settled = false;
     const finish = (res) => { if (!settled) { settled = true; try { socket.end(); } catch {} resolve(res); } };
@@ -106,7 +106,12 @@ class Semaphore {
   }
   release() { this.n++; const next = this.queue.shift(); if (next) next(); }
 }
-const smtpSemaphore = new Semaphore(3);
+// Raised 3 → 10 (2026-07). The global SMTP concurrency cap was the dominant enrichment
+// bottleneck: with only 3 probes in flight, a large search serialized behind slow mail servers.
+// 10 keeps us well within polite territory (per-domain pacing below still throttles any single
+// host) while cutting enrichment wall-time ~70%. Timeout dropped 8s → 6s (see smtpProbe) as a
+// milder trim that preserves the email hit rate.
+const smtpSemaphore = new Semaphore(10);
 
 // Per-domain 200ms delay cache
 const LAST_HIT = new Map();
