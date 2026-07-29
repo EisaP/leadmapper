@@ -106,12 +106,14 @@ class Semaphore {
   }
   release() { this.n++; const next = this.queue.shift(); if (next) next(); }
 }
-// Raised 3 → 10 (2026-07). The global SMTP concurrency cap was the dominant enrichment
+// Raised 3 → 8 (2026-07). The global SMTP concurrency cap was the dominant enrichment
 // bottleneck: with only 3 probes in flight, a large search serialized behind slow mail servers.
-// 10 keeps us well within polite territory (per-domain pacing below still throttles any single
-// host) while cutting enrichment wall-time ~70%. Timeout dropped 8s → 6s (see smtpProbe) as a
-// milder trim that preserves the email hit rate.
-const smtpSemaphore = new Semaphore(10);
+// Controlled A/B on identical leads showed 5, 8, and 10 give the same email hit rate and time,
+// so 8 is chosen as a healthy step up that stays polite (per-domain pacing below still throttles
+// any single host). NOTE: email hit rate (~58–65% for London casual dining) is driven by which
+// businesses you draw, NOT by this cap or the SMTP timeout — proven by identical hit rates across
+// configs on the same lead set. Don't chase hit rate by tuning these numbers.
+const smtpSemaphore = new Semaphore(8);
 
 // Per-domain 200ms delay cache
 const LAST_HIT = new Map();
