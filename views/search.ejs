@@ -168,7 +168,7 @@
     .email-list-row .copy-btn:hover { background: var(--surface); color: var(--text-primary); }
     .email-list-row .unverified { font-size: 11px; color: var(--warn); }
 
-    /* Vertical preset chip — square-ish, 36px tall, 14px h-padding */
+    /* Chip — trigger row + suggestion chips. Square-ish, 36px tall, 14px h-padding */
     .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 400; height: 36px; padding: 0 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--white); color: var(--text-primary); cursor: pointer; transition: border-color 0.15s, color 0.15s; position: relative; }
     .chip svg { color: var(--text-primary); flex-shrink: 0; stroke-width: 1.5; }
     .chip:hover { border-color: var(--text-primary); }
@@ -452,7 +452,7 @@
       <!-- Dismissible intro banner — shown once, persisted in localStorage -->
       <div id="introBanner" class="intro-banner" style="display: none;">
         <div class="intro-banner-body">
-          <strong>Welcome to LeadHunter.</strong> Scrape Google Maps across multiple keywords, enrich contact info, and target your ICP with presets and filters. Separate keywords with commas to broaden coverage.
+          <strong>Welcome to LeadHunter.</strong> Scrape Google Maps across multiple keywords, enrich contact info, and target your ICP with filters and triggers. Separate keywords with commas — Results splits evenly across them.
         </div>
         <button type="button" class="intro-banner-close" onclick="dismissIntro()" aria-label="Dismiss intro">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -510,56 +510,22 @@
         </div>
       <% } %>
 
-      <!-- Region preset row — optional. Selecting a region fills the city field with a multi-city list -->
-      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px;">
-        <span class="ui-label" style="margin-right: 8px;">Region</span>
-        <button type="button" class="chip" data-region="gcc-hospitality" title="Major GCC cities. Best for hospitality and clinics.">GCC Hospitality</button>
-        <button type="button" class="chip" data-region="med-destinations" title="TripAdvisor-led Mediterranean destinations. High value-per-customer for hospitality.">Med Destinations</button>
-        <button type="button" class="chip" data-region="premium-eu" title="Premium European destinations with high-tier hospitality.">Premium EU</button>
-        <button type="button" class="chip" data-region="uk-tier1" title="Major UK cities and tourist towns.">UK Tier 1</button>
-        <button type="button" class="chip" data-region="us-tourist" title="US destinations where TripAdvisor drives discovery.">US Tourist Towns</button>
-      </div>
-
-      <!-- Vertical preset row — ICP-aligned bundles up front; legacy single-vertical chips under "More verticals" -->
-      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px;">
-        <span class="ui-label" style="margin-right: 8px;">Vertical</span>
-        <button type="button" class="chip" data-vertical="casual-dining" title="Casual-to-mid-tier independent restaurants with steady cover volume — the core ICP.">Casual dining</button>
-        <button type="button" class="chip" data-vertical="boutique-hotels" title="Independent and family-run hotels with 15–100 rooms.">Boutique hotels</button>
-        <button type="button" class="chip" data-vertical="private-clinics" title="Private healthcare clinics in EU/GCC. Note: US locations may have HIPAA constraints.">Private clinics</button>
-        <button type="button" class="chip" data-vertical="upscale-groups" title="Multi-location upscale restaurant groups (3–10 locations).">Upscale groups</button>
-        <!-- More verticals: legacy per-vertical chips, shown via a dropdown to keep the primary row clean -->
-        <div style="position: relative; display: inline-block;">
-          <button type="button" class="chip" id="moreVerticalsToggle" aria-expanded="false">More verticals ▾</button>
-          <div id="moreVerticalsMenu" style="display: none; position: absolute; top: calc(100% + 6px); left: 0; background: var(--white); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(10,10,10,0.08); padding: 6px; z-index: 10; min-width: 180px;">
-            <button type="button" class="chip" data-vertical="cafes" style="display: block; border: none; width: 100%; text-align: left; margin: 2px 0;">Cafes</button>
-            <button type="button" class="chip" data-vertical="restaurants" style="display: block; border: none; width: 100%; text-align: left; margin: 2px 0;">General restaurants</button>
-            <button type="button" class="chip" data-vertical="salons" style="display: block; border: none; width: 100%; text-align: left; margin: 2px 0;">Salons</button>
-            <button type="button" class="chip" data-vertical="gyms" style="display: block; border: none; width: 100%; text-align: left; margin: 2px 0;">Gyms</button>
-            <button type="button" class="chip" data-vertical="bars" style="display: block; border: none; width: 100%; text-align: left; margin: 2px 0;">Bars</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Trigger preset row — the buying signal that makes a lead warm *now*.
-           Single-select in Phase 1; the hidden field carries a comma-joined list because the
-           server already handles multiple active triggers (Phase 2 needs low rating + low
-           velocity to co-fire). Labels/tooltips/thresholds come from TRIGGER_PRESETS in
-           enrichment/layer1-compass-maps.js — one source of truth for UI and filter. -->
+      <!-- Trigger row — the buying signal that makes a lead warm *now*. The only preset-style
+           row left: vertical + region presets were removed so every narrowing is either typed
+           into the keyword/city fields or set via a visible filter. Triggers stay because they
+           encode the ICP (low rating / low volume) as an explicit, single-click choice.
+           Labels/tooltips/thresholds come from TRIGGER_PRESETS in layer1-compass-maps.js. -->
       <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 32px;">
         <span class="ui-label" style="margin-right: 8px;">Trigger <span style="color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0;">(why now)</span></span>
         <% Object.entries(TRIGGER_PRESETS).forEach(([key, t]) => { %>
           <button type="button" class="chip" data-trigger="<%= key %>" title="<%= t.tooltip %>"><%= t.label %></button>
         <% }) %>
-        <!-- Clear preset — only appears when a region, vertical, or trigger is active -->
-        <button type="button" class="chip" id="clearPresetBtn" style="display: none; color: var(--text-secondary); border-style: dashed;">Clear preset</button>
+        <!-- Clear all fields — always available; the general fix for set-only state. Resets
+             keyword/city/country/Results and every filter + trigger to a clean slate. -->
+        <button type="button" class="chip" id="clearAllBtn" style="margin-left: auto; color: var(--text-secondary); border-style: dashed;">Clear all fields</button>
       </div>
 
       <form method="GET" action="/search" id="searchForm" style="padding: 0; margin-bottom: 48px;">
-        <!-- Hidden preset state. Both fields stay empty for fully-manual searches; chip click
-             handlers populate them, and the "Clear preset" button wipes them.
-             Server uses verticalPreset/regionPreset to decide whether to drop per-keyword cap 20 → 10. -->
-        <input type="hidden" name="verticalPreset" value="<%= query?.verticalPreset || '' %>">
-        <input type="hidden" name="regionPreset" value="<%= query?.regionPreset || '' %>">
         <!-- Comma-joined list of active trigger keys. Single value in Phase 1. -->
         <input type="hidden" name="trigger" value="<%= query?.trigger || '' %>">
         <div style="margin-bottom: 32px;">
@@ -1020,37 +986,10 @@
       return `<span class="email-role-badge role-${role}" title="${label}${unvFlag} — ${title}">${label}</span>`;
     }
 
-    // ——— ICP vertical presets ———
-    // Primary 4 are the ICPs surfaced as top-level chips; the rest live in the "More verticals"
-    // dropdown for backward compatibility with the legacy per-vertical workflow.
-    // When a preset chip is clicked, the per-keyword Compass cap drops 20 → 10 (server-side, via
-    // the hidden `verticalPreset` field). Editing the keyword field afterward keeps the preset
-    // "sticky" — only clicking "Clear preset" returns the user to manual-search mode.
-    const ICP_PRESETS = {
-      'casual-dining': { keyword: 'casual dining, restaurant, bistro, trattoria, brasserie, gastropub', ratingMin: 4.0, ratingMax: 5.0, maxReviews: '', priceTier: ['$$'] },
-      'boutique-hotels':     { keyword: 'boutique hotel, independent hotel, guesthouse, B&B, inn', ratingMin: 4.0, ratingMax: 5.0, maxReviews: '', priceTier: [] },
-      'private-clinics':     { keyword: 'dental clinic, cosmetic dentist, dermatologist, aesthetic clinic, medical spa, plastic surgery', ratingMin: 4.0, ratingMax: 5.0, maxReviews: '', priceTier: [] },
-      'upscale-groups':      { keyword: 'restaurant group, restaurant collection, hospitality group', ratingMin: 4.0, ratingMax: 5.0, maxReviews: '', priceTier: ['$$$','$$$$'] },
-      // Legacy single verticals (More verticals dropdown)
-      cafes:       { keyword: 'cafes, coffee shops, espresso bars', ratingMin: 4.1, ratingMax: 4.7, maxReviews: '300', priceTier: [] },
-      restaurants: { keyword: 'restaurants, bistros, eateries',     ratingMin: 4.0, ratingMax: 4.6, maxReviews: '500', priceTier: [] },
-      salons:      { keyword: 'hair salons, barbershops',           ratingMin: 4.1, ratingMax: 4.8, maxReviews: '200', priceTier: [] },
-      gyms:        { keyword: 'gyms, fitness studios',              ratingMin: 4.0, ratingMax: 4.7, maxReviews: '300', priceTier: [] },
-      bars:        { keyword: 'bars, cocktail bars, wine bars',     ratingMin: 4.0, ratingMax: 4.7, maxReviews: '500', priceTier: [] },
-    };
-
-    // ——— Regional presets ———
-    // Cities are pipe-separated "City, Country" tokens — the backend splits on `|` and uses the
-    // per-token country for Compass's locationQuery (so GCC's mixed countries route correctly).
-    const REGION_PRESETS = {
-      'gcc-hospitality':  { cities: ['Doha, Qatar', 'Dubai, UAE', 'Abu Dhabi, UAE', 'Riyadh, Saudi Arabia', 'Manama, Bahrain', 'Kuwait City, Kuwait', 'Muscat, Oman'], state: 'UAE' },
-      'med-destinations': { cities: ['Mykonos, Greece', 'Santorini, Greece', 'Crete, Greece', 'Ibiza, Spain', 'Amalfi, Italy', 'Capri, Italy', 'Mallorca, Spain', 'Dubrovnik, Croatia'], state: 'Greece' },
-      'premium-eu':       { cities: ['Zurich, Switzerland', 'Lucerne, Switzerland', 'Florence, Italy', 'Milan, Italy', 'Vienna, Austria', 'Salzburg, Austria', 'Como, Italy', 'Saint-Tropez, France'], state: 'Italy' },
-      'uk-tier1':         { cities: ['London, UK', 'Manchester, UK', 'Edinburgh, UK', 'Bristol, UK', 'Brighton, UK', 'Bath, UK', 'York, UK', 'Oxford, UK'], state: 'UK' },
-      'us-tourist':       { cities: ['Aspen, CO, USA', 'Vail, CO, USA', 'Napa, CA, USA', 'Sedona, AZ, USA', 'Charleston, SC, USA', 'Savannah, GA, USA', 'Key West, FL, USA', 'Carmel, CA, USA'], state: 'USA' },
-    };
-
     // ——— Trigger presets ———
+    // Vertical + region presets were removed (2026-07): the keyword/city fields plus an honest
+    // Results split replace them, so every narrowing is user-typed or a visible filter. Triggers
+    // stay because they encode the ICP (low rating / low volume) as an explicit one-click choice.
     // Injected from TRIGGER_PRESETS in enrichment/layer1-compass-maps.js so the client and the
     // server-side filter read the same thresholds. Never hardcode the numbers here.
     const TRIGGER_PRESETS = <%- JSON.stringify(TRIGGER_PRESETS) %>;
@@ -1067,15 +1006,10 @@
       if (el) el.value = [...new Set(keys)].filter(k => TRIGGER_PRESETS[k]).join(',');
     }
 
+    // Reflects active trigger chips. (Named updatePresetUI historically; only triggers remain.)
     function updatePresetUI() {
-      const v = document.querySelector('[name=verticalPreset]')?.value || '';
-      const r = document.querySelector('[name=regionPreset]')?.value || '';
       const t = getActiveTriggers();
-      document.querySelectorAll('[data-vertical]').forEach(x => x.classList.toggle('active', x.dataset.vertical === v));
-      document.querySelectorAll('[data-region]').forEach(x => x.classList.toggle('active', x.dataset.region === r));
       document.querySelectorAll('[data-trigger]').forEach(x => x.classList.toggle('active', t.includes(x.dataset.trigger)));
-      const clearBtn = document.getElementById('clearPresetBtn');
-      if (clearBtn) clearBtn.style.display = (v || r || t.length) ? '' : 'none';
     }
 
     // Push the active triggers' thresholds into the visible rating inputs, so the user can see
@@ -1099,8 +1033,7 @@
         if (store.dataset.savedRating === undefined) {
           store.dataset.savedRating = JSON.stringify([minEl.value, maxEl.value]);
         }
-        // Trigger ranges override whatever the vertical preset set (verticals all set 4.0+,
-        // which would otherwise cancel out Low rating entirely).
+        // A rating-bearing trigger replaces whatever manual range was in the inputs.
         minEl.value = Math.max(...ratingBearing.map(p => p.ratingMin));
         maxEl.value = Math.min(...ratingBearing.map(p => p.ratingMax));
       } else if (store.dataset.savedRating !== undefined) {
@@ -1120,57 +1053,6 @@
       if (typeof estimateCredits === 'function') estimateCredits();
     }
 
-    function applyVerticalPreset(key) {
-      const p = ICP_PRESETS[key];
-      if (!p) return;
-      // Re-clicking the active chip deselects it, matching toggleTrigger(). Without this the
-      // vertical row was set-only: once a chip was on, there was no way back to manual mode
-      // short of "Clear preset", which also wipes the keyword/city fields.
-      if (document.querySelector('[name=verticalPreset]').value === key) {
-        document.querySelector('[name=verticalPreset]').value = '';
-        delete document.querySelector('[name=trigger]').dataset.savedRating;
-        applyTriggerFilters();
-        updatePresetUI();
-        document.getElementById('moreVerticalsMenu').style.display = 'none';
-        if (typeof estimateCredits === 'function') estimateCredits();
-        return;
-      }
-      document.querySelector('[name=keyword]').value = p.keyword;
-      document.querySelector('[name=ratingMin]').value = p.ratingMin;
-      document.querySelector('[name=ratingMax]').value = p.ratingMax;
-      document.querySelector('[name=maxReviews]').value = p.maxReviews;
-      // Sync price tier checkboxes
-      document.querySelectorAll('input[name=priceTier]').forEach(cb => { cb.checked = p.priceTier.includes(cb.value); });
-      document.querySelector('[name=verticalPreset]').value = key;
-      // This vertical's range becomes the new restore-baseline, then an active trigger
-      // outranks it in the visible inputs.
-      delete document.querySelector('[name=trigger]').dataset.savedRating;
-      applyTriggerFilters();
-      updatePresetUI();
-      document.getElementById('moreVerticalsMenu').style.display = 'none';
-      refreshPriorityHint();
-      if (typeof estimateCredits === 'function') estimateCredits();
-    }
-
-    function applyRegionPreset(key) {
-      const p = REGION_PRESETS[key];
-      if (!p) return;
-      // Same toggle-off parity as the vertical row.
-      if (document.querySelector('[name=regionPreset]').value === key) {
-        document.querySelector('[name=regionPreset]').value = '';
-        updatePresetUI();
-        if (typeof estimateCredits === 'function') estimateCredits();
-        return;
-      }
-      document.querySelector('[name=city]').value = p.cities.join(' | ');
-      document.querySelector('[name=state]').value = p.state;
-      document.querySelector('[name=regionPreset]').value = key;
-      updatePresetUI();
-      if (typeof estimateCredits === 'function') estimateCredits();
-    }
-
-    document.querySelectorAll('[data-vertical]').forEach(b => b.addEventListener('click', () => applyVerticalPreset(b.dataset.vertical)));
-    document.querySelectorAll('[data-region]').forEach(b => b.addEventListener('click', () => applyRegionPreset(b.dataset.region)));
     document.querySelectorAll('[data-trigger]').forEach(b => b.addEventListener('click', () => toggleTrigger(b.dataset.trigger)));
 
     // "Clear trigger & re-run" — from the summary line and the zero-result breakdown. Clears
@@ -1186,36 +1068,22 @@
       });
     });
 
-    document.getElementById('moreVerticalsToggle')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const m = document.getElementById('moreVerticalsMenu');
-      const isOpen = m.style.display !== 'none';
-      m.style.display = isOpen ? 'none' : 'block';
-      e.currentTarget.setAttribute('aria-expanded', String(!isOpen));
-    });
-    document.addEventListener('click', (e) => {
-      const m = document.getElementById('moreVerticalsMenu');
-      if (m && m.style.display !== 'none' && !m.contains(e.target) && e.target.id !== 'moreVerticalsToggle') {
-        m.style.display = 'none';
-      }
-    });
-
-    document.getElementById('clearPresetBtn')?.addEventListener('click', () => {
-      document.querySelector('[name=verticalPreset]').value = '';
-      document.querySelector('[name=regionPreset]').value = '';
+    // "Clear all fields" — the general fix for set-only state (what made presets/triggers hard
+    // to un-stick). One click returns the form to a clean slate: keyword/city/country cleared,
+    // Results back to the default 20, every filter to off/any, and any armed trigger removed.
+    document.getElementById('clearAllBtn')?.addEventListener('click', () => {
       setActiveTriggers([]);
       delete document.querySelector('[name=trigger]').dataset.savedRating;
-      document.querySelector('[name=keyword]').value = '';
-      document.querySelector('[name=city]').value = '';
-      document.querySelector('[name=state]').value = '';
-      document.querySelector('[name=ratingMin]').value = '';
-      document.querySelector('[name=ratingMax]').value = '';
-      document.querySelector('[name=maxReviews]').value = '';
+      ['keyword', 'excludeKeywords', 'city', 'state', 'ratingMin', 'ratingMax'].forEach(n => {
+        const el = document.querySelector(`[name=${n}]`); if (el) el.value = '';
+      });
+      const mr = document.querySelector('[name=maxReviews]'); if (mr) mr.value = '';   // '' = Any
+      const res = document.querySelector('[name=maxResults]'); if (res) res.value = '20';  // default
       document.querySelectorAll('input[name=priceTier]').forEach(cb => { cb.checked = false; });
       const eu = document.querySelector('input[name=excludeUnknownPrice]');
       if (eu) eu.checked = false;
       updatePresetUI();
-      refreshPriorityHint();
+      if (typeof refreshPriorityHint === 'function') refreshPriorityHint();
       if (typeof estimateCredits === 'function') estimateCredits();
     });
 
@@ -1287,11 +1155,13 @@
     (function restorePrefs() {
       const prefs = loadPrefs();
       if (!<%= !!query ? 'true' : 'false' %>) {
+        // Restore only "what to find" + pool size — NOT the narrowing filters. Rating, max
+        // reviews, price tier and trigger deliberately load as any/off so every search starts
+        // from the full pool and the user opts into each narrowing. This also stops a rating
+        // band saved from an old preset run from silently bleeding through on load.
         const set = (name, val) => { const el = document.querySelector(`[name=${name}]`); if (el && val) el.value = val; };
         set('keyword', prefs.keyword); set('city', prefs.city); set('state', prefs.state);
-        set('excludeKeywords', prefs.excludeKeywords);
-        set('ratingMin', prefs.ratingMin); set('ratingMax', prefs.ratingMax);
-        set('maxReviews', prefs.maxReviews); set('maxResults', prefs.maxResults);
+        set('maxResults', prefs.maxResults);
         // Restore enrichment-toggle state from prefs.
         // Defaults baked into the form markup: phone/email/IG/Layer3 = ON, igFallback/followers = OFF
         // (paid options stay OFF unless the user has explicitly turned them on at least once).
@@ -1307,13 +1177,8 @@
         setBool('extractInstagram', prefs.extractInstagram, true);
         setBool('useLayer3',        prefs.useLayer3,        true);
         setBool('enrichInstagramApify', prefs.enrichInstagramApify, true);
-        // Restore preset state + price tier checkboxes
-        if (prefs.verticalPreset) document.querySelector('[name=verticalPreset]').value = prefs.verticalPreset;
-        if (prefs.regionPreset)   document.querySelector('[name=regionPreset]').value   = prefs.regionPreset;
-        const savedTiers = String(prefs.priceTier || '').split(',').map(t => t.trim()).filter(Boolean);
-        document.querySelectorAll('input[name=priceTier]').forEach(cb => { cb.checked = savedTiers.includes(cb.value); });
-        const eu = document.querySelector('input[name=excludeUnknownPrice]');
-        if (eu) eu.checked = prefs.excludeUnknownPrice === 'on';
+        // Price tier + rating + max reviews intentionally NOT restored — they default to any/off
+        // (see note above). updatePresetUI reflects the (empty) trigger state.
         updatePresetUI();
       }
       // Restore column visibility
@@ -1342,14 +1207,14 @@
     // Recomputes whenever any toggle / Results dropdown / preset / city / keyword changes.
     // Cost = Apify Compass (cities × keywords × perKwCap places × ~$0.005/place)
     //      + Apify Instagram Profile Scraper (optional, ~$0.005 per IG-having lead).
-    // perKwCap = 10 for preset-driven searches, else the Results dropdown value (matches server).
+    // Results is the TOTAL place budget, split evenly across the comma-separated keywords
+    // (ceil so the remainder rounds up rather than dropping). Matches the server.
     function estimateCredits() {
-      const maxResults = parseInt(document.querySelector('[name=maxResults]')?.value || '100', 10) || 100;
+      const maxResults = parseInt(document.querySelector('[name=maxResults]')?.value || '20', 10) || 20;
       const apifyIg    = document.getElementById('enrichInstagramApify')?.checked;
       const cityCount = Math.max(1, (document.querySelector('[name=city]')?.value || '').split('|').map(c => c.trim()).filter(Boolean).length);
       const kwCount   = Math.max(1, (document.querySelector('[name=keyword]')?.value || '').split(',').map(k => k.trim()).filter(Boolean).length);
-      const isPresetDriven = !!(document.querySelector('[name=verticalPreset]')?.value || document.querySelector('[name=regionPreset]')?.value);
-      const perKwCap  = isPresetDriven ? 10 : maxResults;
+      const perKwCap  = Math.ceil(maxResults / kwCount);
       const totalPlaces = cityCount * kwCount * perKwCap;
       const apifyMapsLo = +(totalPlaces * 0.004).toFixed(2);
       const apifyMapsHi = +(totalPlaces * 0.007).toFixed(2);
@@ -1414,12 +1279,11 @@
       // Match the server's combined-cost math: cityCount × keywordCount × perKeywordCap × $0.003/place.
       // Server uses $0.0025 for its hard cap; the client uses $0.003 for the modal estimate so the
       // displayed number is slightly conservative (always rounds up vs actual Apify charge).
-      // perKeywordCap = 10 when a preset is active (matches server's preset-driven cap), else maxResults.
+      // perKeywordCap = Results split evenly across keywords (ceil), matching the server.
       const cityList = (fd.get('city') || '').split('|').map(c => c.trim()).filter(Boolean);
       const keywordList = (fd.get('keyword') || '').split(',').map(k => k.trim()).filter(Boolean);
-      const isPresetDriven = !!(fd.get('verticalPreset') || fd.get('regionPreset'));
       const requestedPlaces = parseInt(fd.get('maxResults') || '20', 10) || 20;
-      const perKwCap = isPresetDriven ? 10 : requestedPlaces;
+      const perKwCap = Math.ceil(requestedPlaces / Math.max(1, keywordList.length));
       const compassCalls = Math.max(1, cityList.length) * Math.max(1, keywordList.length);
       const estCost = compassCalls * perKwCap * 0.003;
 
@@ -1448,8 +1312,6 @@
         maxReviews: fd.get('maxReviews'), maxResults: fd.get('maxResults'),
         priceTier: Array.from(document.querySelectorAll('input[name=priceTier]:checked')).map(c => c.value).join(','),
         excludeUnknownPrice: fd.get('excludeUnknownPrice') ? 'on' : 'off',
-        verticalPreset: fd.get('verticalPreset') || '',
-        regionPreset:   fd.get('regionPreset')   || '',
         extractPhones:        fd.get('extractPhones')        ? 'on' : 'off',
         extractEmails:        fd.get('extractEmails')        ? 'on' : 'off',
         extractInstagram:     fd.get('extractInstagram')     ? 'on' : 'off',

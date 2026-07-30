@@ -161,7 +161,7 @@ app.get('/search', async (req, res) => handleSearch(req.query, res));
 app.post('/search', async (req, res) => handleSearch(req.body, res));
 
 async function handleSearch(src, res) {
-  const { keyword, excludeKeywords, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, useIgFallback, priceTier, excludeUnknownPrice, regionPreset, verticalPreset, trigger } = src;
+  const { keyword, excludeKeywords, city, state, maxResults, ratingMin, ratingMax, maxReviews, enrichContacts, skipEnrichment, outreachPriority, useIgFallback, priceTier, excludeUnknownPrice, trigger } = src;
 
   // --- Step 4: orphaned-run abort ---
   // Every in-flight Apify run registers its ID here. If the browser disconnects or the request
@@ -315,7 +315,7 @@ async function handleSearch(src, res) {
             afterPriceTier: results.length, afterTriggerFilter: results.length,
             reviewTriggerFilterRan: false,
           },
-          query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin: effRatingMin, ratingMax: effRatingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, priceTier: priceTiers.join(','), excludeUnknownPrice: excludeUnknown ? 'on' : 'off', regionPreset: regionPreset || '', verticalPreset: verticalPreset || '', trigger: triggerParam, searchString: cached.keyword + ' in ' + cached.city + ', ' + cached.country },
+          query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin: effRatingMin, ratingMax: effRatingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, priceTier: priceTiers.join(','), excludeUnknownPrice: excludeUnknown ? 'on' : 'off', trigger: triggerParam, searchString: cached.keyword + ' in ' + cached.city + ', ' + cached.country },
           error: null,
           cachedFrom: { ageDays: Math.round(cached.age_days), createdAt: cached.created_at, hash: paramsHash },
           recentSearches: getRecentSearches(), ...getSidebarCounts()
@@ -324,7 +324,7 @@ async function handleSearch(src, res) {
       // Default mode — show the prompt banner, no Compass call yet
       return res.render('search', {
         results: null, totalScraped: 0,
-        query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin: effRatingMin, ratingMax: effRatingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, priceTier: priceTiers.join(','), excludeUnknownPrice: excludeUnknown ? 'on' : 'off', regionPreset: regionPreset || '', verticalPreset: verticalPreset || '', trigger: triggerParam },
+        query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin: effRatingMin, ratingMax: effRatingMax, maxReviews, skipEnrichment, useLayer3: src.useLayer3 || 'on', outreachPriority, priceTier: priceTiers.join(','), excludeUnknownPrice: excludeUnknown ? 'on' : 'off', trigger: triggerParam },
         error: null,
         cachePrompt: {
           ageDays: Math.round(cached.age_days),
@@ -370,18 +370,11 @@ async function handleSearch(src, res) {
 
     const allowExpensive = String(src.allowExpensive || '') === '1';
 
-    // --- Per-keyword places cap ---
-    // Preset bundles have 4–5 partially-redundant keywords, so giving each a full `limit` floor
-    // compounds cost wastefully. When the search is preset-driven (vertical or region preset
-    // selected), drop the per-keyword cap to 10 (cheaper, still enough for dedupe overlap).
-    // Manual searches keep `limit` as the per-keyword cap.
-    //
-    // STICKY BEHAVIOUR: the preset stays "active" even if the user manually edits the keyword
-    // field after clicking a preset chip — only the "Clear preset" button (or full form reset)
-    // takes them out of preset-driven mode. This is intentional: editing a preset keyword to
-    // remove a redundant term shouldn't quietly 2× the cost.
-    const isPresetDriven = !!(verticalPreset || regionPreset);
-    const perKeywordCap = isPresetDriven ? 10 : limit;
+    // --- Per-keyword places cap: honest even split ---
+    // Results is the TOTAL place budget. Split it evenly across the comma-separated keywords,
+    // rounding UP so the remainder isn't dropped (3 kw + Results 100 → 34 each, ≈100 after
+    // dedupe). No preset cap, no per-keyword floor — Results means what it says.
+    const perKeywordCap = Math.ceil(limit / keywords.length);
 
     // --- Combined cost cap ---
     // Per-call cap lives in layer1-compass-maps.js (refuses >$2/call without allowExpensive).
@@ -396,7 +389,7 @@ async function handleSearch(src, res) {
       });
     }
 
-    console.log(`[search] Using Apify Compass · ${cityList.length} cit${cityList.length === 1 ? 'y' : 'ies'} · ${perKeywordCap}/keyword (preset-driven: ${isPresetDriven}) · est combined cost $${combinedEst.toFixed(4)}`);
+    console.log(`[search] Using Apify Compass · ${cityList.length} cit${cityList.length === 1 ? 'y' : 'ies'} · ${keywords.length} kw · ${perKeywordCap}/keyword (Results ${limit} split) · est combined cost $${combinedEst.toFixed(4)}`);
 
     // --- Concurrent Compass fan-out ---
     // One Apify run per (city, keyword) pair, dispatched through a pool capped at
@@ -766,8 +759,6 @@ async function handleSearch(src, res) {
       query: { keyword, excludeKeywords, city, state, maxResults: limit, ratingMin: effRatingMin, ratingMax: effRatingMax, maxReviews, skipEnrichment, outreachPriority,
         priceTier: priceTiers.join(','),
         excludeUnknownPrice: excludeUnknown ? 'on' : 'off',
-        regionPreset: regionPreset || '',
-        verticalPreset: verticalPreset || '',
         trigger: triggerParam,
         enableReviewSignals: layer5Toggled ? 'on' : 'off',
         extractPhones:    extractPhones    ? 'on' : 'off',
